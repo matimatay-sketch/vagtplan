@@ -3,7 +3,7 @@
 Alle tider gemmes i UTC. Kalenderdatoer (`date`) tolkes i organisationens tidszone (`Europe/Copenhagen`).
 
 ```
-organization ─┬─ membership (user ↔ rolle: admin | manager | employee)
+organization ─┬─ membership (user ↔ rettighedsprofil)
               ├─ department ─── department_manager (user)
               ├─ employee ───── employee_department (n:m, én primær)
               │      └───────── contract ──► agreement (+ local agreement) ──► agreement_version (jsonb-dokument)
@@ -14,9 +14,9 @@ organization ─┬─ membership (user ↔ rolle: admin | manager | employee)
 | Tabel                 | Nøglefelter                                                                                                                                                                                            | Bemærkning                                                                                         |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `organization`        | `name`, `timezone`                                                                                                                                                                                     | Oprettes via RPC `create_organization`, som gør brugeren til admin og laver en standard-lønperiode |
-| `membership`          | `organization_id`, `user_id`, `role`                                                                                                                                                                   | En admin kan ikke degradere eller slette sig selv                                                  |
+| `membership`          | `organization_id`, `user_id`, `profile_id`                                                                                                                                                             | Den sidste administrator (ejer-profil) kan ikke flyttes eller fjernes                              |
 | `department`          | `name`, `archived_at`                                                                                                                                                                                  | Navnet er unikt pr. organisation blandt aktive afdelinger                                          |
-| `department_manager`  | `department_id`, `user_id`                                                                                                                                                                             | Giver kun ret, når brugeren også har rollen `manager`                                              |
+| `department_manager`  | `department_id`, `user_id`                                                                                                                                                                             | Brugeren er ansvarlig for afdelingen (afgrænser omfanget "egne afdelinger")                        |
 | `employee`            | `employee_number`, `birth_date`, `school_obligated`, `school_obligation_ends_on`, `user_id`                                                                                                            | Intet CPR. Medarbejdernummeret er eksportnøgle                                                     |
 | `employee_department` | `employee_id`, `department_id`, `is_primary`                                                                                                                                                           | Højst én primær afdeling                                                                           |
 | `agreement`           | `key`, `kind` (base/agreement/local), `is_example`, `organization_id` (null = systemskabelon)                                                                                                          |                                                                                                    |
@@ -31,16 +31,31 @@ organization ─┬─ membership (user ↔ rolle: admin | manager | employee)
 - `organization_id` kan ikke ændres (trigger).
 - En kontrakts overenskomst skal være en systemskabelon eller tilhøre samme organisation. En lokalaftale skal være af typen `local` i samme organisation (trigger).
 
-## RLS-overblik
+## Rettighedsprofiler
 
-| Tabel               | admin                   | manager                                                          | employee           |
-| ------------------- | ----------------------- | ---------------------------------------------------------------- | ------------------ |
-| organization        | læs/ret                 | læs                                                              | læs                |
-| department          | alt                     | læs                                                              | læs                |
-| employee            | alt i org               | medarbejdere i egne afdelinger (opret via RPC `create_employee`) | kun sig selv (læs) |
-| contract            | alt i org               | medarbejdere i egne afdelinger                                   | egne (læs)         |
-| agreement(+version) | org's egne + skabeloner | læs                                                              | læs                |
-| pay_period_group    | alt                     | læs                                                              | læs                |
-| audit_log           | læs                     | –                                                                | –                  |
+```
+permission (katalog: nøgle + tilladte omfang)
+permission_profile (pr. organisation; én låst ejer-profil)
+  └─ permission_grant (profil × rettighed → omfang: departments | organization)
+membership ──► permission_profile
+department_manager = "ansvarlig for afdeling" – afgrænser omfanget "departments"
+organization.default_profile_id = profil ved invitation
+```
+
+| Rettighed                             | Omfang   | Giver                                                        |
+| ------------------------------------- | -------- | ------------------------------------------------------------ |
+| `employees.view`                      | afd./org | se medarbejdere                                              |
+| `employees.manage`                    | afd./org | oprette og redigere medarbejdere og deres afdelinger         |
+| `employees.invite`                    | afd./org | invitere til login (med standardprofilen)                    |
+| `contracts.view` / `contracts.manage` | afd./org | se / oprette og afslutte kontrakter                          |
+| `departments.manage`                  | org      | afdelinger                                                   |
+| `users.manage`                        | org      | brugere, profiler, ansvarlige, valg af profil ved invitation |
+| `settings.manage`                     | org      | lønperioder, standardprofil                                  |
+| `agreements.manage`                   | org      | overenskomster                                               |
+| `audit.view`                          | org      | audit-log                                                    |
+
+Alle kan altid se deres egne stamdata og kontrakter. Ejer-profilen kan ikke ændres eller arkiveres, og den sidste bruger med ejer-profilen kan ikke flyttes eller fjernes.
+
+Helpers (security definer): `private.permission_scope(org, perm)`, `private.can_on_department(perm, dept)` og `private.can_on_employee(perm, emp)`. Til appen: `public.my_permissions(org)`, `public.can_on_employee(perm, emp)`, `public.organization_members(org)` og `public.set_profile_grants(profile, jsonb)` (atomisk, kører med kalderens RLS).
 
 Testet i `supabase/tests/*.sql` (pgTAP).

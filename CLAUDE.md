@@ -1,6 +1,6 @@
 # CLAUDE.md – projektregler
 
-Dansk vagtplan- og tidsregistreringssystem (Quinyx/Planday-klasse), konfigurerbart til danske overenskomster uden kodeændringer. Planen ligger i `docs/plan.md`.
+**Turnus** – dansk vagtplan- og tidsregistreringssystem (Quinyx/Planday-klasse), konfigurerbart til danske overenskomster uden kodeændringer. Planen ligger i `docs/plan.md`.
 
 ## Uomgængelige regler
 
@@ -11,13 +11,15 @@ Dansk vagtplan- og tidsregistreringssystem (Quinyx/Planday-klasse), konfigurerba
 5. **Penge** er heltal i øre, og **varighed** er heltal i minutter. Ingen floats i løn.
 6. **Intet slettes hårdt** fra forretningstabeller (brug `archived_at` / rettelser med spor). Alle tabeller har audit-trigger.
 7. **Multi-tenant:** Alle forretningstabeller har `organization_id`. RLS er den egentlige adgangskontrol, og UI-tjek er kun bekvemmelighed.
-8. **Sprog:** Al UI-tekst er på dansk og ligger i `apps/web/src/lib/i18n/da.ts`. Kode, identifiers og commits er på engelsk.
+8. **Adgang styres af rettighedsprofiler, ikke faste roller.** Tjek altid en _rettighed_ (fx `employees.manage`), aldrig et profilnavn. En ny funktion får en ny nøgle i `public.permission` (migration) og i `apps/web/src/lib/permissions.ts` (en test holder dem i sync). Omfanget er `departments` (de afdelinger, brugeren er ansvarlig for) eller `organization`. Ejer-profilen (`is_owner`) er låst og skal have nye rettigheder tildelt i den migration, der tilføjer dem.
+9. **Sprog:** Al UI-tekst er på dansk og ligger i `apps/web/src/lib/i18n/da.ts`. Kode, identifiers og commits er på engelsk.
 
 ## Struktur
 
 ```
 apps/web                 Next.js 16 (App Router), Tailwind v4, shadcn-stil komponenter i src/components/ui
-  src/lib/auth.ts        Data Access Layer: getAppContext()/requireContext(roles)
+  src/lib/auth.ts        Data Access Layer: getAppContext()/requireContext(anyOfPermissions)/canIn()
+  src/lib/permissions.ts Rettighedskatalog (labels, tilladte omfang, implikationer)
   src/lib/actions/*      Server actions (Zod-validering → RLS-klient → revalidate)
   src/lib/forms/*        Zod-skemaer til formularer (unit-testet)
   src/lib/domain/*       Rene hjælpefunktioner (datoer, alder, kontrakter, lønperioder)
@@ -41,7 +43,7 @@ pnpm check               # format, lint, typecheck, unit tests – kør før HVE
 pnpm e2e                 # Playwright (starter dev-server hvis den ikke kører)
 ```
 
-Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@demo.dk` (leder af Butik), `medarbejder@demo.dk` og `ung@demo.dk` (16 år).
+Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@demo.dk` (profilen Leder, ansvarlig for Butik), `medarbejder@demo.dk` og `ung@demo.dk` (16 år).
 
 ## Arbejdsform
 
@@ -57,4 +59,4 @@ Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@
 - **Radix DropdownMenu:** En `<form>` inde i et menupunkt bliver ikke sendt, fordi menuen lukker først. Kald en server action fra `onSelect`.
 - **Supabase-embeds** med sammensatte FK'er kræver eksplicit FK-navn, fx `department!employee_department_organization_id_department_id_fkey (name)`.
 - **shadcn-registret** (ui.shadcn.com) er blokeret i sandkassen. Komponenter skrives i shadcn-stil i `src/components/ui`.
-- **Service-klienten** (`createServiceClient`) må kun bruges efter at brugerens egen RLS-klient har bevist adgang (se `inviteEmployeeAction`).
+- **Service-klienten** (`createServiceClient`) må kun bruges efter at databasen har bekræftet brugerens rettighed (`rpc("can_on_employee", …)`, se `inviteEmployeeAction`).

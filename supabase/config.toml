@@ -261,7 +261,7 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.email.template.invite]
-subject = "Du er inviteret til vagtplanen"
+subject = "Du er inviteret til Turnus"
 content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]

@@ -1,22 +1,22 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
 > Status: **godkendt 2026-11-12**, med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
-> Domænereglerne følger skillen `dansk-arbejdstid`. Arbejdsnavn: _Vagtplan_ (navnet besluttes i fase 1).
+> Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
 
-| #   | Emne                  | Beslutning                                                                                                                                                   |
-| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Repo                  | `matimatay-sketch/vagtplan`, monorepo med pnpm workspaces                                                                                                    |
-| 2   | Supabase              | Kun lokalt i Docker (`supabase start`) i MVP. Alt schema ligger som migrations i repoet, så et hostet projekt senere bare er `supabase db push`              |
-| 3   | Multi-tenant          | Ja. `organization_id` på alle forretningstabeller, og RLS håndhæver det                                                                                      |
-| 4   | Roller                | admin, leder, medarbejder. Ledere ser og redigerer kun deres egne afdelinger. En medarbejder kan være i flere afdelinger. Kun admin redigerer overenskomster |
-| 5   | Eksempel-overenskomst | Fiktiv `eksempel-detail` med pladsholder-satser, tydeligt markeret som fiktiv i både data og UI                                                              |
-| 6   | Juridiske huller      | Udelades indtil videre (se §6). Referenceperioden for 48-timersreglen er 4 måneder                                                                           |
-| 7   | Lønperioder           | Uge, 14 dage og måned kan vælges pr. **lønperiode-gruppe** (fx timelønnede 14 dage og funktionærer måned). Begge lønformer understøttes: time- og månedsløn  |
-| 8   | Stempling             | PWA med offline-kø (IndexedDB) og synkronisering. Kilde og enhed gemmes. Geofence og kiosk kommer efter MVP                                                  |
-| 9   | Persondata            | Intet CPR-nummer. Fødselsdato, flag for undervisningspligt og medarbejdernummer (bruges som eksportnøgle)                                                    |
-| 10  | Navn og farver        | Brainstormes i fase 1. Fri, ikke-kedelig farvepalet med tokens til lys og mørk tilstand                                                                      |
+| #   | Emne                  | Beslutning                                                                                                                                                                                                                                                    |
+| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Repo                  | `matimatay-sketch/vagtplan`, monorepo med pnpm workspaces                                                                                                                                                                                                     |
+| 2   | Supabase              | Kun lokalt i Docker (`supabase start`) i MVP. Alt schema ligger som migrations i repoet, så et hostet projekt senere bare er `supabase db push`                                                                                                               |
+| 3   | Multi-tenant          | Ja. `organization_id` på alle forretningstabeller, og RLS håndhæver det                                                                                                                                                                                       |
+| 4   | Adgang                | **Konfigurerbare rettighedsprofiler** pr. kunde (besluttet 2026-11-12). Hver rettighed har omfanget "egne afdelinger" eller "hele virksomheden". Standardprofilerne er Administrator (låst), Leder og Medarbejder. En medarbejder kan være i flere afdelinger |
+| 5   | Eksempel-overenskomst | Fiktiv `eksempel-detail` med pladsholder-satser, tydeligt markeret som fiktiv i både data og UI                                                                                                                                                               |
+| 6   | Juridiske huller      | Udelades indtil videre (se §6). Referenceperioden for 48-timersreglen er 4 måneder                                                                                                                                                                            |
+| 7   | Lønperioder           | Uge, 14 dage og måned kan vælges pr. **lønperiode-gruppe** (fx timelønnede 14 dage og funktionærer måned). Begge lønformer understøttes: time- og månedsløn                                                                                                   |
+| 8   | Stempling             | PWA med offline-kø (IndexedDB) og synkronisering. Kilde og enhed gemmes. Geofence og kiosk kommer efter MVP                                                                                                                                                   |
+| 9   | Persondata            | Intet CPR-nummer. Fødselsdato, flag for undervisningspligt og medarbejdernummer (bruges som eksportnøgle)                                                                                                                                                     |
+| 10  | Navn og farver        | **Turnus**, visuel retning "Nattevagt" (blækblå og koral). Besluttet 2026-11-12                                                                                                                                                                               |
 
 ## 1. Arkitektur
 

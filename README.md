@@ -1,4 +1,4 @@
-# Vagtplan (arbejdsnavn)
+# Turnus
 
 Dansk vagtplanlægning og tidsregistrering, som kan konfigureres til de fleste danske overenskomster uden kodeændringer.
 
