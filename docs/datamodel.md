@@ -42,17 +42,17 @@ department_manager = "ansvarlig for afdeling" – afgrænser omfanget "departmen
 organization.default_profile_id = profil ved invitation
 ```
 
-| Rettighed                             | Omfang   | Giver                                                        |
-| ------------------------------------- | -------- | ------------------------------------------------------------ |
-| `employees.view`                      | afd./org | se medarbejdere                                              |
-| `employees.manage`                    | afd./org | oprette og redigere medarbejdere og deres afdelinger         |
-| `employees.invite`                    | afd./org | invitere til login (med standardprofilen)                    |
-| `contracts.view` / `contracts.manage` | afd./org | se / oprette og afslutte kontrakter                          |
-| `departments.manage`                  | org      | afdelinger                                                   |
-| `users.manage`                        | org      | brugere, profiler, ansvarlige, valg af profil ved invitation |
-| `settings.manage`                     | org      | lønperioder, standardprofil                                  |
-| `agreements.manage`                   | org      | overenskomster                                               |
-| `audit.view`                          | org      | audit-log                                                    |
+| Rettighed                             | Omfang   | Giver                                                                                                 |
+| ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `employees.view`                      | afd./org | se medarbejdere                                                                                       |
+| `employees.manage`                    | afd./org | oprette og redigere medarbejdere og deres afdelinger                                                  |
+| `employees.invite`                    | afd./org | invitere til login (med standardprofilen)                                                             |
+| `contracts.view` / `contracts.manage` | afd./org | se / oprette og afslutte kontrakter                                                                   |
+| `departments.manage`                  | org      | afdelinger                                                                                            |
+| `users.manage`                        | org      | profiler, en brugers profil og ansvarsafdelinger (på medarbejdersiden), valg af profil ved invitation |
+| `settings.manage`                     | org      | lønperioder, standardprofil                                                                           |
+| `agreements.manage`                   | org      | overenskomster                                                                                        |
+| `audit.view`                          | org      | audit-log                                                                                             |
 
 Alle kan altid se deres egne stamdata og kontrakter. Ejer-profilen kan ikke ændres eller arkiveres, og den sidste bruger med ejer-profilen kan ikke flyttes eller fjernes.
 
