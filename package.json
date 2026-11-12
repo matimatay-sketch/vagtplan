@@ -17,7 +17,7 @@
     "db:start": "supabase start -x studio,imgproxy,vector,logflare,edge-runtime,storage-api",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db",
+    "db:test": "supabase db reset && supabase test db",
     "db:types": "supabase gen types typescript --local --schema public > apps/web/src/lib/supabase/database.types.ts",
     "e2e": "pnpm --filter web e2e"
   },
