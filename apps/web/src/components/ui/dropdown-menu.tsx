@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils";
 const DropdownMenu = P.Root;
 const DropdownMenuTrigger = P.Trigger;
 
-function DropdownMenuContent({ className, sideOffset = 6, ...props }: React.ComponentProps<typeof P.Content>) {
+function DropdownMenuContent({
+  className,
+  sideOffset = 6,
+  ...props
+}: React.ComponentProps<typeof P.Content>) {
   return (
     <P.Portal>
       <P.Content
@@ -32,10 +36,19 @@ function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof P
   );
 }
 function DropdownMenuLabel({ className, ...props }: React.ComponentProps<typeof P.Label>) {
-  return <P.Label className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)} {...props} />;
+  return (
+    <P.Label className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)} {...props} />
+  );
 }
 function DropdownMenuSeparator({ className, ...props }: React.ComponentProps<typeof P.Separator>) {
   return <P.Separator className={cn("-mx-1 my-1 h-px bg-border", className)} {...props} />;
 }
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator };
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+};

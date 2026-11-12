@@ -25,7 +25,7 @@ const profileNameSchema = z.object({
 
 function revalidateAccess() {
   revalidatePath("/indstillinger/rettigheder");
-  revalidatePath("/indstillinger/brugere");
+  revalidatePath("/medarbejdere", "layout");
 }
 
 export async function createProfileAction(

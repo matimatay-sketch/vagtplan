@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, users } from "./helpers";
 
+const MADS = "/medarbejdere/50000000-0000-0000-0000-000000000002";
+const ANNE = "/medarbejdere/50000000-0000-0000-0000-000000000005";
+
 async function setLederContracts(page: Page, scope: "Ingen" | "Egne afdelinger") {
   await page.goto("/indstillinger/rettigheder");
   await page.getByRole("link", { name: /^Leder/ }).click();
@@ -50,14 +53,13 @@ test("admin creates a custom profile and assigns it to a user", async ({ page })
   await matrix.getByRole("button", { name: "Gem rettigheder" }).click();
   await expect(matrix.getByText("Gemt")).toBeVisible();
 
-  await page.goto("/indstillinger/brugere");
-  const row = page.getByTestId("member-medarbejder@demo.dk");
-  await row.getByRole("combobox").selectOption({ label: name });
-  await row.getByRole("button", { name: "Gem" }).click();
+  await page.goto(MADS);
+  await page.getByTestId("member-profile-form").getByRole("combobox").selectOption({ label: name });
+  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
   await page.reload();
-  await expect(page.getByTestId("member-medarbejder@demo.dk").locator("option:checked")).toHaveText(
-    name,
-  );
+  await expect(
+    page.getByTestId("member-profile-form").getByRole("combobox").locator("option:checked"),
+  ).toHaveText(name);
   await page.context().clearCookies();
 
   // The employee now sees all employees, including Café.
@@ -69,22 +71,38 @@ test("admin creates a custom profile and assigns it to a user", async ({ page })
 
   // Restore.
   await login(page, users.admin);
-  await page.goto("/indstillinger/brugere");
-  const restored = page.getByTestId("member-medarbejder@demo.dk");
-  await restored.getByRole("combobox").selectOption({ label: "Medarbejder" });
-  await restored.getByRole("button", { name: "Gem" }).click();
-  await expect(restored.getByRole("button", { name: "Gem" })).toBeEnabled();
+  await page.goto(MADS);
+  await page
+    .getByTestId("member-profile-form")
+    .getByRole("combobox")
+    .selectOption({ label: "Medarbejder" });
+  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
   await page.reload();
-  await expect(page.getByTestId("member-medarbejder@demo.dk").locator("option:checked")).toHaveText(
-    "Medarbejder",
-  );
+  await expect(
+    page.getByTestId("member-profile-form").getByRole("combobox").locator("option:checked"),
+  ).toHaveText("Medarbejder");
 });
 
 test("the last administrator cannot be demoted", async ({ page }) => {
   await login(page, users.admin);
-  await page.goto("/indstillinger/brugere");
-  const row = page.getByTestId("member-admin@demo.dk");
-  await row.getByRole("combobox").selectOption({ label: "Medarbejder" });
-  await row.getByRole("button", { name: "Gem" }).click();
-  await expect(row.getByText("Der skal altid være mindst én administrator.")).toBeVisible();
+  await page.goto(ANNE);
+  await page
+    .getByTestId("member-profile-form")
+    .getByRole("combobox")
+    .selectOption({ label: "Medarbejder" });
+  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
+  await expect(page.getByText("Der skal altid være mindst én administrator.")).toBeVisible();
+});
+
+test("admin makes an employee responsible for a department on the employee page", async ({
+  page,
+}) => {
+  await login(page, users.admin);
+  await page.goto(MADS);
+  const box = page.getByTestId("responsible-departments");
+  await box.getByLabel("Gør ansvarlig for afdeling").selectOption({ label: "Café" });
+  await box.getByRole("button", { name: "Gem" }).click();
+  await expect(box.getByText("Café")).toBeVisible();
+  await box.getByRole("button", { name: "Fjern Café" }).click();
+  await expect(box.getByText("Ingen")).toBeVisible();
 });

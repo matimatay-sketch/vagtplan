@@ -9,7 +9,8 @@ const alertVariants = cva(
       variant: {
         default: "bg-card text-card-foreground",
         warning: "border-warning/50 bg-warning/10 [&>svg]:text-warning-foreground",
-        destructive: "border-destructive/40 bg-destructive/5 text-destructive [&>svg]:text-destructive",
+        destructive:
+          "border-destructive/40 bg-destructive/5 text-destructive [&>svg]:text-destructive",
         signal: "border-signal/40 bg-accent text-accent-foreground",
       },
     },
@@ -17,14 +18,33 @@ const alertVariants = cva(
   },
 );
 
-function Alert({ className, variant, ...props }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
-  return <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />;
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  return (
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="alert-title" className={cn("col-start-2 font-medium", className)} {...props} />;
+  return (
+    <div data-slot="alert-title" className={cn("col-start-2 font-medium", className)} {...props} />
+  );
 }
 function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="alert-description" className={cn("col-start-2 text-sm opacity-90", className)} {...props} />;
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn("col-start-2 text-sm opacity-90", className)}
+      {...props}
+    />
+  );
 }
 
 export { Alert, AlertTitle, AlertDescription };

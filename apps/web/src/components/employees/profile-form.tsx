@@ -19,7 +19,7 @@ export function MemberProfileForm({
 }) {
   const [state, action] = useActionState(changeMemberProfileAction, initialActionState);
   return (
-    <form action={action} className="grid gap-1.5">
+    <form action={action} className="grid gap-1.5" data-testid="member-profile-form">
       <input type="hidden" name="user_id" value={userId} />
       <div className="flex gap-2">
         <div className="min-w-40 flex-1">

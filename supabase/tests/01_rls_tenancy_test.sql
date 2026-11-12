@@ -37,7 +37,7 @@ select is((select first_name from public.employee where id = :'mads'), 'Mads', '
 
 -- ---------------------------------------------------------------- admin
 select tests.login_as(:'admin');
-select is((select count(*) from public.employee), 4::bigint, 'admin sees all 4 employees');
+select is((select count(*) from public.employee), 5::bigint, 'admin sees all 5 employees');
 select is((select count(*) from public.contract), 4::bigint, 'admin sees all contracts');
 select lives_ok(
   format($$insert into public.department (organization_id, name) values (%L, 'Lager')$$, :'org1'),

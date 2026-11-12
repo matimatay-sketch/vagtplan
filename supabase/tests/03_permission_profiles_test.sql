@@ -71,7 +71,7 @@ select is((select count(*) from public.contract where employee_id = :'mads'), 1:
 select tests.logout();
 
 select tests.login_as(:'emp');
-select is((select count(*) from public.employee), 4::bigint, 'employee with employees.view (org) sees everyone');
+select is((select count(*) from public.employee), 5::bigint, 'employee with employees.view (org) sees everyone');
 select is((select count(*) from public.contract), 1::bigint, 'but still only their own contract');
 select tests.logout();
 

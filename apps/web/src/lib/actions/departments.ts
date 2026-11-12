@@ -54,7 +54,7 @@ export async function archiveDepartmentAction(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
-  revalidatePath("/indstillinger/brugere");
+  revalidatePath("/medarbejdere", "layout");
 }
 
 export async function addManagerAction(formData: FormData) {
@@ -68,7 +68,7 @@ export async function addManagerAction(formData: FormData) {
     .insert({ ...input, organization_id: ctx.organization.id });
   if (error && error.code !== "23505") throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
-  revalidatePath("/indstillinger/brugere");
+  revalidatePath("/medarbejdere", "layout");
 }
 
 export async function removeManagerAction(formData: FormData) {
@@ -84,5 +84,5 @@ export async function removeManagerAction(formData: FormData) {
     .eq("user_id", input.user_id);
   if (error) throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
-  revalidatePath("/indstillinger/brugere");
+  revalidatePath("/medarbejdere", "layout");
 }

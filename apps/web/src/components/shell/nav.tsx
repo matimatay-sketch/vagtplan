@@ -6,7 +6,6 @@ import {
   FileText,
   KeyRound,
   LayoutDashboard,
-  UserCog,
   UserRound,
   Users,
   Wallet,
@@ -38,7 +37,6 @@ const items: Item[] = [
     icon: Building2,
     anyOf: ["departments.manage", "users.manage", "employees.view"],
   },
-  { href: "/indstillinger/brugere", label: da.nav.users, icon: UserCog, anyOf: ["users.manage"] },
   {
     href: "/indstillinger/rettigheder",
     label: da.nav.profiles,

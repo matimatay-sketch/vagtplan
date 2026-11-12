@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import { EndContractForm, NewContractForm } from "@/components/employees/contract-forms";
 import { InviteForm } from "@/components/employees/invite-form";
+import { MemberProfileForm } from "@/components/employees/profile-form";
+import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
 import { canIn, requireContext } from "@/lib/auth";
 import { hasOrg, type PermissionKey } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -76,6 +78,26 @@ export default async function EmployeePage({
       .is("archived_at", null)
       .order("name"),
   ]);
+
+  // Login: permission profile and departments the user is responsible for.
+  const canManageUsers = hasOrg(ctx.permissions, "users.manage");
+  const [{ data: membership }, { data: responsible }] = employee.user_id
+    ? await Promise.all([
+        supabase
+          .from("membership")
+          .select("profile_id")
+          .eq("organization_id", ctx.organization.id)
+          .eq("user_id", employee.user_id)
+          .maybeSingle(),
+        supabase
+          .from("department_manager")
+          .select("department_id")
+          .eq("organization_id", ctx.organization.id)
+          .eq("user_id", employee.user_id),
+      ])
+    : [{ data: null }, { data: [] as { department_id: string }[] }];
+  const profileName = profiles?.find((p) => p.id === membership?.profile_id)?.name ?? null;
+  const responsibleIds = (responsible ?? []).map((r) => r.department_id);
 
   const age = ageOn(employee.birth_date, today);
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
@@ -311,6 +333,77 @@ export default async function EmployeePage({
               <CardTitle>{t.login}</CardTitle>
               <CardDescription>{employee.user_id ? t.hasLogin : t.noLogin}</CardDescription>
             </CardHeader>
+            {employee.user_id ? (
+              <CardContent className="grid gap-5">
+                {canManageUsers && membership ? (
+                  <div className="grid gap-1.5">
+                    <div className="text-xs text-muted-foreground">{t.inviteProfile}</div>
+                    <MemberProfileForm
+                      userId={employee.user_id}
+                      profileId={membership.profile_id}
+                      profiles={profiles ?? []}
+                      label={t.inviteProfile}
+                    />
+                  </div>
+                ) : profileName ? (
+                  <div className="text-sm">
+                    <div className="text-xs text-muted-foreground">{t.inviteProfile}</div>
+                    {profileName}
+                  </div>
+                ) : null}
+                <div className="grid gap-2" data-testid="responsible-departments">
+                  <div className="text-xs text-muted-foreground">{da.users.departments}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {responsibleIds.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">
+                        {da.users.noDepartments}
+                      </span>
+                    ) : null}
+                    {responsibleIds.map((id) => (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded-full bg-accent py-1 pr-1 pl-3 text-sm text-accent-foreground"
+                      >
+                        {deptName.get(id)}
+                        {canManageUsers ? (
+                          <form action={removeManagerAction}>
+                            <input type="hidden" name="department_id" value={id} />
+                            <input type="hidden" name="user_id" value={employee.user_id!} />
+                            <button
+                              type="submit"
+                              aria-label={`${da.departments.removeManager} ${deptName.get(id)}`}
+                              className="grid size-5 place-items-center rounded-full hover:bg-black/10"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </form>
+                        ) : null}
+                      </span>
+                    ))}
+                  </div>
+                  {canManageUsers &&
+                  (departments ?? []).some((d) => !responsibleIds.includes(d.id)) ? (
+                    <form action={addManagerAction} className="flex gap-2">
+                      <input type="hidden" name="user_id" value={employee.user_id} />
+                      <div className="flex-1">
+                        <NativeSelect name="department_id" aria-label={da.users.addResponsible}>
+                          {(departments ?? [])
+                            .filter((d) => !responsibleIds.includes(d.id))
+                            .map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                        </NativeSelect>
+                      </div>
+                      <Button type="submit" variant="outline">
+                        {da.common.save}
+                      </Button>
+                    </form>
+                  ) : null}
+                </div>
+              </CardContent>
+            ) : null}
             {employee.user_id || !canInvite ? null : (
               <CardContent>
                 <InviteForm
