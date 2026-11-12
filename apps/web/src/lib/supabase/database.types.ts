@@ -191,14 +191,14 @@ isOneToOne: false
                   ]
                 },"membership": {
                   Row: {
-                    "created_at": string,"id": string,"organization_id": string,"role": Database["public"]['Enums']["app_role"],"user_id": string
+                    "created_at": string,"id": string,"organization_id": string,"profile_id": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"organization_id": string,"role": Database["public"]['Enums']["app_role"],"user_id": string
+                    "created_at"?: string,"id"?: string,"organization_id": string,"profile_id": string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"organization_id"?: string,"role"?: Database["public"]['Enums']["app_role"],"user_id"?: string
+                    "created_at"?: string,"id"?: string,"organization_id"?: string,"profile_id"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -207,21 +207,33 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "organization"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "membership_profile_fk"
+      columns: ["organization_id","profile_id"]
+isOneToOne: false
+      referencedRelation: "permission_profile"
+      referencedColumns: ["organization_id","id"]
     }
                   ]
                 },"organization": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"timezone": string
+                    "created_at": string,"default_profile_id": string | null,"id": string,"name": string,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"timezone"?: string
+                    "created_at"?: string,"default_profile_id"?: string | null,"id"?: string,"name": string,"timezone"?: string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"timezone"?: string
+                    "created_at"?: string,"default_profile_id"?: string | null,"id"?: string,"name"?: string,"timezone"?: string
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "organization_default_profile_fk"
+      columns: ["id","default_profile_id"]
+isOneToOne: false
+      referencedRelation: "permission_profile"
+      referencedColumns: ["organization_id","id"]
+    }
                   ]
                 },"pay_period_group": {
                   Row: {
@@ -243,21 +255,97 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"permission": {
+                  Row: {
+                    "allowed_scopes": (Database["public"]['Enums']["permission_scope"])[],"key": string,"sort_order": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "allowed_scopes": (Database["public"]['Enums']["permission_scope"])[],"key": string,"sort_order": number
+                  }
+                  Update: {
+                    "allowed_scopes"?: (Database["public"]['Enums']["permission_scope"])[],"key"?: string,"sort_order"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"permission_grant": {
+                  Row: {
+                    "organization_id": string,"permission": string,"profile_id": string,"scope": Database["public"]['Enums']["permission_scope"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "organization_id": string,"permission": string,"profile_id": string,"scope": Database["public"]['Enums']["permission_scope"]
+                  }
+                  Update: {
+                    "organization_id"?: string,"permission"?: string,"profile_id"?: string,"scope"?: Database["public"]['Enums']["permission_scope"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "permission_grant_organization_id_profile_id_fkey"
+      columns: ["organization_id","profile_id"]
+isOneToOne: false
+      referencedRelation: "permission_profile"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "permission_grant_permission_fkey"
+      columns: ["permission"]
+isOneToOne: false
+      referencedRelation: "permission"
+      referencedColumns: ["key"]
+    }
+                  ]
+                },"permission_profile": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"description": string | null,"id": string,"is_owner": boolean,"name": string,"organization_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_owner"?: boolean,"name": string,"organization_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_owner"?: boolean,"name"?: string,"organization_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "permission_profile_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "create_employee":
+            "can_on_employee":
+{ Args: { "emp": string,"perm": string }; Returns: boolean
+                           },
+"create_employee":
 { Args: { "p_birth_date": string,"p_department_id": string,"p_email"?: string,"p_employee_number": string,"p_first_name": string,"p_hired_on"?: string,"p_last_name": string,"p_phone"?: string,"p_school_obligated"?: boolean,"p_school_obligation_ends_on"?: string }; Returns: string
                            },
 "create_organization":
 { Args: { "org_name": string }; Returns: string
+                           },
+"my_permissions":
+{ Args: { "org": string }; Returns: {
+              "permission": string,"scope": Database["public"]['Enums']["permission_scope"]
+            }[]
+                           },
+"organization_members":
+{ Args: { "org": string }; Returns: {
+              "email": string,"employee_id": string,"first_name": string,"last_name": string,"profile_id": string,"user_id": string
+            }[]
+                           },
+"set_profile_grants":
+{ Args: { "p_grants": Json,"p_profile_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            "agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","app_role": "admin"|"manager"|"employee","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly"
+            "agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","permission_scope": "departments"|"organization"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -373,7 +461,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"app_role": ["admin", "manager", "employee"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"]
+            "agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"permission_scope": ["departments", "organization"]
           }
         }
 } as const

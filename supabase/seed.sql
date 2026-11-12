@@ -56,11 +56,19 @@ end $$;
 insert into public.organization (id, name) values
   ('20000000-0000-0000-0000-000000000001', 'Demo Købmand ApS');
 
-insert into public.membership (organization_id, user_id, role) values
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin'),
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'manager'),
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'employee'),
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 'employee');
+-- Default permission profiles: Administrator (owner), Leder, Medarbejder.
+do $$
+declare
+  p record;
+  org uuid := '20000000-0000-0000-0000-000000000001';
+begin
+  select * into p from private.create_default_profiles(org);
+  insert into public.membership (organization_id, user_id, profile_id) values
+    (org, '10000000-0000-0000-0000-000000000001', p.owner_id),
+    (org, '10000000-0000-0000-0000-000000000002', p.manager_id),
+    (org, '10000000-0000-0000-0000-000000000003', p.employee_id),
+    (org, '10000000-0000-0000-0000-000000000004', p.employee_id);
+end $$;
 
 insert into public.department (id, organization_id, name) values
   ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Butik'),
