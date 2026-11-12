@@ -557,7 +557,12 @@ export function validateSchedule(input: ValidateInput): ValidationResult {
 // ---------------------------------------------------------------------------
 // Weekendfri: at least N free weekends in each window of M weeks.
 // ---------------------------------------------------------------------------
-function checkWeekendOff(ctx: EngineContext, work: WorkInterval[], from: IsoDate, to: IsoDate): Violation[] {
+function checkWeekendOff(
+  ctx: EngineContext,
+  work: WorkInterval[],
+  from: IsoDate,
+  to: IsoDate,
+): Violation[] {
   const out: Violation[] = [];
   const working = work.filter((i) => i.kind !== "on_call");
   const weeks = [...new Set(datesBetween(from, to).map(isoWeekStart))];
@@ -569,7 +574,10 @@ function checkWeekendOff(ctx: EngineContext, work: WorkInterval[], from: IsoDate
     const worked: IsoDate[] = [];
     for (let k = per_weeks - 1; k >= 0; k--) {
       const sat = addDays(ws, 5 - 7 * k);
-      const weekend = { start: startOfLocalDay(sat, ctx.tz), end: startOfLocalDay(addDays(sat, 2), ctx.tz) };
+      const weekend = {
+        start: startOfLocalDay(sat, ctx.tz),
+        end: startOfLocalDay(addDays(sat, 2), ctx.tz),
+      };
       if (working.some((i) => overlap(i, weekend) > 0)) worked.push(sat);
       else free++;
     }
@@ -580,7 +588,12 @@ function checkWeekendOff(ctx: EngineContext, work: WorkInterval[], from: IsoDate
           date: ws,
           intervalIds: [],
           message: `Kun ${free} fri weekend${free === 1 ? "" : "er"} i de seneste ${per_weeks} uger (krav: ${weekends_off}).`,
-          details: { freeWeekends: free, requiredWeekends: weekends_off, perWeeks: per_weeks, workedWeekends: worked.join(",") },
+          details: {
+            freeWeekends: free,
+            requiredWeekends: weekends_off,
+            perWeeks: per_weeks,
+            workedWeekends: worked.join(","),
+          },
         }),
       );
     }
@@ -591,7 +604,11 @@ function checkWeekendOff(ctx: EngineContext, work: WorkInterval[], from: IsoDate
 // ---------------------------------------------------------------------------
 // Varsling: is a new/changed/removed shift published early enough?
 // ---------------------------------------------------------------------------
-export type NoticeItem = { intervalId: string; start: string; change: "new" | "changed" | "removed" };
+export type NoticeItem = {
+  intervalId: string;
+  start: string;
+  change: "new" | "changed" | "removed";
+};
 
 export type NoticeInput = EngineInput & {
   /** The moment of publishing (ISO instant). */
@@ -609,7 +626,9 @@ export function validateNotice(input: NoticeInput): ValidationResult {
     const rule = ctx.rule(date, "notice");
     if (!rule) continue;
     const hours =
-      item.change === "new" ? rule.params.publish_notice_days * 24 : rule.params.change_notice_hours;
+      item.change === "new"
+        ? rule.params.publish_notice_days * 24
+        : rule.params.change_notice_hours;
     if (hours === null) continue;
     const ahead = (start - now) / (60 * MINUTE);
     if (ahead >= hours) continue;
@@ -622,7 +641,11 @@ export function validateNotice(input: NoticeInput): ValidationResult {
           item.change === "new"
             ? `Vagten offentliggøres med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} varsel (krav: ${rule.params.publish_notice_days} dage).`
             : `Ændringen varsles med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} (krav: ${hours} timer).`,
-        details: { requiredHours: hours, hoursAhead: Math.round(ahead * 10) / 10, change: item.change },
+        details: {
+          requiredHours: hours,
+          hoursAhead: Math.round(ahead * 10) / 10,
+          change: item.change,
+        },
       }),
     );
   }

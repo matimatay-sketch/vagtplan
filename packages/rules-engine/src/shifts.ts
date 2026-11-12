@@ -22,8 +22,20 @@ export function shiftsToIntervals(shifts: readonly PlannedShift[]): WorkInterval
     const brk = (s.breakMinutes ?? 0) * MINUTE;
     const breaks =
       brk > 0 && brk < end - start
-        ? [{ start: formatInstant(start + (end - start - brk) / 2), end: formatInstant(start + (end - start + brk) / 2) }]
+        ? [
+            {
+              start: formatInstant(start + (end - start - brk) / 2),
+              end: formatInstant(start + (end - start + brk) / 2),
+            },
+          ]
         : [];
-    return { id: s.id, start: s.start, end: s.end, kind: s.kind ?? "work", breaks, plannedShiftId: s.id };
+    return {
+      id: s.id,
+      start: s.start,
+      end: s.end,
+      kind: s.kind ?? "work",
+      breaks,
+      plannedShiftId: s.id,
+    };
   });
 }
