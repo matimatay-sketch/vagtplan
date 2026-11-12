@@ -2,8 +2,8 @@
 -- Passwords for all demo users: Demo1234!
 
 -- ---------------------------------------------------------------------------
--- System agreement templates (organization_id null). Documents are filled in
--- properly in phase 2; for now they are minimal placeholders.
+-- System agreement templates (organization_id null) with fixed ids for the demo
+-- contracts. Their documents come from packages/agreements (seeds/agreements.sql).
 -- ---------------------------------------------------------------------------
 insert into public.agreement (id, organization_id, key, name, kind, is_example, description) values
   ('a0000000-0000-0000-0000-000000000001', null, 'basis-dk', 'Basis DK (lovens minimum)', 'base', false,
@@ -11,11 +11,8 @@ insert into public.agreement (id, organization_id, key, name, kind, is_example, 
   ('a0000000-0000-0000-0000-000000000002', null, 'eksempel-detail', 'EKSEMPEL – Detail (fiktiv)', 'agreement', true,
    'FIKTIV eksempel-overenskomst. Satser og regler er pladsholdere og må ikke bruges til løn.');
 
-insert into public.agreement_version (agreement_id, version, valid_from, status, published_at, document) values
-  ('a0000000-0000-0000-0000-000000000001', 1, '2024-07-01', 'published', now(),
-   '{"id":"basis-dk","name":"Basis DK (lovens minimum)","version":1,"inherits_from":null,"rules":[]}'),
-  ('a0000000-0000-0000-0000-000000000002', 1, '2026-01-01', 'published', now(),
-   '{"id":"eksempel-detail","name":"EKSEMPEL – Detail (fiktiv)","version":1,"inherits_from":"basis-dk","rules":[]}');
+-- Versions with the full documents are loaded from seeds/agreements.sql (generated).
+
 
 -- ---------------------------------------------------------------------------
 -- Demo users
