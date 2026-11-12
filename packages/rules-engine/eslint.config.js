@@ -20,6 +20,8 @@ export default tseslint.config(
   ...tseslint.configs.strict,
   {
     rules: {
+      // noUncheckedIndexedAccess is on; `!` after explicit length checks is fine.
+      "@typescript-eslint/no-non-null-assertion": "off",
       "no-restricted-imports": [
         "error",
         {
