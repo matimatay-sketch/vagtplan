@@ -18,7 +18,7 @@ import { da } from "@/lib/i18n/da";
 export const metadata: Metadata = { title: "Overenskomster" };
 
 export default async function AgreementsPage() {
-  await requireContext(["admin"]);
+  await requireContext(["agreements.manage"]);
   const supabase = await createClient();
   const t = da.agreements;
   const { data: agreements } = await supabase

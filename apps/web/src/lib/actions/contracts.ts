@@ -14,7 +14,7 @@ export async function createContractAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["contracts.manage"]);
   const values = formValues(formData);
   const employeeId = z.guid().safeParse(values.employee_id);
   const parsed = contractSchema.safeParse(values);
@@ -33,7 +33,7 @@ export async function endContractAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireContext(["admin", "manager"]);
+  await requireContext(["contracts.manage"]);
   const values = formValues(formData);
   const input = z
     .object({

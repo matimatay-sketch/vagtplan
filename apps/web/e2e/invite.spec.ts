@@ -31,8 +31,8 @@ test("manager invites an employee who can then sign in via the link", async ({ p
   await page.getByRole("button", { name: "Opret" }).click();
   await expect(page.getByRole("heading", { name: /Inge Inviteret/ })).toBeVisible();
 
-  // Managers can only invite with the employee role (no role picker).
-  await expect(page.getByLabel("Rolle")).toHaveCount(0);
+  // Without users.manage the default profile is used (no profile picker).
+  await expect(page.getByLabel("Rettighedsprofil")).toHaveCount(0);
   await page.getByRole("button", { name: "Invitér til login" }).click();
   await expect(page.getByText("Har login")).toBeVisible();
 

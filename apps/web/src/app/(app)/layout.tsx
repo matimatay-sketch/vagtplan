@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const menu = {
     name,
     email: ctx.email,
-    role: ctx.role,
+    profileName: ctx.profile.name,
     organizationId: ctx.organization.id,
     organizations: ctx.organizations,
   };
@@ -28,7 +28,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             </p>
           </div>
           <div className="mt-6 flex-1">
-            <Nav role={ctx.role} hasEmployee={Boolean(ctx.employee)} variant="sidebar" />
+            <Nav
+              permissions={ctx.permissions}
+              hasEmployee={Boolean(ctx.employee)}
+              variant="sidebar"
+            />
           </div>
           <div className="border-t border-sidebar-border pt-3">
             <UserMenu {...menu} tone="dark" />
@@ -44,7 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 py-1.5 backdrop-blur md:hidden">
-          <Nav role={ctx.role} hasEmployee={Boolean(ctx.employee)} variant="bar" />
+          <Nav permissions={ctx.permissions} hasEmployee={Boolean(ctx.employee)} variant="bar" />
         </div>
       </div>
     </div>

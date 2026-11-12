@@ -10,7 +10,7 @@ export async function createPayPeriodGroupAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin"]);
+  const ctx = await requireContext(["settings.manage"]);
   const values = formValues(formData);
   const parsed = payPeriodGroupSchema.safeParse(values);
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };

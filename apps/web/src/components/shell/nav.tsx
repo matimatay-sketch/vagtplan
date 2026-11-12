@@ -1,54 +1,78 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, FileText, LayoutDashboard, UserRound, Users, Wallet } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  KeyRound,
+  LayoutDashboard,
+  UserCog,
+  UserRound,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
-import type { AppRole } from "@/lib/auth";
+import { hasAny, type PermissionKey, type Permissions } from "@/lib/permissions";
 
-const items = [
+type Item = {
+  href: string;
+  label: string;
+  icon: typeof Users;
+  /** Visible when the user has any of these permissions; empty = everyone. */
+  anyOf: readonly PermissionKey[];
+  needsEmployee?: boolean;
+};
+
+const items: Item[] = [
+  { href: "/oversigt", label: da.nav.overview, icon: LayoutDashboard, anyOf: [] },
   {
-    href: "/oversigt",
-    label: da.nav.overview,
-    icon: LayoutDashboard,
-    roles: ["admin", "manager", "employee"],
+    href: "/medarbejdere",
+    label: da.nav.employees,
+    icon: Users,
+    anyOf: ["employees.view", "employees.manage"],
   },
-  { href: "/medarbejdere", label: da.nav.employees, icon: Users, roles: ["admin", "manager"] },
-  { href: "/afdelinger", label: da.nav.departments, icon: Building2, roles: ["admin", "manager"] },
+  {
+    href: "/afdelinger",
+    label: da.nav.departments,
+    icon: Building2,
+    anyOf: ["departments.manage", "users.manage", "employees.view"],
+  },
+  { href: "/indstillinger/brugere", label: da.nav.users, icon: UserCog, anyOf: ["users.manage"] },
+  {
+    href: "/indstillinger/rettigheder",
+    label: da.nav.profiles,
+    icon: KeyRound,
+    anyOf: ["users.manage"],
+  },
   {
     href: "/indstillinger/lonperioder",
     label: da.nav.payPeriodGroups,
     icon: Wallet,
-    roles: ["admin"],
+    anyOf: ["settings.manage"],
   },
   {
     href: "/indstillinger/overenskomster",
     label: da.nav.agreements,
     icon: FileText,
-    roles: ["admin"],
+    anyOf: ["agreements.manage"],
   },
-  {
-    href: "/profil",
-    label: da.nav.myProfile,
-    icon: UserRound,
-    roles: ["admin", "manager", "employee"],
-    needsEmployee: true,
-  },
-] as const;
+  { href: "/profil", label: da.nav.myProfile, icon: UserRound, anyOf: [], needsEmployee: true },
+];
 
 export function Nav({
-  role,
+  permissions,
   hasEmployee,
   variant,
 }: {
-  role: AppRole;
+  permissions: Permissions;
   hasEmployee: boolean;
   variant: "sidebar" | "bar";
 }) {
   const pathname = usePathname();
   const visible = items.filter(
     (i) =>
-      (i.roles as readonly AppRole[]).includes(role) && (!("needsEmployee" in i) || hasEmployee),
+      (i.anyOf.length === 0 || hasAny(permissions, i.anyOf)) && (!i.needsEmployee || hasEmployee),
   );
   return (
     <nav

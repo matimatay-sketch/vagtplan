@@ -15,7 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { requireContext } from "@/lib/auth";
+import { canIn, requireContext } from "@/lib/auth";
+import { hasAny } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { ageOn } from "@/lib/domain/age";
 import { findActiveContract } from "@/lib/domain/contracts";
@@ -26,7 +27,7 @@ import { da } from "@/lib/i18n/da";
 export const metadata: Metadata = { title: "Medarbejdere" };
 
 export default async function EmployeesPage({ searchParams }: PageProps<"/medarbejdere">) {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.view", "employees.manage"]);
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
   const dept = typeof sp.afdeling === "string" ? sp.afdeling : "";
@@ -59,7 +60,7 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/medarb
     return true;
   });
   const selectableDepts = (departments ?? []).filter(
-    (d) => ctx.role === "admin" || ctx.managedDepartmentIds.includes(d.id),
+    (d) => canIn(ctx, "employees.view", d.id) || canIn(ctx, "employees.manage", d.id),
   );
 
   return (
@@ -68,11 +69,13 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/medarb
         title={t.title}
         lead={t.lead}
         actions={
-          <Button asChild variant="signal">
-            <Link href="/medarbejdere/ny">
-              <Plus /> {t.new}
-            </Link>
-          </Button>
+          hasAny(ctx.permissions, ["employees.manage"]) ? (
+            <Button asChild variant="signal">
+              <Link href="/medarbejdere/ny">
+                <Plus /> {t.new}
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <form className="mb-4 flex flex-col gap-2 sm:flex-row" role="search">

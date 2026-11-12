@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmployeeForm } from "@/components/employees/employee-form";
-import { requireContext } from "@/lib/auth";
+import { canIn, requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createEmployeeAction } from "@/lib/actions/employees";
 import { da } from "@/lib/i18n/da";
@@ -12,7 +12,7 @@ import { da } from "@/lib/i18n/da";
 export const metadata: Metadata = { title: "Ny medarbejder" };
 
 export default async function NewEmployeePage() {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.manage"]);
   const supabase = await createClient();
   const { data } = await supabase
     .from("department")
@@ -20,9 +20,7 @@ export default async function NewEmployeePage() {
     .eq("organization_id", ctx.organization.id)
     .is("archived_at", null)
     .order("name");
-  const departments = (data ?? []).filter(
-    (d) => ctx.role === "admin" || ctx.managedDepartmentIds.includes(d.id),
-  );
+  const departments = (data ?? []).filter((d) => canIn(ctx, "employees.manage", d.id));
   return (
     <>
       <PageHeader

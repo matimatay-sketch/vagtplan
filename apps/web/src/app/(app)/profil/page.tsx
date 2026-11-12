@@ -41,7 +41,7 @@ export default async function ProfilePage() {
   ];
   return (
     <>
-      <PageHeader title={fullName(me)} lead={da.roles[ctx.role]} />
+      <PageHeader title={fullName(me)} lead={ctx.profile.name} />
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>

@@ -13,7 +13,7 @@ import { PayPeriodGroupForm } from "./form";
 export const metadata: Metadata = { title: "Lønperioder" };
 
 export default async function PayPeriodGroupsPage() {
-  const ctx = await requireContext(["admin"]);
+  const ctx = await requireContext(["settings.manage"]);
   const supabase = await createClient();
   const today = todayIn(ctx.organization.timezone);
   const t = da.payPeriodGroups;

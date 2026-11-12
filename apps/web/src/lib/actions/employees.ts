@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireContext } from "@/lib/auth";
+import { hasOrg } from "@/lib/permissions";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { employeeSchema, fieldErrors } from "@/lib/forms/schemas";
 import { todayIn } from "@/lib/domain/civil-date";
@@ -16,7 +17,7 @@ export async function createEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const parsed = employeeSchema(todayIn(ctx.organization.timezone)).safeParse(values);
   const dept = z.guid().safeParse(values.department_id);
@@ -52,7 +53,7 @@ export async function updateEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const id = z.guid().safeParse(values.id);
   const parsed = employeeSchema(todayIn(ctx.organization.timezone)).safeParse(values);
@@ -71,7 +72,7 @@ export async function updateEmployeeAction(
 }
 
 export async function addEmployeeDepartmentAction(formData: FormData) {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.manage"]);
   const input = z
     .object({ employee_id: z.guid(), department_id: z.guid() })
     .parse(Object.fromEntries(formData));
@@ -84,7 +85,7 @@ export async function addEmployeeDepartmentAction(formData: FormData) {
 }
 
 export async function removeEmployeeDepartmentAction(formData: FormData) {
-  await requireContext(["admin", "manager"]);
+  await requireContext(["employees.manage"]);
   const input = z
     .object({ employee_id: z.guid(), department_id: z.guid() })
     .parse(Object.fromEntries(formData));
@@ -100,33 +101,56 @@ export async function removeEmployeeDepartmentAction(formData: FormData) {
 
 const inviteSchema = z.object({
   employee_id: z.guid(),
-  role: z.enum(["employee", "manager", "admin"]),
+  profile_id: z.guid().optional(),
 });
 
 /**
  * Sends an invitation e-mail and links the new auth user to the employee.
- * Uses the service client only after the caller's own RLS-scoped client has
- * proven they can manage this employee.
+ * The service client is used only after the database has confirmed that the
+ * caller holds employees.invite for this employee. Choosing a profile other
+ * than the organization's default requires users.manage.
  */
 export async function inviteEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.invite"]);
   const parsed = inviteSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { message: da.common.unknownError };
-  const { employee_id, role } = parsed.data;
-  if (role !== "employee" && ctx.role !== "admin") return { message: da.common.notAllowed };
+  const { employee_id } = parsed.data;
 
   const supabase = await createClient();
-  const { data: employee } = await supabase
-    .from("employee")
-    .select("id, email, user_id, organization_id")
-    .eq("id", employee_id)
-    .maybeSingle();
-  if (!employee) return { message: da.common.notAllowed };
+  const [{ data: allowed }, { data: employee }, { data: org }] = await Promise.all([
+    supabase.rpc("can_on_employee", { perm: "employees.invite", emp: employee_id }),
+    supabase
+      .from("employee")
+      .select("id, email, user_id, organization_id")
+      .eq("id", employee_id)
+      .maybeSingle(),
+    supabase
+      .from("organization")
+      .select("default_profile_id")
+      .eq("id", ctx.organization.id)
+      .single(),
+  ]);
+  if (!allowed || !employee) return { message: da.common.notAllowed };
   if (!employee.email) return { message: da.employees.inviteNeedsEmail };
   if (employee.user_id) return { message: da.employees.hasLogin };
+
+  let profileId = org?.default_profile_id ?? null;
+  if (parsed.data.profile_id && parsed.data.profile_id !== profileId) {
+    if (!hasOrg(ctx.permissions, "users.manage")) return { message: da.common.notAllowed };
+    const { data: profile } = await supabase
+      .from("permission_profile")
+      .select("id")
+      .eq("id", parsed.data.profile_id)
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .maybeSingle();
+    if (!profile) return { message: da.common.notAllowed };
+    profileId = profile.id;
+  }
+  if (!profileId) return { message: da.common.unknownError };
 
   const service = createServiceClient();
   const { data: invited, error } = await service.auth.admin.inviteUserByEmail(employee.email, {
@@ -138,7 +162,7 @@ export async function inviteEmployeeAction(
   const { error: memberError } = await service
     .from("membership")
     .upsert(
-      { organization_id: employee.organization_id, user_id: userId, role },
+      { organization_id: employee.organization_id, user_id: userId, profile_id: profileId },
       { onConflict: "organization_id,user_id" },
     );
   const { error: linkError } = await service

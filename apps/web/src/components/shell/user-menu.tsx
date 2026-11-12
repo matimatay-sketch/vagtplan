@@ -11,19 +11,18 @@ import {
 import { useTransition } from "react";
 import { signOutAction, switchOrganizationAction } from "@/lib/actions/auth";
 import { da } from "@/lib/i18n/da";
-import type { AppRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type Props = {
   name: string;
   email: string;
-  role: AppRole;
+  profileName: string;
   organizationId: string;
-  organizations: { id: string; name: string; role: AppRole }[];
+  organizations: { id: string; name: string }[];
   tone: "dark" | "light";
 };
 
-export function UserMenu({ name, email, role, organizationId, organizations, tone }: Props) {
+export function UserMenu({ name, email, profileName, organizationId, organizations, tone }: Props) {
   const [, startTransition] = useTransition();
   const initials = name
     .split(/\s+/)
@@ -55,7 +54,7 @@ export function UserMenu({ name, email, role, organizationId, organizations, ton
               tone === "dark" ? "text-sidebar-muted" : "text-muted-foreground",
             )}
           >
-            {da.roles[role]}
+            {profileName}
           </span>
         </span>
         <ChevronsUpDown className="size-4 opacity-60" />

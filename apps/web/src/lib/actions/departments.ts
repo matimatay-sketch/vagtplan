@@ -13,7 +13,7 @@ export async function createDepartmentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await requireContext(["admin"]);
+  const ctx = await requireContext(["departments.manage"]);
   const values = formValues(formData);
   const parsed = departmentSchema.safeParse(values);
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
@@ -30,7 +30,7 @@ export async function renameDepartmentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireContext(["admin"]);
+  await requireContext(["departments.manage"]);
   const values = formValues(formData);
   const parsed = departmentSchema.extend({ id: z.guid() }).safeParse(values);
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
@@ -45,7 +45,7 @@ export async function renameDepartmentAction(
 }
 
 export async function archiveDepartmentAction(formData: FormData) {
-  await requireContext(["admin"]);
+  await requireContext(["departments.manage"]);
   const id = z.guid().parse(formData.get("id"));
   const supabase = await createClient();
   const { error } = await supabase
@@ -54,10 +54,11 @@ export async function archiveDepartmentAction(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
+  revalidatePath("/indstillinger/brugere");
 }
 
 export async function addManagerAction(formData: FormData) {
-  const ctx = await requireContext(["admin"]);
+  const ctx = await requireContext(["users.manage"]);
   const input = z
     .object({ department_id: z.guid(), user_id: z.guid() })
     .parse(Object.fromEntries(formData));
@@ -67,10 +68,11 @@ export async function addManagerAction(formData: FormData) {
     .insert({ ...input, organization_id: ctx.organization.id });
   if (error && error.code !== "23505") throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
+  revalidatePath("/indstillinger/brugere");
 }
 
 export async function removeManagerAction(formData: FormData) {
-  await requireContext(["admin"]);
+  await requireContext(["users.manage"]);
   const input = z
     .object({ department_id: z.guid(), user_id: z.guid() })
     .parse(Object.fromEntries(formData));
@@ -82,4 +84,5 @@ export async function removeManagerAction(formData: FormData) {
     .eq("user_id", input.user_id);
   if (error) throw new Error(dbErrorMessage(error));
   revalidatePath("/afdelinger");
+  revalidatePath("/indstillinger/brugere");
 }

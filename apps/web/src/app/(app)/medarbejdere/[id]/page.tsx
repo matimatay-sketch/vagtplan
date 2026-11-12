@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import { EndContractForm, NewContractForm } from "@/components/employees/contract-forms";
 import { InviteForm } from "@/components/employees/invite-form";
-import { requireContext } from "@/lib/auth";
+import { canIn, requireContext } from "@/lib/auth";
+import { hasOrg, type PermissionKey } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import {
   addEmployeeDepartmentAction,
@@ -32,7 +33,7 @@ export default async function EmployeePage({
   params,
   searchParams,
 }: PageProps<"/medarbejdere/[id]">) {
-  const ctx = await requireContext(["admin", "manager"]);
+  const ctx = await requireContext(["employees.view", "employees.manage"]);
   const { id } = await params;
   const { ny } = await searchParams;
   const supabase = await createClient();
@@ -49,30 +50,47 @@ export default async function EmployeePage({
     .maybeSingle();
   if (!employee) notFound();
 
-  const [{ data: departments }, { data: agreements }, { data: payPeriodGroups }] =
-    await Promise.all([
-      supabase
-        .from("department")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      supabase.from("agreement").select("id, name, kind, is_example").order("name"),
-      supabase
-        .from("pay_period_group")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-    ]);
+  const [
+    { data: departments },
+    { data: agreements },
+    { data: payPeriodGroups },
+    { data: profiles },
+  ] = await Promise.all([
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase.from("agreement").select("id, name, kind, is_example").order("name"),
+    supabase
+      .from("pay_period_group")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("permission_profile")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+  ]);
 
   const age = ageOn(employee.birth_date, today);
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const assignable = (departments ?? []).filter(
     (d) =>
       !employee.employee_department.some((l) => l.department_id === d.id) &&
-      (ctx.role === "admin" || ctx.managedDepartmentIds.includes(d.id)),
+      canIn(ctx, "employees.manage", d.id),
   );
+  const employeeDepts = employee.employee_department.map((l) => l.department_id);
+  const canOnEmployee = (key: PermissionKey) =>
+    hasOrg(ctx.permissions, key) || employeeDepts.some((d) => canIn(ctx, key, d));
+  const canEdit = canOnEmployee("employees.manage");
+  const canSeeContracts = canOnEmployee("contracts.view") || canOnEmployee("contracts.manage");
+  const canManageContracts = canOnEmployee("contracts.manage");
+  const canInvite = canOnEmployee("employees.invite");
   const contracts = [...employee.contract].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
   const latest = contracts[0];
   const defaultValidFrom = latest?.valid_to ? addDays(latest.valid_to, 1) : today;
@@ -107,101 +125,121 @@ export default async function EmployeePage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="grid gap-6">
-          <Card id="kontrakter">
-            <CardHeader>
-              <CardTitle>{t.contracts}</CardTitle>
-              <CardDescription>
-                Et skift af overenskomst eller timetal midt i en periode er to kontrakter.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {contracts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t.noContracts}</p>
-              ) : null}
-              {contracts.map((c) => {
-                const status = contractStatus(c, today);
-                return (
-                  <div key={c.id} className="rounded-lg border p-4" data-testid="contract">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={statusVariant[status]}>{tc[status]}</Badge>
-                        <span className="font-medium">{c.agreement?.name}</span>
-                        {c.agreement?.is_example ? (
-                          <Badge variant="warning">{tc.exampleWarning}</Badge>
-                        ) : null}
-                        {c.local ? <Badge variant="secondary">+ {c.local.name}</Badge> : null}
+          {canSeeContracts ? (
+            <Card id="kontrakter">
+              <CardHeader>
+                <CardTitle>{t.contracts}</CardTitle>
+                <CardDescription>
+                  Et skift af overenskomst eller timetal midt i en periode er to kontrakter.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                {contracts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.noContracts}</p>
+                ) : null}
+                {contracts.map((c) => {
+                  const status = contractStatus(c, today);
+                  return (
+                    <div key={c.id} className="rounded-lg border p-4" data-testid="contract">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={statusVariant[status]}>{tc[status]}</Badge>
+                          <span className="font-medium">{c.agreement?.name}</span>
+                          {c.agreement?.is_example ? (
+                            <Badge variant="warning">{tc.exampleWarning}</Badge>
+                          ) : null}
+                          {c.local ? <Badge variant="secondary">+ {c.local.name}</Badge> : null}
+                        </div>
+                        <span className="text-sm text-muted-foreground tabular">
+                          {formatDate(c.valid_from)} –{" "}
+                          {c.valid_to ? formatDate(c.valid_to) : tc.openEnded}
+                        </span>
                       </div>
-                      <span className="text-sm text-muted-foreground tabular">
-                        {formatDate(c.valid_from)} –{" "}
-                        {c.valid_to ? formatDate(c.valid_to) : tc.openEnded}
-                      </span>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+                        <div>
+                          <dt className="text-xs text-muted-foreground">{tc.weeklyHours}</dt>
+                          <dd className="tabular">{formatWeeklyHours(c.weekly_norm_minutes)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">{tc.payForm}</dt>
+                          <dd>{tc.payForms[c.pay_form]}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">{tc.payPeriodGroup}</dt>
+                          <dd>{c.pay_period_group?.name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">{tc.staffGroup}</dt>
+                          <dd>{c.staff_group ?? "–"}</dd>
+                        </div>
+                      </dl>
+                      {c.exempt_from_registration ? (
+                        <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+                          <ShieldCheck className="mt-0.5 size-4 shrink-0" />
+                          {tc.exempt}: {c.exemption_reason}
+                        </p>
+                      ) : null}
+                      {canManageContracts && status !== "ended" && !c.valid_to ? (
+                        <div className="mt-4 border-t pt-4">
+                          <EndContractForm
+                            contractId={c.id}
+                            employeeId={employee.id}
+                            defaultDate={today}
+                          />
+                        </div>
+                      ) : null}
                     </div>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-                      <div>
-                        <dt className="text-xs text-muted-foreground">{tc.weeklyHours}</dt>
-                        <dd className="tabular">{formatWeeklyHours(c.weekly_norm_minutes)}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">{tc.payForm}</dt>
-                        <dd>{tc.payForms[c.pay_form]}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">{tc.payPeriodGroup}</dt>
-                        <dd>{c.pay_period_group?.name}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">{tc.staffGroup}</dt>
-                        <dd>{c.staff_group ?? "–"}</dd>
-                      </div>
-                    </dl>
-                    {c.exempt_from_registration ? (
-                      <p className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
-                        <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-                        {tc.exempt}: {c.exemption_reason}
-                      </p>
-                    ) : null}
-                    {status !== "ended" && !c.valid_to ? (
-                      <div className="mt-4 border-t pt-4">
-                        <EndContractForm
-                          contractId={c.id}
-                          employeeId={employee.id}
-                          defaultDate={today}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-              <details
-                className="group rounded-lg border border-dashed p-4"
-                open={contracts.length === 0}
-              >
-                <summary className="cursor-pointer text-sm font-medium text-primary">
-                  {tc.new}
-                </summary>
-                <div className="mt-4">
-                  <NewContractForm
-                    employeeId={employee.id}
-                    agreements={(agreements ?? []).filter((a) => a.kind !== "local")}
-                    localAgreements={(agreements ?? []).filter((a) => a.kind === "local")}
-                    payPeriodGroups={payPeriodGroups ?? []}
-                    defaultValidFrom={defaultValidFrom}
-                  />
-                </div>
-              </details>
-            </CardContent>
-          </Card>
+                  );
+                })}
+                {canManageContracts ? (
+                  <details
+                    className="group rounded-lg border border-dashed p-4"
+                    open={contracts.length === 0}
+                  >
+                    <summary className="cursor-pointer text-sm font-medium text-primary">
+                      {tc.new}
+                    </summary>
+                    <div className="mt-4">
+                      <NewContractForm
+                        employeeId={employee.id}
+                        agreements={(agreements ?? []).filter((a) => a.kind !== "local")}
+                        localAgreements={(agreements ?? []).filter((a) => a.kind === "local")}
+                        payPeriodGroups={payPeriodGroups ?? []}
+                        defaultValidFrom={defaultValidFrom}
+                      />
+                    </div>
+                  </details>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>
               <CardTitle>Stamdata</CardTitle>
             </CardHeader>
             <CardContent>
-              <EmployeeForm
-                action={updateEmployeeAction}
-                employee={employee}
-                submitLabel={da.common.save}
-              />
+              {canEdit ? (
+                <EmployeeForm
+                  action={updateEmployeeAction}
+                  employee={employee}
+                  submitLabel={da.common.save}
+                />
+              ) : (
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                  {[
+                    [t.email, employee.email ?? "–"],
+                    [t.phone, employee.phone ?? "–"],
+                    [t.hiredOn, formatDate(employee.hired_on)],
+                    [t.schoolObligated, employee.school_obligated ? da.common.yes : da.common.no],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <dt className="text-xs text-muted-foreground">{k}</dt>
+                      <dd>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -214,8 +252,7 @@ export default async function EmployeePage({
             <CardContent className="grid gap-3">
               <ul className="grid gap-2">
                 {employee.employee_department.map((l) => {
-                  const canEdit =
-                    ctx.role === "admin" || ctx.managedDepartmentIds.includes(l.department_id);
+                  const canEdit = canIn(ctx, "employees.manage", l.department_id);
                   return (
                     <li
                       key={l.department_id}
@@ -274,9 +311,12 @@ export default async function EmployeePage({
               <CardTitle>{t.login}</CardTitle>
               <CardDescription>{employee.user_id ? t.hasLogin : t.noLogin}</CardDescription>
             </CardHeader>
-            {employee.user_id ? null : (
+            {employee.user_id || !canInvite ? null : (
               <CardContent>
-                <InviteForm employeeId={employee.id} canChooseRole={ctx.role === "admin"} />
+                <InviteForm
+                  employeeId={employee.id}
+                  profiles={hasOrg(ctx.permissions, "users.manage") ? (profiles ?? []) : null}
+                />
               </CardContent>
             )}
           </Card>

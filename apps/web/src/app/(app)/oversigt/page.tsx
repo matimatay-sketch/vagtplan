@@ -4,7 +4,8 @@ import { ArrowRight, CalendarClock, Clock, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { canManagePeople, requireContext } from "@/lib/auth";
+import { requireContext } from "@/lib/auth";
+import { hasAny } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { findActiveContract } from "@/lib/domain/contracts";
 import { todayIn } from "@/lib/domain/civil-date";
@@ -35,7 +36,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
   const withActive = list.filter((e) => findActiveContract(e.contract, today)).length;
   const firstName = ctx.employee?.first_name ?? ctx.email.split("@")[0] ?? "";
 
-  const stats = canManagePeople(ctx.role)
+  const stats = hasAny(ctx.permissions, ["employees.view", "employees.manage"])
     ? [
         { label: t.employees, value: list.length, href: "/medarbejdere" },
         { label: t.departments, value: departmentCount ?? 0, href: "/afdelinger" },
@@ -56,7 +57,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
       <PageHeader
         eyebrow={ctx.organization.name}
         title={t.greeting(firstName)}
-        lead={da.roles[ctx.role]}
+        lead={ctx.profile.name}
       />
       {adgang === "nej" ? (
         <Alert variant="destructive" className="mb-6">
