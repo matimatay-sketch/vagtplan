@@ -14,6 +14,10 @@ describe("permission catalog", () => {
       "settings.manage",
       "agreements.manage",
       "audit.view",
+      "schedule.view",
+      "schedule.manage",
+      "schedule.publish",
+      "schedule.override",
     ]);
   });
 });
@@ -55,6 +59,14 @@ describe("normalizeGrants", () => {
     expect(normalizeGrants({ "contracts.manage": "departments" })).toEqual({
       "contracts.manage": "departments",
       "contracts.view": "departments",
+    });
+  });
+
+  it("implications chain: override → publish → view", () => {
+    expect(normalizeGrants({ "schedule.override": "departments" })).toEqual({
+      "schedule.override": "departments",
+      "schedule.publish": "departments",
+      "schedule.view": "departments",
     });
   });
 

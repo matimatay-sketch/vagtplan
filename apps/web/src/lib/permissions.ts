@@ -60,6 +60,30 @@ export const PERMISSIONS = [
     scopes: ["organization"],
   },
   { key: "audit.view", group: "Virksomhed", label: "Se audit-log", scopes: ["organization"] },
+  {
+    key: "schedule.view",
+    group: "Vagtplan",
+    label: "Se vagtplan (kladder)",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "schedule.manage",
+    group: "Vagtplan",
+    label: "Planlægge vagter",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "schedule.publish",
+    group: "Vagtplan",
+    label: "Offentliggøre vagtplan",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "schedule.override",
+    group: "Vagtplan",
+    label: "Tilsidesætte blokerende regler (med begrundelse)",
+    scopes: ["departments", "organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;
@@ -112,6 +136,9 @@ const IMPLIES: Partial<Record<PermissionKey, PermissionKey>> = {
   "employees.manage": "employees.view",
   "employees.invite": "employees.view",
   "contracts.manage": "contracts.view",
+  "schedule.manage": "schedule.view",
+  "schedule.publish": "schedule.view",
+  "schedule.override": "schedule.publish",
 };
 
 /** Removes disallowed scopes and adds implied permissions. */
@@ -121,9 +148,17 @@ export function normalizeGrants(input: Permissions): Permissions {
     const scope = input[p.key];
     if (scope && (p.scopes as readonly PermissionScope[]).includes(scope)) out[p.key] = scope;
   }
-  for (const [from, to] of Object.entries(IMPLIES) as [PermissionKey, PermissionKey][]) {
-    const s = out[from];
-    if (s && rank(out[to]) < rank(s)) out[to] = s;
+  // Repeat until stable so chains (override → publish → view) resolve.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [from, to] of Object.entries(IMPLIES) as [PermissionKey, PermissionKey][]) {
+      const s = out[from];
+      if (s && rank(out[to]) < rank(s)) {
+        out[to] = s;
+        changed = true;
+      }
+    }
   }
   return out;
 }
