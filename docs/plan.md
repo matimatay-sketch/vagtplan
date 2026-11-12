@@ -1,6 +1,6 @@
-# Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–5)
+# Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **udkast – afventer godkendelse**. Der skrives ingen produktkode før planen er godkendt.
+> Status: **godkendt 2026-11-12**, med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Arbejdsnavn: *Vagtplan* (navnet besluttes i fase 1).
 
 ## 0. Beslutninger fra brainstorm
@@ -39,7 +39,7 @@ vagtplan/
 **Grundvalg**
 - **Tid:** gemmes i UTC (`timestamptz`). Al døgn-, ugedags- og vinduesberegning sker i `Europe/Copenhagen` via `Temporal` (polyfill), som håndterer sommertid korrekt. Varigheder regnes i hele minutter.
 - **Penge:** heltal i øre. Satser i øre pr. time eller i basispoint (1/100 %). Ingen floats i løn.
-- **Overenskomster:** Skabeloner ligger som filer i `packages/agreements` og seedes i databasen (`agreement_version.document jsonb`). Admin redigerer databaseversionen i fase 5. Begge valideres af det samme Zod-skema fra regelmotoren.
+- **Overenskomster:** Skabeloner ligger som filer i `packages/agreements` og seedes i databasen (`agreement_version.document jsonb`). Admin redigerer databaseversionen i fase 6. Begge valideres af det samme Zod-skema fra regelmotoren.
 - **Regelmotoren** udstiller fire rene funktioner:
   `resolveAgreement(layers)`, `validateSchedule(input)`, `calculatePay(input)` og `simulateWeek(input)`.
   Next.js kalder dem på serveren (server actions/route handlers). Motoren kender aldrig til Supabase.
@@ -53,7 +53,8 @@ vagtplan/
 | 1 | `organization`, `membership` (user ↔ org ↔ rolle), `department`, `department_manager`, `employee`, `employee_department`, `agreement`, `agreement_version`, `pay_period_group`, `contract`, `audit_log` |
 | 3 | `shift_template`, `shift`, `availability`, `shift_wish`, `schedule_publication`, `rule_violation` |
 | 4 | `clock_event` (rå stempling), `time_entry` (faktisk tid eller dagstotal, kilde, status, godkendt_af) |
-| 5 | `pay_period`, `pay_line` (med forklaring jsonb), `pay_code_mapping`, `export_run` |
+| 5 | `absence_type`, `absence` (periode, status, godkendt_af), `absence_balance_entry` og `vacation_ledger_entry` (posteringer, aldrig overskrevne saldi), `shift.kind = on_call` (rådighed), `time_entry.kind = call_out` (tilkald) |
+| 6 | `pay_period`, `pay_line` (med forklaring jsonb), `pay_code_mapping`, `export_run` |
 
 Vigtige constraints:
 - `contract` har en exclusion-constraint, så den samme medarbejder ikke kan have overlappende kontrakter. Skift midt i en periode er to kontrakter.
@@ -85,7 +86,9 @@ Vigtige constraints:
 | `Lønsats` | ✅ | trin, ungesatser pr. alder, datostyrede reguleringer |
 | `UngeBegrænsning` | ✅ | kun de værdier, der står i skillen (se §6) |
 | `Varsling`, `Weekendfri` | fase 3 | validering af vagtplan |
-| `RådighedTilkald`, `Fravær`, `Ferie` | efter MVP | skemaet reserverer typerne |
+| `RådighedTilkald` | ✅ | sats pr. rådighedstime, minimumsbetaling ved tilkald, samspil med hviletid |
+| `Fravær` | ✅ | typer, optjening (fx omsorgsdage), betaling (fuld løn / norm / ingen), dækning af planlagte vagter |
+| `Ferie` | ✅ | optjening som posteringer, feriefridage, ferie med løn vs. feriegodtgørelse, særlig feriegodtgørelse – alle satser fra konfiguration |
 
 ### 3.3 Pipeline (`calculatePay`)
 1. **Afrund** stemplinger efter `Afrunding`.
@@ -111,7 +114,7 @@ Hver primitiv skrives test først. Tests der skal findes mindst:
 
 ## 4. Faser, opgaver og acceptkriterier
 
-Hver fase slutter med: grønne tests, ingen TS-fejl, lint ok, flowet kørt i browseren med Playwright og et kort resumé. **Jeg stopper og venter på din godkendelse efter hver fase.**
+Rækkefølge: 1 → 2 → 3 → 4 → 5 → 6. Hver fase slutter med: grønne tests, ingen TS-fejl, lint ok, flowet kørt i browseren med Playwright og et kort resumé. **Jeg stopper og venter på din godkendelse efter hver fase.**
 
 ### Fase 1 – Fundament
 Opgaver:
@@ -172,10 +175,24 @@ Acceptkriterier:
 - Samlet daglig arbejdstid kan altid udledes for hver medarbejder (lovkrav).
 - Medarbejdere, der er undtaget fra registrering, håndteres.
 
-### Fase 5 – Løn, eksport og overenskomst-admin
+### Fase 5 – Fravær, ferie og rådighed/tilkald
+Opgaver:
+1. Fraværstyper styret af overenskomsten (syg, barns sygedag, omsorgsdage, seniordage, feriefridage, ferie, orlov m.fl.). Medarbejderen anmoder, og lederen godkender. Sygdom kan lederen registrere direkte.
+2. Fravær vises i vagtplanen. Planlagte vagter i fraværsperioden markeres som udækkede, og lederen får besked.
+3. Ferie som posteringer: månedlig optjening (job), afholdelse, overførsel og udbetaling. Ferieår og afholdelsesperiode gælder (1/9–31/8 og 1/9–31/12 året efter). Der gives en advarsel, hvis hovedferien (15 sammenhængende dage 1/5–30/9) ikke er planlagt.
+4. Saldi for ferie og feriefridage, omsorgsdage m.v. til medarbejderen og lederen.
+5. Rådighedsvagter i vagtplanen og registrering af tilkald i tidsregistreringen. Både rådighed og tilkald valideres mod hviletid.
+
+Acceptkriterier:
+- Ferie- og fraværssaldi beregnes altid som summen af posteringer. En rettelse er en ny postering.
+- Tests for ferieårets skift, ansættelse og fratræden midt i en måned, og en ung der fylder 18 under en fraværsperiode.
+- Et tilkald under rådighed giver minimumsbetaling efter overenskomsten (golden test).
+- Playwright: medarbejderen søger om ferie, lederen godkender, og saldoen og vagtplanen opdateres.
+
+### Fase 6 – Løn, eksport og overenskomst-admin
 Opgaver:
 1. Lønperioder genereres fra lønperiode-grupperne (uge, 14 dage, måned). Afslutning af en periode låser den.
-2. `calculatePay` pr. medarbejder og periode, så lønlinjer gemmes med forklaring. En lukket periode genberegnes aldrig.
+2. `calculatePay` pr. medarbejder og periode, inkl. fravær, ferie og rådighed, så lønlinjer gemmes med forklaring. En lukket periode genberegnes aldrig.
 3. Lønlinjevisning: "Hvorfor?" viser regel, kilde og interval.
 4. Eksport-adapter-interface + generisk CSV-adapter + `pay_code_mapping`.
 5. Admin-UI til overenskomster: versioner, arv, formular pr. primitiv (plus JSON-visning), validering, publicering af en ny version.
@@ -198,8 +215,9 @@ Disse er **udeladt** efter aftale. De implementeres ikke, og UI'en viser, at de 
 - maks. ugentlige timer for unge under 15 eller undervisningspligtige
 - tidsrum for nat- og alenearbejde for unge
 - pausens længde i `basis-dk`. Loven kræver kun en pause, så `basis-dk` giver en advarsel, hvis der slet ingen pause er. Længden kommer fra overenskomsten.
+- ferielovens satser (ferietillæg for ansatte med ferie med løn og feriegodtgørelse for andre) og reglerne for sygeløn/sygedagpenge. Satserne sættes ind i `basis-dk`, når du har bekræftet dem. Indtil da er de pladsholdere med `TODO(jura)`.
 
 Alle satser i `eksempel-detail` er fiktive og markeret `// TODO(jura)`.
 
 ## 7. Uden for scope
-Automatisk vagtlægning (Timefold), konkrete lønsystem-adaptere (Danløn, DataLøn m.fl.), native apps, fravær og ferie-ledger, rådighed/tilkald, geofence og kiosk, hostet Supabase.
+Automatisk vagtlægning (Timefold), konkrete lønsystem-adaptere (Danløn, DataLøn m.fl.), native apps, geofence og kiosk, hostet Supabase, refusion af sygedagpenge, digital indberetning til Feriepengeinfo.
