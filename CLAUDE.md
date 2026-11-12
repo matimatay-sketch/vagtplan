@@ -62,4 +62,6 @@ Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@
 - **Radix DropdownMenu:** En `<form>` inde i et menupunkt bliver ikke sendt, fordi menuen lukker først. Kald en server action fra `onSelect`.
 - **Supabase-embeds** med sammensatte FK'er kræver eksplicit FK-navn, fx `department!employee_department_organization_id_department_id_fkey (name)`.
 - **shadcn-registret** (ui.shadcn.com) er blokeret i sandkassen. Komponenter skrives i shadcn-stil i `src/components/ui`.
+- **Vagtplan:** Live-opdateringer (`RealtimeRefresh`) venter, mens `document.body.dataset.scheduleBusy` er sat (under træk og ændring af længde), så tavlen ikke tegnes om midt i et træk. `DndContext` skal have et stabilt `id` (`useId`), ellers opstår der en hydration-fejl.
+- **Offentliggørelse** sker kun via `publishAction` → service-klient → `publish_schedule` (DB-funktionen tjekker aktørens rettigheder igen). Klienten sender kun begrundelser. Overtrædelserne beregnes altid igen på serveren.
 - **Service-klienten** (`createServiceClient`) må kun bruges efter at databasen har bekræftet brugerens rettighed (`rpc("can_on_employee", …)`, se `inviteEmployeeAction`).
