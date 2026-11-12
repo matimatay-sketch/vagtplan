@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+.env*.local
+.env
+!.env.example
+.DS_Store
+playwright-report/
+test-results/
+e2e/.auth/
+supabase/.branches/
+supabase/.temp/
+public/sw.js
+public/swe-worker-*.js
