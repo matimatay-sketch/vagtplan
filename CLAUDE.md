@@ -24,7 +24,8 @@ apps/web                 Next.js 16 (App Router), Tailwind v4, shadcn-stil kompo
   src/lib/forms/*        Zod-skemaer til formularer (unit-testet)
   src/lib/domain/*       Rene hjælpefunktioner (datoer, alder, kontrakter, lønperioder)
   e2e/                   Playwright
-packages/rules-engine    Ren TS: ingen DB, intet UI og ingen Node-API'er (håndhæves af ESLint)
+packages/rules-engine    Ren TS: ingen DB, intet UI og ingen Node-API'er (håndhæves af ESLint). Se docs/regelmotor.md
+packages/agreements      Overenskomst-skabeloner (JSON) + golden fixtures; genererer supabase/seeds/agreements.sql
 supabase/migrations      Skema, RLS, audit, RPC
 supabase/tests           pgTAP (RLS og integritet)
 supabase/templates       Danske e-mailskabeloner (token_hash-flow)
@@ -50,6 +51,8 @@ Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@
 - TDD i regelmotoren og i `src/lib/domain` / `src/lib/forms`: rød → grøn → refaktorér. Dæk grænseværdier, midnat, sommertid og stabling.
 - Små, beskrivende commits på engelsk. `pnpm check` og `pnpm db:test` skal være grønne før commit. E2E skal være grønne før en fase afsluttes.
 - Ny migration: tilføj pgTAP-tests for nye RLS-politikker. Regenerér typerne.
+- Ændret overenskomst-JSON: kør `pnpm --filter @vagtplan/agreements seed` og opdatér/tilføj golden fixtures. Forventede beløb regnes i hånden, ikke kopieret fra motorens output.
+- Ny regel i motoren: tilføj en _generisk_ primitiv i `src/agreement/schema.ts` med tests, aldrig specialkode for én overenskomst.
 - Stop efter hver fase og bed brugeren om godkendelse (se `docs/plan.md`).
 
 ## Tekniske valg og faldgruber
