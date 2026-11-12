@@ -1,0 +1,123 @@
+{
+  "description": "40 timer man–fre + 4 timer lørdag: 7 timers overarbejde i to trin, lørdagstillæg efter 15 lægges oveni.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-11"
+  },
+  "worked": [
+    {
+      "id": "2026-01-05-08:00",
+      "start": "2026-01-05 08:00",
+      "end": "2026-01-05 16:30",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-05 12:00",
+          "end": "2026-01-05 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-06-08:00",
+      "start": "2026-01-06 08:00",
+      "end": "2026-01-06 16:30",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-06 12:00",
+          "end": "2026-01-06 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-07-08:00",
+      "start": "2026-01-07 08:00",
+      "end": "2026-01-07 16:30",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-07 12:00",
+          "end": "2026-01-07 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-08-08:00",
+      "start": "2026-01-08 08:00",
+      "end": "2026-01-08 16:30",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-08 12:00",
+          "end": "2026-01-08 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-09-08:00",
+      "start": "2026-01-09 08:00",
+      "end": "2026-01-09 16:30",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-09 12:00",
+          "end": "2026-01-09 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-10-14:00",
+      "start": "2026-01-10 14:00",
+      "end": "2026-01-10 18:00",
+      "kind": "work"
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "LOERDAG",
+        "rateOre": 4000,
+        "quantityMinutes": 180,
+        "amountOre": 12000
+      },
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 2640,
+        "amountOre": 660000
+      },
+      {
+        "payCode": "OT100",
+        "rateOre": 15000,
+        "quantityMinutes": 240,
+        "amountOre": 60000
+      },
+      {
+        "payCode": "OT50",
+        "rateOre": 7500,
+        "quantityMinutes": 180,
+        "amountOre": 22500
+      }
+    ],
+    "dailyMinutes": {
+      "2026-01-05": 480,
+      "2026-01-06": 480,
+      "2026-01-07": 480,
+      "2026-01-08": 480,
+      "2026-01-09": 480,
+      "2026-01-10": 240
+    },
+    "violations": []
+  }
+}
