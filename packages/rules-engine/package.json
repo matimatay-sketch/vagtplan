@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
-    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^9.39.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.0",

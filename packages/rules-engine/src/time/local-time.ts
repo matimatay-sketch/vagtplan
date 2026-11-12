@@ -47,6 +47,7 @@ export function wallTime(date: IsoDate, hhmm: string, tz: string): Instant {
   const h = Number(m[1]);
   const min = Number(m[2]);
   if (h === 24 && min === 0) return startOfLocalDay(addDays(date, 1), tz);
+  if (h > 23 || min > 59) throw new Error(`Invalid time: ${hhmm}`);
   return Temporal.PlainDate.from(date)
     .toPlainDateTime({ hour: h, minute: min })
     .toZonedDateTime(tz, { disambiguation: "compatible" }).epochMilliseconds;
@@ -91,6 +92,7 @@ export function yearOf(date: IsoDate): number {
 
 export function parseHhmm(hhmm: string): number {
   const m = /^(\d{2}):(\d{2})$/.exec(hhmm);
-  if (!m) throw new Error(`Invalid time: ${hhmm}`);
+  if (!m || Number(m[2]) > 59 || Number(m[1]) * 60 + Number(m[2]) > 1440)
+    throw new Error(`Invalid time: ${hhmm}`);
   return Number(m[1]) * 60 + Number(m[2]);
 }
