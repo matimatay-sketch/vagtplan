@@ -4,6 +4,7 @@ import { ArrowRight, CalendarClock, Clock, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { requireContext } from "@/lib/auth";
 import { hasAny } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -84,9 +85,8 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           ))}
         </div>
       ) : null}
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {[
-          { icon: CalendarClock, title: "Vagtplan", text: "Fase 3" },
           { icon: Clock, title: "Stempling", text: "Fase 4" },
           { icon: Wallet, title: "Løn og eksport", text: "Fase 6" },
         ].map(({ icon: Icon, title, text }) => (
@@ -103,6 +103,22 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
             </span>
           </div>
         ))}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {hasAny(ctx.permissions, ["schedule.view", "schedule.manage"]) ? (
+          <Button asChild variant="signal">
+            <Link href="/vagtplan">
+              <CalendarClock /> {da.nav.schedule}
+            </Link>
+          </Button>
+        ) : null}
+        {ctx.employee ? (
+          <Button asChild variant="outline">
+            <Link href="/min-vagtplan">
+              <CalendarClock /> {da.nav.mySchedule}
+            </Link>
+          </Button>
+        ) : null}
       </div>
       <p className="mt-4 text-sm text-muted-foreground">{t.comingSoon}</p>
     </>

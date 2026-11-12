@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  CalendarClock,
+  CalendarHeart,
   FileText,
   KeyRound,
   LayoutDashboard,
@@ -25,6 +27,19 @@ type Item = {
 
 const items: Item[] = [
   { href: "/oversigt", label: da.nav.overview, icon: LayoutDashboard, anyOf: [] },
+  {
+    href: "/vagtplan",
+    label: da.nav.schedule,
+    icon: CalendarClock,
+    anyOf: ["schedule.view", "schedule.manage"],
+  },
+  {
+    href: "/min-vagtplan",
+    label: da.nav.mySchedule,
+    icon: CalendarHeart,
+    anyOf: [],
+    needsEmployee: true,
+  },
   {
     href: "/medarbejdere",
     label: da.nav.employees,
