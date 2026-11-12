@@ -244,6 +244,18 @@ export const ruleSchemas = {
       .nullable()
       .default(null),
   }),
+
+  /** Varsling: how early a schedule (or a change to it) must be published. */
+  notice: z.object({
+    publish_notice_days: z.number().int().min(0),
+    change_notice_hours: z.number().int().min(0).nullable().default(null),
+  }),
+
+  /** Weekendfri: at least N free weekends (Sat 00:00 – Mon 00:00) per M weeks. */
+  weekend_off: z.object({
+    weekends_off: z.number().int().min(0),
+    per_weeks: z.number().int().min(1).max(52),
+  }),
 } as const;
 
 export type Primitive = keyof typeof ruleSchemas;

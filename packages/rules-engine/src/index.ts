@@ -15,7 +15,10 @@ export type {
 } from "./agreement/resolve";
 export { buildHolidayCalendar, easterSunday, HOLIDAY_DEFINITIONS } from "./calendar/holidays";
 export type { HolidayInfo } from "./calendar/holidays";
-export { validateSchedule } from "./validate";
+export { validateSchedule, validateNotice } from "./validate";
+export type { NoticeInput, NoticeItem } from "./validate";
+export { shiftsToIntervals } from "./shifts";
+export type { PlannedShift } from "./shifts";
 export type { Violation, ValidateInput, ValidationResult } from "./validate";
 export { calculatePay, stack } from "./pay";
 export type { CalcPayInput, PayLine, PayResult, PayNote, ExplainedInterval } from "./pay";

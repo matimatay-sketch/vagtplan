@@ -6,6 +6,7 @@ import type { AbsenceInput, EngineInput, WorkIntervalInput } from "../model";
 import {
   addDays,
   diffDays,
+  parseInstant,
   isoWeekStart,
   localDate,
   MINUTE,
@@ -548,6 +549,82 @@ export function validateSchedule(input: ValidateInput): ValidationResult {
     ...checkWeeklyAverage(ctx, byDate, input.absences ?? [], input.from, input.to),
     ...checkDaily(ctx, work, byDate, input.from, input.to),
     ...checkNight(ctx, work, byDate, input.from, input.to),
+    ...checkWeekendOff(ctx, work, input.from, input.to),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code));
+  return { violations, resolutionWarnings: ctx.resolutionWarnings };
+}
+
+// ---------------------------------------------------------------------------
+// Weekendfri: at least N free weekends in each window of M weeks.
+// ---------------------------------------------------------------------------
+function checkWeekendOff(ctx: EngineContext, work: WorkInterval[], from: IsoDate, to: IsoDate): Violation[] {
+  const out: Violation[] = [];
+  const working = work.filter((i) => i.kind !== "on_call");
+  const weeks = [...new Set(datesBetween(from, to).map(isoWeekStart))];
+  for (const ws of weeks) {
+    const rule = ctx.rule(ws, "weekend_off") ?? ctx.rule(addDays(ws, 6), "weekend_off");
+    if (!rule) continue;
+    const { weekends_off, per_weeks } = rule.params;
+    let free = 0;
+    const worked: IsoDate[] = [];
+    for (let k = per_weeks - 1; k >= 0; k--) {
+      const sat = addDays(ws, 5 - 7 * k);
+      const weekend = { start: startOfLocalDay(sat, ctx.tz), end: startOfLocalDay(addDays(sat, 2), ctx.tz) };
+      if (working.some((i) => overlap(i, weekend) > 0)) worked.push(sat);
+      else free++;
+    }
+    if (free < weekends_off) {
+      out.push(
+        violation(rule, "WARNING", {
+          code: "WEEKEND_OFF",
+          date: ws,
+          intervalIds: [],
+          message: `Kun ${free} fri weekend${free === 1 ? "" : "er"} i de seneste ${per_weeks} uger (krav: ${weekends_off}).`,
+          details: { freeWeekends: free, requiredWeekends: weekends_off, perWeeks: per_weeks, workedWeekends: worked.join(",") },
+        }),
+      );
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Varsling: is a new/changed/removed shift published early enough?
+// ---------------------------------------------------------------------------
+export type NoticeItem = { intervalId: string; start: string; change: "new" | "changed" | "removed" };
+
+export type NoticeInput = EngineInput & {
+  /** The moment of publishing (ISO instant). */
+  now: string;
+  items: NoticeItem[];
+};
+
+export function validateNotice(input: NoticeInput): ValidationResult {
+  const ctx = new EngineContext(input);
+  const now = parseInstant(input.now);
+  const violations: Violation[] = [];
+  for (const item of input.items) {
+    const start = parseInstant(item.start);
+    const date = localDate(start, ctx.tz);
+    const rule = ctx.rule(date, "notice");
+    if (!rule) continue;
+    const hours =
+      item.change === "new" ? rule.params.publish_notice_days * 24 : rule.params.change_notice_hours;
+    if (hours === null) continue;
+    const ahead = (start - now) / (60 * MINUTE);
+    if (ahead >= hours) continue;
+    violations.push(
+      violation(rule, "WARNING", {
+        code: "NOTICE_LATE",
+        date,
+        intervalIds: [item.intervalId],
+        message:
+          item.change === "new"
+            ? `Vagten offentliggøres med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} varsel (krav: ${rule.params.publish_notice_days} dage).`
+            : `Ændringen varsles med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} (krav: ${hours} timer).`,
+        details: { requiredHours: hours, hoursAhead: Math.round(ahead * 10) / 10, change: item.change },
+      }),
+    );
+  }
   return { violations, resolutionWarnings: ctx.resolutionWarnings };
 }

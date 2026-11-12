@@ -10,19 +10,45 @@
   "example": true,
   "description": "Viser hvordan en detailoverenskomst kan udtrykkes med primitiverne. Alle satser, tider og regler er opdigtede og må aldrig bruges til løn.",
   "pay_codes": {
-    "NORMAL": { "label": "Timeløn" },
-    "OT50": { "label": "Overarbejde, de første 3 timer" },
-    "OT100": { "label": "Overarbejde, derefter" },
-    "AFTEN": { "label": "Aftentillæg" },
-    "LOERDAG": { "label": "Lørdagstillæg" },
-    "NAT": { "label": "Nattillæg" },
-    "SOEN_HELLIG": { "label": "Søn- og helligdagstillæg" },
-    "GARANTI": { "label": "Garantibetaling (min. vagt)" },
-    "RAADIGHED": { "label": "Rådighed" },
-    "TILKALD_GARANTI": { "label": "Minimumsbetaling ved tilkald" },
-    "SYG": { "label": "Sygdom med løn" },
-    "BARN_SYG": { "label": "Barns sygedag" },
-    "OMSORG": { "label": "Omsorgsdag" }
+    "NORMAL": {
+      "label": "Timeløn"
+    },
+    "OT50": {
+      "label": "Overarbejde, de første 3 timer"
+    },
+    "OT100": {
+      "label": "Overarbejde, derefter"
+    },
+    "AFTEN": {
+      "label": "Aftentillæg"
+    },
+    "LOERDAG": {
+      "label": "Lørdagstillæg"
+    },
+    "NAT": {
+      "label": "Nattillæg"
+    },
+    "SOEN_HELLIG": {
+      "label": "Søn- og helligdagstillæg"
+    },
+    "GARANTI": {
+      "label": "Garantibetaling (min. vagt)"
+    },
+    "RAADIGHED": {
+      "label": "Rådighed"
+    },
+    "TILKALD_GARANTI": {
+      "label": "Minimumsbetaling ved tilkald"
+    },
+    "SYG": {
+      "label": "Sygdom med løn"
+    },
+    "BARN_SYG": {
+      "label": "Barns sygedag"
+    },
+    "OMSORG": {
+      "label": "Omsorgsdag"
+    }
   },
   "rules": [
     {
@@ -33,7 +59,15 @@
       "todo_jura": "Fiktiv sats – udfyld fra overenskomstteksten.",
       "params": {
         "pay_code": "NORMAL",
-        "rates": [{ "hourly_ore": 15000 }, { "max_age": 18, "hourly_ore": 10000 }]
+        "rates": [
+          {
+            "hourly_ore": 15000
+          },
+          {
+            "max_age": 18,
+            "hourly_ore": 10000
+          }
+        ]
       }
     },
     {
@@ -42,7 +76,11 @@
       "label": "Normtid",
       "source": "Eksempel § 2",
       "todo_jura": "Fiktiv – normperiode og deltidsgrænser fra overenskomsten.",
-      "params": { "period": { "type": "week" } }
+      "params": {
+        "period": {
+          "type": "week"
+        }
+      }
     },
     {
       "id": "overarbejde",
@@ -55,12 +93,18 @@
         "tiers": [
           {
             "up_to_minutes": 180,
-            "amount": { "type": "percent_of_base", "bp": 5000 },
+            "amount": {
+              "type": "percent_of_base",
+              "bp": 5000
+            },
             "pay_code": "OT50"
           },
           {
             "up_to_minutes": null,
-            "amount": { "type": "percent_of_base", "bp": 10000 },
+            "amount": {
+              "type": "percent_of_base",
+              "bp": 10000
+            },
             "pay_code": "OT100"
           }
         ]
@@ -72,10 +116,22 @@
       "label": "Aftentillæg hverdage 18–24",
       "source": "Eksempel § 4",
       "todo_jura": "Fiktivt tidsrum og beløb.",
-      "stacking": { "mode": "highest", "group": "tidstillaeg" },
+      "stacking": {
+        "mode": "highest",
+        "group": "tidstillaeg"
+      },
       "params": {
-        "windows": [{ "days": ["weekday"], "from": "18:00", "to": "24:00" }],
-        "amount": { "type": "ore_per_hour", "ore": 3000 },
+        "windows": [
+          {
+            "days": ["weekday"],
+            "from": "18:00",
+            "to": "24:00"
+          }
+        ],
+        "amount": {
+          "type": "ore_per_hour",
+          "ore": 3000
+        },
         "pay_code": "AFTEN"
       }
     },
@@ -85,10 +141,22 @@
       "label": "Lørdagstillæg efter kl. 15",
       "source": "Eksempel § 4",
       "todo_jura": "Fiktivt tidsrum og beløb.",
-      "stacking": { "mode": "highest", "group": "tidstillaeg" },
+      "stacking": {
+        "mode": "highest",
+        "group": "tidstillaeg"
+      },
       "params": {
-        "windows": [{ "days": ["sat"], "from": "15:00", "to": "24:00" }],
-        "amount": { "type": "ore_per_hour", "ore": 4000 },
+        "windows": [
+          {
+            "days": ["sat"],
+            "from": "15:00",
+            "to": "24:00"
+          }
+        ],
+        "amount": {
+          "type": "ore_per_hour",
+          "ore": 4000
+        },
         "pay_code": "LOERDAG"
       }
     },
@@ -98,11 +166,23 @@
       "label": "Nattillæg 00–06",
       "source": "Eksempel § 4",
       "todo_jura": "Fiktivt tidsrum og beløb.",
-      "stacking": { "mode": "highest", "group": "tidstillaeg" },
+      "stacking": {
+        "mode": "highest",
+        "group": "tidstillaeg"
+      },
       "params": {
-        "windows": [{ "days": ["any"], "from": "00:00", "to": "06:00" }],
+        "windows": [
+          {
+            "days": ["any"],
+            "from": "00:00",
+            "to": "06:00"
+          }
+        ],
         "exclude_holidays": false,
-        "amount": { "type": "ore_per_hour", "ore": 4500 },
+        "amount": {
+          "type": "ore_per_hour",
+          "ore": 4500
+        },
         "pay_code": "NAT"
       }
     },
@@ -112,11 +192,23 @@
       "label": "Søn- og helligdagstillæg",
       "source": "Eksempel § 5",
       "todo_jura": "Fiktiv procent.",
-      "stacking": { "mode": "highest", "group": "tidstillaeg" },
+      "stacking": {
+        "mode": "highest",
+        "group": "tidstillaeg"
+      },
       "params": {
-        "windows": [{ "days": ["sun", "holiday"], "from": "00:00", "to": "24:00" }],
+        "windows": [
+          {
+            "days": ["sun", "holiday"],
+            "from": "00:00",
+            "to": "24:00"
+          }
+        ],
         "exclude_holidays": false,
-        "amount": { "type": "percent_of_base", "bp": 10000 },
+        "amount": {
+          "type": "percent_of_base",
+          "bp": 10000
+        },
         "pay_code": "SOEN_HELLIG"
       }
     },
@@ -141,14 +233,22 @@
           "juleaftensdag",
           "nytaarsaftensdag"
         ],
-        "partial": [{ "key": "grundlovsdag", "from": "12:00" }]
+        "partial": [
+          {
+            "key": "grundlovsdag",
+            "from": "12:00"
+          }
+        ]
       }
     },
     {
       "id": "pause",
       "source": "Eksempel § 6",
       "todo_jura": "Fiktiv pauselængde.",
-      "params": { "min_minutes": 30, "paid": false }
+      "params": {
+        "min_minutes": 30,
+        "paid": false
+      }
     },
     {
       "id": "afrunding",
@@ -170,7 +270,11 @@
       "label": "Mindst 3 timer pr. fremmøde",
       "source": "Eksempel § 8",
       "todo_jura": "Fiktiv minimumsvagt.",
-      "params": { "min_minutes": 180, "guarantee_pay": true, "pay_code": "GARANTI" }
+      "params": {
+        "min_minutes": 180,
+        "guarantee_pay": true,
+        "pay_code": "GARANTI"
+      }
     },
     {
       "id": "raadighed",
@@ -179,7 +283,10 @@
       "source": "Eksempel § 9",
       "todo_jura": "Fiktive satser.",
       "params": {
-        "amount": { "type": "ore_per_hour", "ore": 2000 },
+        "amount": {
+          "type": "ore_per_hour",
+          "ore": 2000
+        },
         "pay_code": "RAADIGHED",
         "call_out_min_minutes": 180,
         "call_out_guarantee_pay_code": "TILKALD_GARANTI"
@@ -227,7 +334,11 @@
             "payment": "full",
             "pay_code": "OMSORG",
             "counts_towards_norm": true,
-            "entitlement": { "days": 2, "period": "calendar_year", "accrual": "upfront" }
+            "entitlement": {
+              "days": 2,
+              "period": "calendar_year",
+              "accrual": "upfront"
+            }
           },
           {
             "code": "unpaid_leave",
@@ -244,7 +355,33 @@
       "source": "Eksempel § 12 (feriefridage)",
       "todo_jura": "Fiktivt antal feriefridage.",
       "params": {
-        "extra_days": { "days_per_year": 5, "year_start": "05-01", "accrual": "upfront" }
+        "extra_days": {
+          "days_per_year": 5,
+          "year_start": "05-01",
+          "accrual": "upfront"
+        }
+      }
+    },
+    {
+      "id": "varsling",
+      "primitive": "notice",
+      "label": "Varsling af vagtplan",
+      "source": "Eksempel § 13",
+      "todo_jura": "Fiktivt varsel.",
+      "params": {
+        "publish_notice_days": 14,
+        "change_notice_hours": 96
+      }
+    },
+    {
+      "id": "weekendfri",
+      "primitive": "weekend_off",
+      "label": "Fri weekender",
+      "source": "Eksempel § 14",
+      "todo_jura": "Fiktivt antal fri weekender.",
+      "params": {
+        "weekends_off": 2,
+        "per_weeks": 4
       }
     }
   ]
