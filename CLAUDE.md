@@ -64,4 +64,7 @@ Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@
 - **shadcn-registret** (ui.shadcn.com) er blokeret i sandkassen. Komponenter skrives i shadcn-stil i `src/components/ui`.
 - **Vagtplan:** Live-opdateringer (`RealtimeRefresh`) venter, mens `document.body.dataset.scheduleBusy` er sat (under træk og ændring af længde), så tavlen ikke tegnes om midt i et træk. `DndContext` skal have et stabilt `id` (`useId`), ellers opstår der en hydration-fejl.
 - **Offentliggørelse** sker kun via `publishAction` → service-klient → `publish_schedule` (DB-funktionen tjekker aktørens rettigheder igen). Klienten sender kun begrundelser. Overtrædelserne beregnes altid igen på serveren.
+- **Client- og servermoduler:** En funktion fra en `"use client"`-fil kan ikke kaldes fra en server-komponent (fx `formatSupplementAmount`). Delte hjælpere lægges i `src/lib/domain/`.
+- **Pauser og tillæg** ligger som JSON eller uuid-liste på vagten (ikke i separate tabeller), så de indgår i ændringsdetektion og i snapshottet ved offentliggørelse.
+- **Undtagelse fra "intet slettes hårdt":** `rotation_line` og `rotation_slot` er skabelonkonfiguration og må slettes. De auditeres.
 - **Service-klienten** (`createServiceClient`) må kun bruges efter at databasen har bekræftet brugerens rettighed (`rpc("can_on_employee", …)`, se `inviteEmployeeAction`).

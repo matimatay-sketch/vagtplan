@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1 og 2 er godkendt 2026-11-12. Fase 3 er bygget og afventer godkendelse., med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser) er bygget og afventer godkendelse., med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -174,6 +174,14 @@ Acceptkriterier:
 - En vagt over sommertidsskiftet vises og valideres korrekt.
 - Den unge medarbejders regler slår til automatisk.
 - Playwright: lederen planlægger en uge, får en fejl, laver override og publicerer. Medarbejderen ser sin plan.
+
+### Fase 3b – Tilføjelser til vagtplanen (ønsket 2026-11-13)
+
+- Flere pauser pr. vagt: betalt eller ubetalt, med eller uden fast tidspunkt. Pauser uden tidspunkt fordeles jævnt ved validering.
+- Opsætningssiden (kun administratorer som standard): varsling i timer, regelhåndtering pr. type regelbrud (blokér eller tilsidesæt permanent; regelbruddet vises altid), typer af vagttillæg.
+- Vagttillæg på vagter, skabeloner og turnusser. De bliver til lønlinjer i motoren.
+- Ugens timer mod kontraktens norm i ugevisningen.
+- Turnusværktøj: ugeskabeloner og turnusser over N uger med linjer, redigering i et skema, kopiering af uger, udrulning med medarbejder og startuge pr. linje, "udrul igen" (kun vagter, der aldrig er offentliggjort).
 
 ### Fase 4 – Tidsregistrering
 

@@ -76,3 +76,16 @@ Rettigheder: `schedule.view`, `schedule.manage`, `schedule.publish` og `schedule
 - **Medarbejdere** læser vagtplanen via `published_shifts(from, to)`: snapshots af egne vagter og af vagter i egne afdelinger. De har ikke adgang til arbejdskopien.
 - **Validering** bruger `shifts_for_validation(employee_ids, from, to)`, som henter medarbejderens vagter i alle afdelinger, så hviletid og gennemsnit regnes på hele arbejdsbyrden.
 - **Realtime** er slået til på `shift` og `availability` og filtreres af RLS.
+
+## Fase 3b
+
+| Tabel / felt                                                      | Bemærkning                                                                                                                                                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `organization_settings`                                           | `notice_publish_hours`, `notice_change_hours` (bliver til et organisationslag med reglen `varsling` i regelmotoren), `rule_handling` (`{kode: "block" \| "allow"}`). Kræver `settings.manage` |
+| `shift.breaks`, `shift_template.breaks`, `rotation_slot.breaks`   | JSON-liste: `{start_at \| start_time, minutes, paid}`. Summen skal være kortere end vagten (CHECK)                                                                                            |
+| `supplement_type`                                                 | `name`, `pay_code`, `amount_type` (per_hour/fixed/percent), `amount` (øre eller basispoint)                                                                                                   |
+| `supplement_type_ids`                                             | på `shift`, `shift_template`, `rotation_slot`. Valideres mod organisationen (trigger)                                                                                                         |
+| `rotation` / `rotation_line` / `rotation_slot`                    | Ugeskabelon = turnus med 1 uge. Linjer og vagter er skabelonkonfiguration og må slettes (auditeres)                                                                                           |
+| `rotation_rollout` + `shift.rollout_id`, `shift.rotation_slot_id` | En udrulning (start-mandag, uger, linje → medarbejder og startuge). "Udrul igen" erstatter kun vagter, der aldrig er offentliggjort                                                           |
+
+Ved offentliggørelse gemmes regelbrud, som opsætningen tilsidesætter permanent, med begrundelsen "Tilsidesat permanent i opsætningen" og `details.auto_override = true`. De kræver ikke rettigheden `schedule.override`.
