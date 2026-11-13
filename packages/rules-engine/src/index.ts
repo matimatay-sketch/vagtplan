@@ -22,6 +22,8 @@ export type { PlannedShift, PlannedBreak } from "./shifts";
 export type { Violation, ValidateInput, ValidationResult } from "./validate";
 export { calculatePay, stack } from "./pay";
 export type { CalcPayInput, PayLine, PayResult, PayNote, ExplainedInterval } from "./pay";
+export { roundRegistrations, dailyWorkingMinutes } from "./registrations";
+export type { RoundInput } from "./registrations";
 export { simulateWeek } from "./simulate";
 export type { SimulateInput, SimulationResult } from "./simulate";
 export { vacationAccrual, yearStartContaining } from "./vacation";

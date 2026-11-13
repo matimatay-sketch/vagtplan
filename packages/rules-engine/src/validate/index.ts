@@ -78,7 +78,7 @@ function violation(
 }
 
 /** Work minutes per local date (pieces split at local midnight). */
-function minutesByDate(
+export function minutesByDate(
   intervals: readonly WorkInterval[],
   ctx: EngineContext,
 ): Map<IsoDate, number> {

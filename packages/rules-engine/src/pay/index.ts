@@ -115,7 +115,7 @@ function roundTo(ms: Instant, unit: number, mode: "nearest" | "up" | "down"): In
 }
 
 /** Afrunding: snap to the planned shift within tolerance, otherwise round. */
-function applyRounding(
+export function applyRounding(
   ctx: EngineContext,
   i: WorkInterval,
   planned: Map<string, WorkInterval>,
