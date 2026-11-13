@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="projekttimer_${filter.from}_${filter.to}.csv"`,
+      "Content-Disposition": `attachment; filename="projekttimer_${filter.source === "actual" ? "registreret_" : ""}${filter.from}_${filter.to}.csv"`,
       "Cache-Control": "no-store",
     },
   });

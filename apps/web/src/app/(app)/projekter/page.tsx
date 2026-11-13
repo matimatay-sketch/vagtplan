@@ -49,6 +49,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
     fra: filter.from,
     til: filter.to,
     ...(filter.departmentId ? { afdeling: filter.departmentId } : {}),
+    ...(filter.source === "actual" ? { kilde: "registreret" } : {}),
   })}`;
 
   return (
@@ -81,6 +82,16 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
                   ))}
                 </NativeSelect>
               </label>
+              <label className="grid gap-1 text-xs text-muted-foreground">
+                {t.source}
+                <NativeSelect
+                  name="kilde"
+                  defaultValue={filter.source === "actual" ? "registreret" : "plan"}
+                >
+                  <option value="plan">{t.sources.plan}</option>
+                  <option value="registreret">{t.sources.actual}</option>
+                </NativeSelect>
+              </label>
               <Button type="submit" variant="outline">
                 {t.show}
               </Button>
@@ -91,7 +102,9 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
               </Button>
             </form>
           </div>
-          <p className="text-sm text-muted-foreground">{t.reportLead}</p>
+          <p className="text-sm text-muted-foreground">
+            {filter.source === "actual" ? t.actualLead : t.reportLead}
+          </p>
           {summary.length === 0 ? (
             <EmptyState>{t.emptyHours}</EmptyState>
           ) : (
