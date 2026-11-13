@@ -4,14 +4,14 @@ import { isValidIsoDate } from "@/lib/domain/civil-date";
 
 const v = da.validation;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
-const hhmm = z.string().regex(HHMM, da.schedule.invalidTime);
+export const hhmm = z.string().regex(HHMM, da.schedule.invalidTime);
 const toMinutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
-const optionalGuid = z
+export const optionalGuid = z
   .string()
   .optional()
   .transform((s) => (s ? s : null))
   .refine((s) => s === null || z.guid().safeParse(s).success, v.required);
-const optionalLabel = z
+export const optionalLabel = z
   .string()
   .trim()
   .max(60, v.tooLong)
@@ -45,8 +45,8 @@ const jsonField = <T extends z.ZodType>(schema: T) =>
     })
     .pipe(schema);
 
-const breaksField = jsonField(z.array(breakRow).max(10));
-const supplementsField = jsonField(z.array(z.guid()).max(20));
+export const breaksField = jsonField(z.array(breakRow).max(10));
+export const supplementsField = jsonField(z.array(z.guid()).max(20));
 
 /** Shift length in minutes from local times; an end ≤ start ends the next day. */
 export function localDurationMinutes(start: string, end: string): number {
@@ -55,7 +55,7 @@ export function localDurationMinutes(start: string, end: string): number {
 }
 
 /** Checks breaks against the shift and marks breaks that fall after midnight. */
-function checkBreaks(
+export function checkBreaks(
   val: { start_time: string; end_time: string; breaks: z.output<typeof breaksField> },
   ctx: z.RefinementCtx,
 ): FormBreak[] {
