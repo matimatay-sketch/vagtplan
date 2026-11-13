@@ -84,6 +84,18 @@ export const PERMISSIONS = [
     label: "Tilsidesætte blokerende regler (med begrundelse)",
     scopes: ["departments", "organization"],
   },
+  {
+    key: "projects.view",
+    group: "Projekter",
+    label: "Se projekttimer",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "projects.manage",
+    group: "Projekter",
+    label: "Oprette og rette projekter",
+    scopes: ["organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;

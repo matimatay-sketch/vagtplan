@@ -18,6 +18,8 @@ describe("permission catalog", () => {
       "schedule.manage",
       "schedule.publish",
       "schedule.override",
+      "projects.view",
+      "projects.manage",
     ]);
   });
 });
