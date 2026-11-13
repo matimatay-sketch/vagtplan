@@ -23,6 +23,8 @@ export type AppContext = {
   responsibleDepartmentIds: string[];
   employee: { id: string; first_name: string; last_name: string } | null;
   organizations: { id: string; name: string }[];
+  /** May create and archive customers (platform level, outside any organization). */
+  isPlatformAdmin: boolean;
 };
 
 /**
@@ -53,20 +55,22 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
   const active = usable.find((m) => m.organization!.id === preferred) ?? usable[0]!;
   const org = active.organization!;
 
-  const [{ data: grants }, { data: responsible }, { data: employee }] = await Promise.all([
-    supabase.rpc("my_permissions", { org: org.id }),
-    supabase
-      .from("department_manager")
-      .select("department_id")
-      .eq("user_id", userId)
-      .eq("organization_id", org.id),
-    supabase
-      .from("employee")
-      .select("id, first_name, last_name")
-      .eq("user_id", userId)
-      .eq("organization_id", org.id)
-      .maybeSingle(),
-  ]);
+  const [{ data: grants }, { data: responsible }, { data: employee }, { data: platform }] =
+    await Promise.all([
+      supabase.rpc("my_permissions", { org: org.id }),
+      supabase
+        .from("department_manager")
+        .select("department_id")
+        .eq("user_id", userId)
+        .eq("organization_id", org.id),
+      supabase
+        .from("employee")
+        .select("id, first_name, last_name")
+        .eq("user_id", userId)
+        .eq("organization_id", org.id)
+        .maybeSingle(),
+      supabase.rpc("is_platform_admin"),
+    ]);
 
   const permissions: Permissions = {};
   for (const g of grants ?? [])
@@ -85,6 +89,7 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
     responsibleDepartmentIds: (responsible ?? []).map((r) => r.department_id),
     employee: employee ?? null,
     organizations: usable.map((m) => ({ id: m.organization!.id, name: m.organization!.name })),
+    isPlatformAdmin: platform === true,
   };
 });
 
@@ -97,7 +102,7 @@ export async function requireContext(anyOf?: readonly PermissionKey[]): Promise<
   if (!ctx) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getClaims();
-    redirect(data?.claims ? "/opret" : "/login");
+    redirect(data?.claims ? "/ingen-adgang" : "/login");
   }
   if (anyOf && !hasAny(ctx.permissions, anyOf)) redirect("/oversigt?adgang=nej");
   return ctx;
@@ -106,4 +111,17 @@ export async function requireContext(anyOf?: readonly PermissionKey[]): Promise<
 /** Can the user use `key` in this department (organization scope, or responsible for it)? */
 export function canIn(ctx: AppContext, key: PermissionKey, departmentId: string): boolean {
   return canInDepartment(ctx.permissions, key, departmentId, ctx.responsibleDepartmentIds);
+}
+
+/** Requires a signed-in platform administrator (no organization needed). */
+export async function requirePlatformAdmin(): Promise<{ userId: string; email: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) redirect("/login");
+  const { data: ok } = await supabase.rpc("is_platform_admin");
+  if (ok !== true) redirect("/ingen-adgang");
+  return {
+    userId: data.claims.sub,
+    email: typeof data.claims.email === "string" ? data.claims.email : "",
+  };
 }

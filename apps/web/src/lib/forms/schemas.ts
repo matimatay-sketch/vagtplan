@@ -131,12 +131,6 @@ export const signInSchema = z.object({
   password: z.string().min(1, v.required),
 });
 
-export const signUpSchema = z.object({
-  organization_name: trimmed(),
-  email: z.email(v.invalidEmail),
-  password: z.string().min(8, v.passwordTooShort),
-});
-
 export type FieldErrors = Record<string, string>;
 
 /** Flattens Zod issues to { field: firstMessage }. */

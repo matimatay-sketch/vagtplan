@@ -100,3 +100,12 @@ Ved offentliggørelse gemmes regelbrud, som opsætningen tilsidesætter permanen
 | `shift_template.project_id`, `rotation_slot.project_id` | Standardprojekt for hele vagten                                                                                                                                                              |
 
 Rettigheder: `projects.manage` (organisation) og `projects.view` (afdelinger eller organisation). Oversigten læser via `project_shifts(from, to)`, som kun returnerer vagter i afdelinger, hvor kalderen har `projects.view`. Funktionen returnerer navne og numre, fordi `projects.view` ikke forudsætter `employees.view`. Ændres projektfordelingen på en offentliggjort vagt, bliver vagten til en kladde igen, og fordelingen kommer med i snapshottet.
+
+## Platform (kunder)
+
+| Tabel / felt               | Bemærkning                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `platform_admin`           | `user_id`. Platformsniveau (ingen `organization_id`). Vedligeholdes med SQL af driften. Der er ingen UI                                                       |
+| `organization.archived_at` | En arkiveret kunde: medlemmerne mister adgangen (`is_member`, `permission_scope` og `my_permissions` ser bort fra den). Kun platformen kan arkivere (trigger) |
+
+Selvbetjening er fjernet (`create_organization` findes ikke længere). Platform-RPC'erne kræver `is_platform_admin()`: `platform_organizations()`, `platform_create_organization(name)`, `platform_user_id(email)`, `platform_add_owner(org, user)` og `platform_set_archived(org, bool)`. Ukendte e-mails inviteres via service-klienten, efter at databasen har bekræftet platformsrettigheden. Platformsbrugeren kan ikke se kundernes data.

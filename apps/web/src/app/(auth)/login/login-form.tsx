@@ -1,6 +1,5 @@
 "use client";
 import { useActionState } from "react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import { magicLinkAction, signInAction } from "@/lib/actions/auth";
@@ -36,12 +35,6 @@ export function LoginForm() {
         </SubmitButton>
         <FormMessage state={linkState} />
       </form>
-      <p className="text-sm text-muted-foreground">
-        {t.noAccount}{" "}
-        <Link href="/opret" className="font-medium text-primary underline-offset-4 hover:underline">
-          {t.createAccountLink}
-        </Link>
-      </p>
     </div>
   );
 }

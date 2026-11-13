@@ -39,18 +39,3 @@ test("navigation depends on role", async ({ page }) => {
   await page.goto("/medarbejdere");
   await expect(page).toHaveURL(/adgang=nej/);
 });
-
-test("sign up creates an organization with the user as admin", async ({ page }) => {
-  const email = `ny-${Date.now()}@test.dk`;
-  await page.goto("/opret");
-  await page.getByLabel("Virksomhedens navn").fill("Testbageriet ApS");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Adgangskode").fill("Hemmelig123");
-  await page.getByRole("button", { name: "Opret konto" }).click();
-  await expect(page).toHaveURL(/\/oversigt/);
-  await expect(page.getByTestId("org-name")).toHaveText("Testbageriet ApS");
-  await expect(page.getByText("Administrator").first()).toBeVisible();
-  // Isolation: the new organization sees none of the demo employees.
-  await page.goto("/medarbejdere");
-  await expect(page.getByText("Ingen medarbejdere endnu.")).toBeVisible();
-});

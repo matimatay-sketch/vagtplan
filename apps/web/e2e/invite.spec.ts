@@ -1,23 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, users } from "./helpers";
-
-const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
-
-async function latestLinkFor(email: string): Promise<string> {
-  for (let i = 0; i < 20; i++) {
-    const search = await fetch(
-      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
-    ).then((r) => r.json());
-    const id = search.messages?.[0]?.ID;
-    if (id) {
-      const msg = await fetch(`${MAILPIT}/api/v1/message/${id}`).then((r) => r.json());
-      const link = /href="([^"]+)"/.exec(msg.HTML)?.[1];
-      if (link) return link.replaceAll("&amp;", "&");
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`No mail for ${email}`);
-}
+import { latestLinkFor, login, users } from "./helpers";
 
 test("manager invites an employee who can then sign in via the link", async ({ page, browser }) => {
   await login(page, users.manager);

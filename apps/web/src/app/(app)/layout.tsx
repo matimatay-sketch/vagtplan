@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     profileName: ctx.profile.name,
     organizationId: ctx.organization.id,
     organizations: ctx.organizations,
+    isPlatformAdmin: ctx.isPlatformAdmin,
   };
   return (
     <div className="flex min-h-dvh">

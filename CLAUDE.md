@@ -44,7 +44,9 @@ pnpm check               # format, lint, typecheck, unit tests – kør før HVE
 pnpm e2e                 # Playwright (starter dev-server hvis den ikke kører)
 ```
 
-Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@demo.dk` (profilen Leder, ansvarlig for Butik), `medarbejder@demo.dk` og `ung@demo.dk` (16 år).
+Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@demo.dk` (profilen Leder, ansvarlig for Butik), `medarbejder@demo.dk`, `ung@demo.dk` (16 år) og `platform@demo.dk` (platformsadministrator, `/platform`, ikke medlem af demovirksomheden).
+
+Der er ingen selvbetjening: Nye kunder oprettes på `/platform` af en platformsadministrator, som inviterer kundens administrator.
 
 ## Arbejdsform
 

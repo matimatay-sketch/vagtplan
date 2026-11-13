@@ -1,5 +1,6 @@
 "use client";
-import { Check, ChevronsUpDown, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Building, Check, ChevronsUpDown, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,10 +20,19 @@ type Props = {
   profileName: string;
   organizationId: string;
   organizations: { id: string; name: string }[];
+  isPlatformAdmin?: boolean;
   tone: "dark" | "light";
 };
 
-export function UserMenu({ name, email, profileName, organizationId, organizations, tone }: Props) {
+export function UserMenu({
+  name,
+  email,
+  profileName,
+  organizationId,
+  organizations,
+  isPlatformAdmin,
+  tone,
+}: Props) {
   const [, startTransition] = useTransition();
   const initials = name
     .split(/\s+/)
@@ -76,6 +86,14 @@ export function UserMenu({ name, email, profileName, organizationId, organizatio
           </>
         ) : null}
         <DropdownMenuSeparator />
+        {isPlatformAdmin ? (
+          <DropdownMenuItem asChild>
+            <Link href="/platform">
+              <Building />
+              {da.platform.title}
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => startTransition(() => signOutAction())}>
           <LogOut />
           {da.nav.signOut}

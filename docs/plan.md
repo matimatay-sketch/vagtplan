@@ -193,6 +193,8 @@ Acceptkriterier:
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.
 
+Bygget 2026-11-13: Selvbetjeningen er fjernet. En platformsadministrator opretter kunder på `/platform`, inviterer kundens administrator (eller giver en eksisterende bruger adgang) og kan arkivere og genåbne kunder. En arkiveret kundes brugere mister adgangen, og intet slettes.
+
 ### Fase 4 – Tidsregistrering
 
 Opgaver:
