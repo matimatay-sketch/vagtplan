@@ -16,8 +16,8 @@ select plan(22);
 -- ------------------------------------------------ manager plans in own department
 select tests.login_as(:'manager');
 select lives_ok(
-  format($$insert into public.shift (id, organization_id, department_id, employee_id, start_at, end_at, break_minutes, label)
-    values ('60000000-0000-0000-0000-000000000001', %L, %L, %L, '2026-12-07 07:00Z', '2026-12-07 15:00Z', 30, 'Kasse')$$,
+  format($$insert into public.shift (id, organization_id, department_id, employee_id, start_at, end_at, breaks, label)
+    values ('60000000-0000-0000-0000-000000000001', %L, %L, %L, '2026-12-07 07:00Z', '2026-12-07 15:00Z', '[{"start_at":null,"minutes":30,"paid":false}]', 'Kasse')$$,
     :'org1', :'butik', :'mads'),
   'manager can create a shift in own department');
 select throws_ok(
