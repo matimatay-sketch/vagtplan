@@ -151,7 +151,9 @@ export async function copyRotationWeekAction(formData: FormData) {
   const supabase = await createClient();
   const { data: source, error } = await supabase
     .from("rotation_slot")
-    .select("line_id, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids")
+    .select(
+      "line_id, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids, project_id",
+    )
     .eq("rotation_id", p.rotation_id)
     .eq("week_index", p.from);
   if (error) throw new Error(dbErrorMessage(error));
@@ -186,7 +188,7 @@ async function loadSlots(supabase: Client, rotationId: string) {
     supabase
       .from("rotation_slot")
       .select(
-        "id, line_id, week_index, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids",
+        "id, line_id, week_index, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids, project_id",
       )
       .eq("rotation_id", rotationId),
   ]);
@@ -201,6 +203,7 @@ async function loadSlots(supabase: Client, rotationId: string) {
     label: s.label,
     breaks: s.breaks as unknown as TemplateBreak[],
     supplementTypeIds: s.supplement_type_ids,
+    projectId: s.project_id,
   }));
   return { rotation, slots: mapped };
 }
@@ -221,6 +224,9 @@ function shiftRows(
     ),
     breaks: asJson(formBreaksToDb(p.breaks, p.date)),
     supplement_type_ids: p.supplementTypeIds,
+    project_allocations: asJson(
+      p.projectId ? [{ project_id: p.projectId, start_at: null, end_at: null, minutes: null }] : [],
+    ),
     kind: p.kind,
     label: p.label,
     rollout_id: rolloutId,

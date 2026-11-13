@@ -5,6 +5,7 @@ import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { ageOn } from "@/lib/domain/age";
 import { durationMinutes, zonedTime } from "@/lib/domain/schedule-time";
 import { unpaidMinutes, type DbBreak, type TemplateBreak } from "@/lib/domain/breaks";
+import type { ProjectAllocation } from "@/lib/domain/projects";
 import { canInDepartment } from "@/lib/permissions";
 import { validateWeek } from "./validate-week";
 
@@ -17,6 +18,8 @@ export type BoardViolation = {
   date: IsoDate;
   handling: "block" | "allow";
 };
+
+export type BoardProject = { id: string; number: string; name: string };
 
 export type BoardSupplementType = {
   id: string;
@@ -32,6 +35,7 @@ export type BoardShift = {
   end: string;
   breaks: DbBreak[];
   supplementTypeIds: string[];
+  projectAllocations: ProjectAllocation[];
   label: string | null;
   kind: "work" | "on_call";
   templateId: string | null;
@@ -71,6 +75,7 @@ export type BoardTemplate = {
   end: string;
   breaks: TemplateBreak[];
   supplementTypeIds: string[];
+  projectId: string | null;
   label: string | null;
   kind: "work" | "on_call";
 };
@@ -83,6 +88,8 @@ export type WeekBoard = {
   availability: BoardAvailability[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
+  /** Active projects available in this department. */
+  projects: BoardProject[];
   pendingCount: number;
   canManage: boolean;
   canPublish: boolean;
@@ -108,7 +115,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, label, kind, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -117,7 +124,7 @@ export async function loadWeek(
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, label, kind, department_id",
+        "id, name, start_time, end_time, breaks, supplement_type_ids, project_id, label, kind, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -147,38 +154,49 @@ export async function loadWeek(
   }
   const employeeIds = [...employeeMap.keys()];
 
-  const [{ data: availability }, violations, { data: contracts }, { data: supplementTypes }] =
-    await Promise.all([
-      supabase
-        .from("availability")
-        .select("id, employee_id, date, kind, from_time, to_time, note")
-        .in(
-          "employee_id",
-          employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
-        )
-        .is("archived_at", null)
-        .gte("date", weekStart)
-        .lte("date", weekEnd),
-      validateWeek(supabase, {
-        organizationId: ctx.organization.id,
-        employeeIds,
-        weekStart,
-        timezone: ctx.organization.timezone,
-      }),
-      supabase
-        .from("contract")
-        .select("employee_id, valid_from, valid_to, weekly_norm_minutes")
-        .in(
-          "employee_id",
-          employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
-        ),
-      supabase
-        .from("supplement_type")
-        .select("id, name, amount_type, amount")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-    ]);
+  const [
+    { data: availability },
+    violations,
+    { data: contracts },
+    { data: supplementTypes },
+    { data: projects },
+  ] = await Promise.all([
+    supabase
+      .from("availability")
+      .select("id, employee_id, date, kind, from_time, to_time, note")
+      .in(
+        "employee_id",
+        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+      )
+      .is("archived_at", null)
+      .gte("date", weekStart)
+      .lte("date", weekEnd),
+    validateWeek(supabase, {
+      organizationId: ctx.organization.id,
+      employeeIds,
+      weekStart,
+      timezone: ctx.organization.timezone,
+    }),
+    supabase
+      .from("contract")
+      .select("employee_id, valid_from, valid_to, weekly_norm_minutes")
+      .in(
+        "employee_id",
+        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+      ),
+    supabase
+      .from("supplement_type")
+      .select("id, name, amount_type, amount")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("project")
+      .select("id, number, name, project_department (department_id)")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("number"),
+  ]);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const normFor = (employeeId: string): number | null => {
     const own = (contracts ?? []).filter((c) => c.employee_id === employeeId);
@@ -219,6 +237,7 @@ export async function loadWeek(
     end: s.end_at,
     breaks: s.breaks as unknown as DbBreak[],
     supplementTypeIds: s.supplement_type_ids,
+    projectAllocations: s.project_allocations as unknown as ProjectAllocation[],
     label: s.label,
     kind: s.kind,
     templateId: s.template_id,
@@ -262,6 +281,7 @@ export async function loadWeek(
       end: t.end_time.slice(0, 5),
       breaks: t.breaks as unknown as TemplateBreak[],
       supplementTypeIds: t.supplement_type_ids,
+      projectId: t.project_id,
       label: t.label,
       kind: t.kind,
     })),
@@ -271,6 +291,13 @@ export async function loadWeek(
       amountType: t.amount_type,
       amount: t.amount,
     })),
+    projects: (projects ?? [])
+      .filter(
+        (x) =>
+          x.project_department.length === 0 ||
+          x.project_department.some((d) => d.department_id === departmentId),
+      )
+      .map((x) => ({ id: x.id, number: x.number, name: x.name })),
     pendingCount: (shifts ?? []).filter(
       (s) =>
         (s.archived_at === null && s.status === "draft") ||

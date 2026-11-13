@@ -97,9 +97,78 @@ describe("templateFormSchema", () => {
       end_time: "16:00",
       breaks: [{ start: "12:00", minutes: 30, paid: false, nextDay: false }],
       supplement_type_ids: [],
+      project_id: null,
       label: null,
       kind: "work",
       department_id: null,
     });
+  });
+});
+
+describe("project rows on shifts", () => {
+  const P = "90000000-0000-0000-0000-000000000001";
+  const rows = (r: unknown[]) => JSON.stringify(r);
+  it("parses rest, span and minute rows", () => {
+    const r = shiftFormSchema.parse({
+      ...base,
+      project_allocations: rows([
+        { project_id: P, mode: "span", from: "08:00", to: "12:00" },
+        { project_id: P, mode: "minutes", minutes: 60 },
+        { project_id: P, mode: "rest" },
+      ]),
+    });
+    expect(r.project_allocations).toEqual([
+      {
+        project_id: P,
+        mode: "span",
+        from: "08:00",
+        to: "12:00",
+        minutes: null,
+        nextDayFrom: false,
+        nextDayTo: false,
+      },
+      {
+        project_id: P,
+        mode: "minutes",
+        from: null,
+        to: null,
+        minutes: 60,
+        nextDayFrom: false,
+        nextDayTo: false,
+      },
+      {
+        project_id: P,
+        mode: "rest",
+        from: null,
+        to: null,
+        minutes: null,
+        nextDayFrom: false,
+        nextDayTo: false,
+      },
+    ]);
+  });
+  it("rejects incomplete rows", () => {
+    expect(
+      shiftFormSchema.safeParse({
+        ...base,
+        project_allocations: rows([{ project_id: P, mode: "span", from: "08:00" }]),
+      }).success,
+    ).toBe(false);
+    expect(
+      shiftFormSchema.safeParse({
+        ...base,
+        project_allocations: rows([{ project_id: P, mode: "minutes" }]),
+      }).success,
+    ).toBe(false);
+  });
+  it("span times after midnight on a night shift belong to the next day", () => {
+    const r = shiftFormSchema.parse({
+      ...base,
+      start_time: "22:00",
+      end_time: "06:00",
+      breaks: "[]",
+      project_allocations: rows([{ project_id: P, mode: "span", from: "23:00", to: "02:00" }]),
+    });
+    expect(r.project_allocations[0]).toMatchObject({ nextDayFrom: false, nextDayTo: true });
   });
 });
