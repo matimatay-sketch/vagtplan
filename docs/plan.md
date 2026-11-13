@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -188,6 +188,10 @@ Acceptkriterier:
   - Vagtskabeloner og turnusvagter kan have et standardprojekt.
   - Siden Projekter viser timer pr. projekt og pr. medarbejder for en periode og en afdeling. Den har CSV-eksport (semikolon, UTF-8 med BOM) og påvirker ikke lønnen.
   - Betalte pauser tæller som arbejdstid i arbejdstidsreglerne (jura-todo nr. 16, besluttet 2026-11-13).
+
+### Beslutning: opsætning af en ny kunde (2026-11-13)
+
+En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.
 
 ### Fase 4 – Tidsregistrering
 
