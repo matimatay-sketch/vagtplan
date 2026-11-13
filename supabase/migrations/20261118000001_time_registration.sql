@@ -352,6 +352,88 @@ begin
 end $$;
 grant execute on function public.correct_time_entry(uuid, timestamptz, timestamptz, jsonb, jsonb, text) to authenticated;
 
+-- Registrations with their plan, plus published shifts that have ended
+-- without a registration ("missing"). Visible: own, or time.* on the department.
+create function public.time_overview(p_from timestamptz, p_to timestamptz)
+returns table (
+  row_kind text, entry_id uuid, shift_id uuid, employee_id uuid, employee_name text, employee_number text,
+  department_id uuid, department_name text, start_at timestamptz, end_at timestamptz, breaks jsonb,
+  project_allocations jsonb, status public.time_entry_status, source public.time_entry_source,
+  deviation_reason text, note text, offline boolean, approved_at timestamptz, approved_by_email text,
+  version integer, is_mine boolean, plan_start timestamptz, plan_end timestamptz, plan_breaks jsonb
+)
+language sql stable security definer set search_path = '' as $$
+  with visible_department as (
+    select d.id, d.name from public.department d
+    where private.is_member(d.organization_id)
+  )
+  select 'entry', t.id, t.shift_id, t.employee_id, trim(e.first_name || ' ' || e.last_name), e.employee_number,
+         t.department_id, vd.name, t.start_at, t.end_at, t.breaks, t.project_allocations, t.status, t.source,
+         t.deviation_reason, t.note, t.offline, t.approved_at, u.email::text,
+         (with recursive chain as (
+            select x.id, x.supersedes_id from public.time_entry x where x.id = t.id
+            union all
+            select y.id, y.supersedes_id from public.time_entry y join chain c on y.id = c.supersedes_id)
+          select count(*)::int from chain),
+         private.is_own_employee(t.employee_id),
+         (s.published ->> 'start_at')::timestamptz, (s.published ->> 'end_at')::timestamptz, s.published -> 'breaks'
+  from public.time_entry t
+  join visible_department vd on vd.id = t.department_id
+  join public.employee e on e.id = t.employee_id
+  left join public.shift s on s.id = t.shift_id
+  left join auth.users u on u.id = t.approved_by
+  where t.superseded_at is null and t.archived_at is null
+    and t.start_at >= p_from and t.start_at < p_to
+    and (private.is_own_employee(t.employee_id)
+         or private.can_on_department('time.view', t.department_id)
+         or private.can_on_department('time.manage', t.department_id)
+         or private.can_on_department('time.approve', t.department_id))
+  union all
+  select 'missing', null, s.id, (s.published ->> 'employee_id')::uuid, trim(e.first_name || ' ' || e.last_name),
+         e.employee_number, s.department_id, vd.name, (s.published ->> 'start_at')::timestamptz,
+         (s.published ->> 'end_at')::timestamptz, s.published -> 'breaks', s.published -> 'project_allocations',
+         null, null, null, null, false, null, null, 0, private.is_own_employee(e.id),
+         (s.published ->> 'start_at')::timestamptz, (s.published ->> 'end_at')::timestamptz, s.published -> 'breaks'
+  from public.shift s
+  join visible_department vd on vd.id = s.department_id
+  join public.employee e on e.id = (s.published ->> 'employee_id')::uuid
+  where s.published is not null and s.archived_at is null
+    and (s.published ->> 'start_at')::timestamptz >= p_from and (s.published ->> 'start_at')::timestamptz < p_to
+    and (s.published ->> 'end_at')::timestamptz <= now()
+    and not exists (select 1 from public.time_entry t
+                    where t.shift_id = s.id and t.superseded_at is null and t.archived_at is null)
+    and (private.is_own_employee(e.id)
+         or private.can_on_department('time.view', s.department_id)
+         or private.can_on_department('time.manage', s.department_id)
+         or private.can_on_department('time.approve', s.department_id))
+  order by 9, 5;
+$$;
+grant execute on function public.time_overview(timestamptz, timestamptz) to authenticated;
+
+-- The versions of a registration (newest first), for the history view.
+create function public.time_entry_history(p_id uuid)
+returns table (id uuid, start_at timestamptz, end_at timestamptz, breaks jsonb, status public.time_entry_status,
+               source public.time_entry_source, deviation_reason text, created_at timestamptz, created_by_email text,
+               approved_at timestamptz, approved_by_email text, superseded_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  with recursive chain as (
+    select x.* from public.time_entry x where x.id = p_id
+    union all
+    select y.* from public.time_entry y join chain c on y.id = c.supersedes_id
+  )
+  select c.id, c.start_at, c.end_at, c.breaks, c.status, c.source, c.deviation_reason, c.created_at, cu.email::text,
+         c.approved_at, au.email::text, c.superseded_at
+  from chain c
+  left join auth.users cu on cu.id = c.created_by
+  left join auth.users au on au.id = c.approved_by
+  where private.is_own_employee(c.employee_id)
+     or private.can_on_department('time.view', c.department_id)
+     or private.can_on_department('time.manage', c.department_id)
+     or private.can_on_department('time.approve', c.department_id)
+  order by c.created_at desc;
+$$;
+grant execute on function public.time_entry_history(uuid) to authenticated;
+
 -- Registered time with project data for the project overview.
 create function public.project_time_entries(p_from timestamptz, p_to timestamptz)
 returns table (id uuid, department_id uuid, department_name text, employee_id uuid,
@@ -372,6 +454,7 @@ grant execute on function public.project_time_entries(timestamptz, timestamptz) 
 
 revoke execute on function public.stamp(uuid, uuid, text, timestamptz), public.complete_as_planned(uuid[]),
   public.approve_time_entries(uuid[]), public.correct_time_entry(uuid, timestamptz, timestamptz, jsonb, jsonb, text),
-  public.project_time_entries(timestamptz, timestamptz) from public, anon;
+  public.project_time_entries(timestamptz, timestamptz), public.time_overview(timestamptz, timestamptz),
+  public.time_entry_history(uuid) from public, anon;
 
 alter publication supabase_realtime add table public.time_entry;

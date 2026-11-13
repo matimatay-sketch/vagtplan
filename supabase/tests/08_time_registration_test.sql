@@ -1,6 +1,6 @@
 -- Time registration: stamping, completed-as-planned, approval and corrections.
 begin;
-select plan(21);
+select plan(25);
 
 \set org1 20000000-0000-0000-0000-000000000001
 \set manager 10000000-0000-0000-0000-000000000002
@@ -20,6 +20,8 @@ values ('60000000-0000-0000-0000-0000000000f1', :'org1', :'butik', :'mads', now(
 select set_config('app.publishing', 'off', true);
 
 select tests.login_as(:'emp');
+select is((select row_kind from public.time_overview(now() - interval '30 days', now() + interval '1 day') where shift_id = '60000000-0000-0000-0000-0000000000f1'),
+  'missing', 'an ended published shift without registration is missing');
 select lives_ok(format($$select public.stamp(%L, '70000000-0000-0000-0000-000000000001', 'in', now())$$, :'org1'), 'an employee stamps in');
 select is((select status::text from public.time_entry where client_id = '70000000-0000-0000-0000-000000000001'), 'open', 'the registration is open');
 select is(public.stamp(:'org1', '70000000-0000-0000-0000-000000000001', 'in', now()),
@@ -42,6 +44,8 @@ select tests.logout();
 
 select tests.login_as(:'young');
 select is((select count(*) from public.time_entry), 0::bigint, 'colleagues do not see each other''s time');
+select is((select count(*) from public.time_overview(now() - interval '30 days', now() + interval '1 day')), 0::bigint,
+  'nor in the overview');
 select tests.logout();
 
 select tests.login_as(:'manager');
@@ -62,6 +66,10 @@ select is((select count(*) from public.time_entry where shift_id = '60000000-000
   'only the new version is current');
 select is((select status::text from public.time_entry where shift_id = '60000000-0000-0000-0000-0000000000f1' and superseded_at is null), 'pending',
   'the correction must be approved again');
+select is((select version from public.time_overview(now() - interval '30 days', now() + interval '1 day') where shift_id = '60000000-0000-0000-0000-0000000000f1'), 2,
+  'the overview shows the version number');
+select is((select count(*) from public.time_entry_history((select id from public.time_entry where shift_id = '60000000-0000-0000-0000-0000000000f1' and superseded_at is null))),
+  2::bigint, 'the history has both versions');
 select lives_ok(format($$insert into public.time_entry (organization_id, employee_id, department_id, start_at, end_at, source, status)
   values (%L, %L, %L, now() - interval '2 days', now() - interval '2 days' + interval '1 hour', 'manual', 'pending')$$, :'org1', :'lise', :'butik'),
   'a manager registers own time');
