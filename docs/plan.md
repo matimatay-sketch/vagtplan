@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser) er bygget og afventer godkendelse., med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -182,6 +182,12 @@ Acceptkriterier:
 - Vagttillæg på vagter, skabeloner og turnusser. De bliver til lønlinjer i motoren.
 - Ugens timer mod kontraktens norm i ugevisningen.
 - Turnusværktøj: ugeskabeloner og turnusser over N uger med linjer, redigering i et skema, kopiering af uger, udrulning med medarbejder og startuge pr. linje, "udrul igen" (kun vagter, der aldrig er offentliggjort).
+- Projektregistrering (ønsket 2026-11-13):
+  - Projekter har projektnummer, navn, kunde (valgfri) og kan arkiveres. De kan begrænses til bestemte afdelinger. Rettighederne er `projects.manage` (organisation; som standard administratorer) og `projects.view` (afdelinger eller organisation; som standard Leder i egne afdelinger).
+  - En vagt kan deles mellem flere projekter: tidsrum, antal minutter eller "resten af vagten". Ubetalte pauser trækkes fra.
+  - Vagtskabeloner og turnusvagter kan have et standardprojekt.
+  - Siden Projekter viser timer pr. projekt og pr. medarbejder for en periode og en afdeling. Den har CSV-eksport (semikolon, UTF-8 med BOM) og påvirker ikke lønnen.
+  - Betalte pauser tæller som arbejdstid i arbejdstidsreglerne (jura-todo nr. 16, besluttet 2026-11-13).
 
 ### Fase 4 – Tidsregistrering
 
@@ -193,6 +199,7 @@ Opgaver:
 4. Løbende validering (hviletid, pause) og validering ved dagsafslutning.
 5. Lederens godkendelsesliste med filter og massegodkendelse. Rettelser laver en ny række med `supersedes_id`.
 6. Audit-log-visning pr. registrering.
+7. Projektfordelingen arves fra den planlagte vagt til den registrerede tid. Medarbejderen kan rette den, indtil tiden er godkendt. Projektoversigten og CSV-eksporten viser også faktisk registreret tid.
 
 Acceptkriterier:
 

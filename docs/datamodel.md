@@ -89,3 +89,14 @@ Rettigheder: `schedule.view`, `schedule.manage`, `schedule.publish` og `schedule
 | `rotation_rollout` + `shift.rollout_id`, `shift.rotation_slot_id` | En udrulning (start-mandag, uger, linje → medarbejder og startuge). "Udrul igen" erstatter kun vagter, der aldrig er offentliggjort                                                           |
 
 Ved offentliggørelse gemmes regelbrud, som opsætningen tilsidesætter permanent, med begrundelsen "Tilsidesat permanent i opsætningen" og `details.auto_override = true`. De kræver ikke rettigheden `schedule.override`.
+
+## Projekter
+
+| Tabel / felt                                            | Bemærkning                                                                                                                                                                                   |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project`                                               | `number` (unik pr. organisation blandt aktive, uden forskel på store og små bogstaver), `name`, `customer`, `archived_at`                                                                    |
+| `project_department`                                    | Afgrænsning til afdelinger. Ingen rækker betyder alle afdelinger. Det er koblingsrækker (konfiguration), som må slettes, og de auditeres                                                     |
+| `shift.project_allocations`                             | JSON-liste: `{project_id, start_at, end_at, minutes}`. En række er et tidsrum, et antal minutter eller "resten af vagten". Trigger: projektet skal findes og være tilladt i vagtens afdeling |
+| `shift_template.project_id`, `rotation_slot.project_id` | Standardprojekt for hele vagten                                                                                                                                                              |
+
+Rettigheder: `projects.manage` (organisation) og `projects.view` (afdelinger eller organisation). Oversigten læser via `project_shifts(from, to)`, som kun returnerer vagter i afdelinger, hvor kalderen har `projects.view`. Funktionen returnerer navne og numre, fordi `projects.view` ikke forudsætter `employees.view`. Ændres projektfordelingen på en offentliggjort vagt, bliver vagten til en kladde igen, og fordelingen kommer med i snapshottet.

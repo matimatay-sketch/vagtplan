@@ -66,5 +66,6 @@ Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@
 - **Offentliggørelse** sker kun via `publishAction` → service-klient → `publish_schedule` (DB-funktionen tjekker aktørens rettigheder igen). Klienten sender kun begrundelser. Overtrædelserne beregnes altid igen på serveren.
 - **Client- og servermoduler:** En funktion fra en `"use client"`-fil kan ikke kaldes fra en server-komponent (fx `formatSupplementAmount`). Delte hjælpere lægges i `src/lib/domain/`.
 - **Pauser og tillæg** ligger som JSON eller uuid-liste på vagten (ikke i separate tabeller), så de indgår i ændringsdetektion og i snapshottet ved offentliggørelse.
-- **Undtagelse fra "intet slettes hårdt":** `rotation_line` og `rotation_slot` er skabelonkonfiguration og må slettes. De auditeres.
+- **Undtagelse fra "intet slettes hårdt":** `rotation_line`, `rotation_slot` og `project_department` er konfiguration og må slettes. De auditeres.
+- **Projektfordeling** (`shift.project_allocations`) beregnes i `src/lib/domain/projects.ts` (`projectMinutes`, `allocationProblems`) og regnes i betalte minutter. Projekttimer påvirker ikke lønnen.
 - **Service-klienten** (`createServiceClient`) må kun bruges efter at databasen har bekræftet brugerens rettighed (`rpc("can_on_employee", …)`, se `inviteEmployeeAction`).
