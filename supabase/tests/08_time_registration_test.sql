@@ -1,6 +1,6 @@
 -- Time registration: stamping, completed-as-planned, approval and corrections.
 begin;
-select plan(25);
+select plan(26);
 
 \set org1 20000000-0000-0000-0000-000000000001
 \set manager 10000000-0000-0000-0000-000000000002
@@ -31,6 +31,9 @@ select throws_ok(format($$select public.stamp(%L, '70000000-0000-0000-0000-00000
   'stamping in twice is refused');
 select lives_ok(format($$select public.stamp(%L, '70000000-0000-0000-0000-000000000003', 'out', now())$$, :'org1'), 'the employee stamps out');
 select is((select status::text from public.time_entry where client_id = '70000000-0000-0000-0000-000000000001'), 'pending', 'stamped out: awaiting approval');
+select lives_ok(format($$insert into public.time_entry (organization_id, employee_id, department_id, start_at, end_at, source, status)
+  values (%L, %L, %L, now() - interval '4 days', now() - interval '4 days' + interval '30 seconds', 'manual', 'pending')$$, :'org1', :'mads', :'butik'),
+  'a registration shorter than a minute is accepted');
 select is(public.complete_as_planned(array['60000000-0000-0000-0000-0000000000f1'::uuid]), 1, 'completed as planned');
 select is(public.complete_as_planned(array['60000000-0000-0000-0000-0000000000f1'::uuid]), 0, 'only once per shift');
 select is((select breaks from public.time_entry where shift_id = '60000000-0000-0000-0000-0000000000f1'),
@@ -49,7 +52,7 @@ select is((select count(*) from public.time_overview(now() - interval '30 days',
 select tests.logout();
 
 select tests.login_as(:'manager');
-select is(public.approve_time_entries(array(select id from public.time_entry where employee_id = :'mads')), 2, 'the manager approves');
+select is(public.approve_time_entries(array(select id from public.time_entry where employee_id = :'mads')), 3, 'the manager approves');
 select tests.logout();
 
 select tests.login_as(:'emp');

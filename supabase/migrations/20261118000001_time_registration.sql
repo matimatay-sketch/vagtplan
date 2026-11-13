@@ -99,8 +99,9 @@ create table public.time_entry (
   check (end_at is null or end_at > start_at),
   check (end_at is null or end_at - start_at <= interval '24 hours'),
   check ((status = 'approved') = (approved_at is not null)),
+  -- Length in whole minutes, rounded up, so a registration under a minute is valid.
   check (private.valid_breaks(breaks,
-    coalesce((extract(epoch from end_at - start_at) / 60)::integer, 1440), 'start_at'))
+    coalesce(greatest(1, ceil(extract(epoch from end_at - start_at) / 60))::integer, 1440), 'start_at'))
 );
 create unique index time_entry_client_id_uniq on public.time_entry (organization_id, client_id) where client_id is not null;
 create unique index time_entry_end_client_id_uniq on public.time_entry (organization_id, end_client_id) where end_client_id is not null;
