@@ -36,6 +36,26 @@ const dayFormat = new Intl.DateTimeFormat("da-DK", {
   timeZone: "UTC",
 });
 
+/** "30 / 37 t": planned hours against the contract norm for the week. */
+function NormHours({ planned, norm }: { planned: number; norm: number | null }) {
+  if (norm === null) return <span title={da.schedule.noNorm}>{formatHours(planned)} t</span>;
+  const tone =
+    planned > norm
+      ? "text-warning-foreground font-medium"
+      : planned === norm
+        ? "text-success font-medium"
+        : "";
+  return (
+    <span
+      className={tone}
+      title={`${da.schedule.norm}: ${formatHours(norm)} t`}
+      data-testid="norm-hours"
+    >
+      {da.schedule.hoursOfNorm(formatHours(planned), formatHours(norm))}
+    </span>
+  );
+}
+
 function availabilityTone(kind: BoardAvailability["kind"]) {
   switch (kind) {
     case "unavailable":
@@ -241,7 +261,7 @@ export function WeekBoard({
                         <ViolationIcon violations={employee.violations} />
                       </span>
                       <span className="flex items-center gap-1.5 text-xs text-muted-foreground tabular">
-                        {formatHours(employee.weekMinutes)} t
+                        <NormHours planned={employee.weekMinutes} norm={employee.normMinutes} />
                         {employee.young ? (
                           <span className="rounded bg-warning/25 px-1 text-warning-foreground">
                             U18
@@ -306,6 +326,7 @@ export function WeekBoard({
         departmentId={board.departmentId}
         employees={board.employees}
         templates={board.templates}
+        supplementTypes={board.supplementTypes}
       />
     </DndContext>
   );

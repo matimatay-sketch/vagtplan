@@ -21,9 +21,13 @@ import {
   type NoticeShift,
 } from "@/lib/schedule/validate-week";
 import { da } from "@/lib/i18n/da";
+import { formBreaksToDb, moveDbBreaks, type DbBreak } from "@/lib/schedule/breaks";
+import { PERMANENT_OVERRIDE_REASON } from "@/lib/schedule/rule-handling";
+import type { Json } from "@/lib/supabase/database.types";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
 
 const TZ = "Europe/Copenhagen";
+const asJson = (v: unknown) => v as NonNullable<Json>;
 const isoDate = z.string().refine(isValidIsoDate);
 
 const hhmm = (minuteOfDay: number) =>
@@ -57,7 +61,8 @@ export async function saveShiftAction(
     department_id: f.department_id,
     employee_id: f.employee_id,
     ...instants(f.date, f.start_time, f.end_time, f.endsNextDay),
-    break_minutes: f.break_minutes,
+    breaks: asJson(formBreaksToDb(f.breaks, f.date)),
+    supplement_type_ids: f.supplement_type_ids,
     label: f.label,
     kind: f.kind,
     template_id: f.template_id,
@@ -103,7 +108,9 @@ export async function moveShiftAction(input: {
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("shift")
-    .select("department_id, start_at, end_at, break_minutes, label, kind, template_id")
+    .select(
+      "department_id, start_at, end_at, breaks, supplement_type_ids, label, kind, template_id",
+    )
     .eq("id", p.id)
     .maybeSingle();
   if (!s) return { message: da.common.notAllowed };
@@ -114,13 +121,14 @@ export async function moveShiftAction(input: {
     employee_id: p.employeeId,
     start_at: formatInstant(wallTime(p.date, hhmm(start.minuteOfDay), TZ)),
     end_at: formatInstant(wallTime(engineAddDays(p.date, dayShift), hhmm(end.minuteOfDay), TZ)),
+    breaks: asJson(moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, p.date)),
   };
   const { error } = p.copy
     ? await supabase.from("shift").insert({
         ...row,
         organization_id: ctx.organization.id,
         department_id: s.department_id,
-        break_minutes: s.break_minutes,
+        supplement_type_ids: s.supplement_type_ids,
         label: s.label,
         kind: s.kind,
         template_id: s.template_id,
@@ -150,18 +158,27 @@ export async function resizeShiftAction(input: {
     .parse(input);
   const endDate = p.endMinute >= 1440 ? engineAddDays(p.date, 1) : p.date;
   const supabase = await createClient();
-  const { data: s } = await supabase
-    .from("shift")
-    .select("break_minutes")
-    .eq("id", p.id)
-    .maybeSingle();
+  const { data: s } = await supabase.from("shift").select("breaks").eq("id", p.id).maybeSingle();
   if (!s) return { message: da.common.notAllowed };
+  const newStart = wallTime(p.date, hhmm(p.startMinute), TZ);
+  const newEnd = wallTime(endDate, hhmm(p.endMinute % 1440), TZ);
+  // Keep placed breaks that still fit; keep unplaced breaks while they fit in total.
+  let budget = p.endMinute - p.startMinute - 1;
+  const breaks = (s.breaks as unknown as DbBreak[]).filter((b) => {
+    if (b.start_at) {
+      const at = parseInstant(b.start_at);
+      if (at < newStart || at + b.minutes * 60_000 > newEnd) return false;
+    }
+    if (b.minutes > budget) return false;
+    budget -= b.minutes;
+    return true;
+  });
   const { error } = await supabase
     .from("shift")
     .update({
-      start_at: formatInstant(wallTime(p.date, hhmm(p.startMinute), TZ)),
-      end_at: formatInstant(wallTime(endDate, hhmm(p.endMinute % 1440), TZ)),
-      break_minutes: Math.min(s.break_minutes, p.endMinute - p.startMinute - 1),
+      start_at: formatInstant(newStart),
+      end_at: formatInstant(newEnd),
+      breaks: asJson(breaks),
     })
     .eq("id", p.id);
   if (error) return { message: dbErrorMessage(error) };
@@ -179,7 +196,7 @@ export async function copyPreviousWeekAction(input: {
   const supabase = await createClient();
   const { data: shifts, error } = await supabase
     .from("shift")
-    .select("employee_id, start_at, end_at, break_minutes, label, kind, template_id")
+    .select("employee_id, start_at, end_at, breaks, supplement_type_ids, label, kind, template_id")
     .eq("department_id", p.departmentId)
     .is("archived_at", null)
     .gte("start_at", new Date(zonedTime(prev)).toISOString())
@@ -195,7 +212,10 @@ export async function copyPreviousWeekAction(input: {
       employee_id: s.employee_id,
       start_at: formatInstant(wallTime(engineAddDays(start.date, 7), hhmm(start.minuteOfDay), TZ)),
       end_at: formatInstant(wallTime(engineAddDays(end.date, 7), hhmm(end.minuteOfDay), TZ)),
-      break_minutes: s.break_minutes,
+      breaks: asJson(
+        moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, engineAddDays(start.date, 7)),
+      ),
+      supplement_type_ids: s.supplement_type_ids,
       label: s.label,
       kind: s.kind,
       template_id: s.template_id,
@@ -219,9 +239,13 @@ export async function createTemplateAction(
   const parsed = templateFormSchema.safeParse(values);
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("shift_template")
-    .insert({ ...parsed.data, organization_id: ctx.organization.id });
+  const { error } = await supabase.from("shift_template").insert({
+    ...parsed.data,
+    breaks: asJson(
+      parsed.data.breaks.map((b) => ({ start_time: b.start, minutes: b.minutes, paid: b.paid })),
+    ),
+    organization_id: ctx.organization.id,
+  });
   if (error) return { message: dbErrorMessage(error), values };
   revalidatePath("/vagtplan", "layout");
   return { ok: true, message: da.common.saved };
@@ -291,6 +315,7 @@ async function collectPublish(departmentId: string, weekStart: string) {
     ),
   ];
   const violations = await validateWeek(supabase, {
+    organizationId: ctx.organization.id,
     employeeIds,
     weekStart,
     timezone: ctx.organization.timezone,
@@ -338,9 +363,11 @@ export async function publishAction(input: {
     })
     .parse(input);
   const r = await collectPublish(p.departmentId, p.weekStart);
-  const blocking = r.violations.filter((v) => v.severity === "BLOCKING");
-  if (blocking.length && !r.canOverride) return { message: da.schedule.overrideNotAllowed };
-  if (blocking.some((v) => (p.overrides[v.key] ?? "").trim().length < 5))
+  // The organization's rule handling decides what needs a reason ("block")
+  // and what is permanently overridden ("allow"). Everything is recorded.
+  const needsReason = r.violations.filter((v) => v.handling === "block");
+  if (needsReason.length && !r.canOverride) return { message: da.schedule.overrideNotAllowed };
+  if (needsReason.some((v) => (p.overrides[v.key] ?? "").trim().length < 5))
     return { message: da.schedule.overrideMissing };
 
   const service = createServiceClient();
@@ -356,12 +383,18 @@ export async function publishAction(input: {
       employee_id: v.employeeId,
       rule_id: v.ruleId,
       code: v.code,
-      severity: v.severity,
+      severity: v.handling === "block" || v.severity === "BLOCKING" ? "BLOCKING" : "WARNING",
       message: v.message,
       date: v.date,
-      details: { ...v.details, intervalIds: v.intervalIds },
+      details: { ...v.details, intervalIds: v.intervalIds, engineSeverity: v.severity },
       source: v.source,
-      override_reason: v.severity === "BLOCKING" ? p.overrides[v.key]!.trim() : null,
+      auto_override: v.handling === "allow" && v.severity === "BLOCKING",
+      override_reason:
+        v.handling === "block"
+          ? p.overrides[v.key]!.trim()
+          : v.severity === "BLOCKING"
+            ? PERMANENT_OVERRIDE_REASON
+            : null,
     })),
   });
   if (error) return { message: dbErrorMessage(error) };

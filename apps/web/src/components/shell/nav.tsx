@@ -7,6 +7,8 @@ import {
   CalendarHeart,
   FileText,
   KeyRound,
+  Settings,
+  Repeat,
   LayoutDashboard,
   UserRound,
   Users,
@@ -57,6 +59,13 @@ const items: Item[] = [
     label: da.nav.profiles,
     icon: KeyRound,
     anyOf: ["users.manage"],
+  },
+  { href: "/vagtplan/turnus", label: da.nav.turnus, icon: Repeat, anyOf: ["schedule.manage"] },
+  {
+    href: "/indstillinger/opsaetning",
+    label: da.nav.settings,
+    icon: Settings,
+    anyOf: ["settings.manage"],
   },
   {
     href: "/indstillinger/lonperioder",

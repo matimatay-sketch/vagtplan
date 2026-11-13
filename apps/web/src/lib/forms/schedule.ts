@@ -3,7 +3,8 @@ import { da } from "@/lib/i18n/da";
 import { isValidIsoDate } from "@/lib/domain/civil-date";
 
 const v = da.validation;
-const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, da.schedule.invalidTime);
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const hhmm = z.string().regex(HHMM, da.schedule.invalidTime);
 const toMinutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const optionalGuid = z
   .string()
@@ -16,22 +17,62 @@ const optionalLabel = z
   .max(60, v.tooLong)
   .optional()
   .transform((s) => (s ? s : null));
-const breakMinutes = z
-  .string()
-  .optional()
-  .transform((s, ctx) => {
-    const n = s ? Number(s) : 0;
-    if (!Number.isInteger(n) || n < 0 || n > 600) {
-      ctx.addIssue({ code: "custom", message: v.invalidNumber });
-      return z.NEVER;
-    }
-    return n;
-  });
+
+/** A break as edited in forms: local start "HH:MM" (or none) and length. */
+export type FormBreak = { start: string | null; minutes: number; paid: boolean; nextDay: boolean };
+
+const breakRow = z.object({
+  start: z
+    .string()
+    .nullish()
+    .transform((s) => (s ? s : null))
+    .refine((s) => s === null || HHMM.test(s), da.schedule.invalidTime),
+  minutes: z.number().int().min(1, da.schedule.breakInvalid).max(600, da.schedule.breakInvalid),
+  paid: z.boolean().default(false),
+});
+
+const jsonField = <T extends z.ZodType>(schema: T) =>
+  z
+    .string()
+    .optional()
+    .transform((s, ctx) => {
+      try {
+        return JSON.parse(s || "[]") as unknown;
+      } catch {
+        ctx.addIssue({ code: "custom", message: da.common.unknownError });
+        return z.NEVER;
+      }
+    })
+    .pipe(schema);
+
+const breaksField = jsonField(z.array(breakRow).max(10));
+const supplementsField = jsonField(z.array(z.guid()).max(20));
 
 /** Shift length in minutes from local times; an end ≤ start ends the next day. */
 export function localDurationMinutes(start: string, end: string): number {
   const d = toMinutes(end) - toMinutes(start);
   return d > 0 ? d : d + 1440;
+}
+
+/** Checks breaks against the shift and marks breaks that fall after midnight. */
+function checkBreaks(
+  val: { start_time: string; end_time: string; breaks: z.output<typeof breaksField> },
+  ctx: z.RefinementCtx,
+): FormBreak[] {
+  const startMin = toMinutes(val.start_time);
+  const length = localDurationMinutes(val.start_time, val.end_time);
+  const total = val.breaks.reduce((s, b) => s + b.minutes, 0);
+  if (total >= length)
+    ctx.addIssue({ code: "custom", path: ["breaks"], message: da.schedule.breakTooLong });
+  return val.breaks.map((b) => {
+    if (b.start === null) return { ...b, nextDay: false };
+    let offset = toMinutes(b.start) - startMin;
+    if (offset < 0) offset += 1440;
+    if (offset + b.minutes > length) {
+      ctx.addIssue({ code: "custom", path: ["breaks"], message: da.schedule.breakOutside });
+    }
+    return { ...b, nextDay: toMinutes(b.start) < startMin };
+  });
 }
 
 export const shiftFormSchema = z
@@ -42,24 +83,20 @@ export const shiftFormSchema = z
     date: z.string().refine(isValidIsoDate, v.invalidDate),
     start_time: hhmm,
     end_time: hhmm,
-    break_minutes: breakMinutes,
+    breaks: breaksField,
+    supplement_type_ids: supplementsField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
     template_id: optionalGuid,
   })
-  .superRefine((val, ctx) => {
+  .transform((val, ctx) => {
     if (val.start_time === val.end_time) {
       ctx.addIssue({ code: "custom", path: ["end_time"], message: da.schedule.sameTimes });
-      return;
+      return z.NEVER;
     }
-    if (val.break_minutes >= localDurationMinutes(val.start_time, val.end_time)) {
-      ctx.addIssue({ code: "custom", path: ["break_minutes"], message: da.schedule.breakTooLong });
-    }
-  })
-  .transform((val) => ({
-    ...val,
-    endsNextDay: toMinutes(val.end_time) <= toMinutes(val.start_time),
-  }));
+    const breaks = checkBreaks(val, ctx);
+    return { ...val, breaks, endsNextDay: toMinutes(val.end_time) <= toMinutes(val.start_time) };
+  });
 
 export const templateFormSchema = z
   .object({
@@ -67,14 +104,15 @@ export const templateFormSchema = z
     department_id: optionalGuid,
     start_time: hhmm,
     end_time: hhmm,
-    break_minutes: breakMinutes,
+    breaks: breaksField,
+    supplement_type_ids: supplementsField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
   })
-  .superRefine((val, ctx) => {
-    if (val.start_time === val.end_time)
+  .transform((val, ctx) => {
+    if (val.start_time === val.end_time) {
       ctx.addIssue({ code: "custom", path: ["end_time"], message: da.schedule.sameTimes });
-    else if (val.break_minutes >= localDurationMinutes(val.start_time, val.end_time)) {
-      ctx.addIssue({ code: "custom", path: ["break_minutes"], message: da.schedule.breakTooLong });
+      return z.NEVER;
     }
+    return { ...val, breaks: checkBreaks(val, ctx) };
   });

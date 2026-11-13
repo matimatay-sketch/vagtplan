@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canInDepartment } from "@/lib/permissions";
 import { archiveTemplateAction } from "@/lib/actions/schedule";
 import { da } from "@/lib/i18n/da";
+import type { TemplateBreak } from "@/lib/domain/breaks";
 import { TemplateForm } from "./template-form";
 
 export const metadata: Metadata = { title: "Vagtskabeloner" };
@@ -26,20 +27,30 @@ export default async function TemplatesPage() {
   const ctx = await requireContext(["schedule.manage"]);
   const supabase = await createClient();
   const t = da.schedule;
-  const [{ data: templates }, { data: departments }] = await Promise.all([
-    supabase
-      .from("shift_template")
-      .select("id, name, start_time, end_time, break_minutes, label, kind, department_id")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("start_time"),
-    supabase
-      .from("department")
-      .select("id, name")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("name"),
-  ]);
+  const [{ data: templates }, { data: departments }, { data: supplementTypes }] = await Promise.all(
+    [
+      supabase
+        .from("shift_template")
+        .select(
+          "id, name, start_time, end_time, breaks, supplement_type_ids, label, kind, department_id",
+        )
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("start_time"),
+      supabase
+        .from("department")
+        .select("id, name")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+      supabase
+        .from("supplement_type")
+        .select("id, name, amount_type, amount")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+    ],
+  );
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const manageable = (departments ?? []).filter((d) =>
     canInDepartment(ctx.permissions, "schedule.manage", d.id, ctx.responsibleDepartmentIds),
@@ -59,7 +70,16 @@ export default async function TemplatesPage() {
       />
       <Card className="mb-6">
         <CardContent>
-          <TemplateForm departments={manageable} allowOrgWide={orgWide} />
+          <TemplateForm
+            departments={manageable}
+            allowOrgWide={orgWide}
+            supplementTypes={(supplementTypes ?? []).map((x) => ({
+              id: x.id,
+              name: x.name,
+              amountType: x.amount_type,
+              amount: x.amount,
+            }))}
+          />
         </CardContent>
       </Card>
       {(templates ?? []).length === 0 ? (
@@ -95,7 +115,14 @@ export default async function TemplatesPage() {
                   <TableCell className="tabular">
                     {tpl.start_time.slice(0, 5)}–{tpl.end_time.slice(0, 5)}
                   </TableCell>
-                  <TableCell className="tabular">{tpl.break_minutes}</TableCell>
+                  <TableCell className="tabular">
+                    {(tpl.breaks as unknown as TemplateBreak[])
+                      .map(
+                        (b) =>
+                          `${b.minutes}${b.start_time ? ` (${b.start_time.slice(0, 5)})` : ""}${b.paid ? " betalt" : ""}`,
+                      )
+                      .join(", ") || "–"}
+                  </TableCell>
                   <TableCell>
                     {tpl.department_id ? deptName.get(tpl.department_id) : t.allDepartments}
                   </TableCell>

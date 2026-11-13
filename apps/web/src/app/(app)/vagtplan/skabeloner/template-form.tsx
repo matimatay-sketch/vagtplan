@@ -1,21 +1,31 @@
 "use client";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
+import {
+  BreaksEditor,
+  SupplementPicker,
+  type SupplementOption,
+} from "@/components/schedule/breaks-editor";
 import { createTemplateAction } from "@/lib/actions/schedule";
 import { initialActionState } from "@/lib/actions/state";
+import type { EditableBreak } from "@/lib/domain/breaks";
 import { da } from "@/lib/i18n/da";
 
 export function TemplateForm({
   departments,
   allowOrgWide,
+  supplementTypes,
 }: {
   departments: { id: string; name: string }[];
   allowOrgWide: boolean;
+  supplementTypes: SupplementOption[];
 }) {
   const [state, action] = useActionState(createTemplateAction, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
+  const [breaks, setBreaks] = useState<EditableBreak[]>([{ start: "", minutes: 30, paid: false }]);
+  const [supplements, setSupplements] = useState<string[]>([]);
   const t = da.schedule;
   useEffect(() => {
     if (state.ok) ref.current?.reset();
@@ -39,20 +49,13 @@ export function TemplateForm({
         <Field label={t.end} htmlFor="end_time" error={state.errors?.end_time}>
           <Input type="time" step={900} {...f("end_time", "16:00")} />
         </Field>
-        <Field label={t.breakMinutes} htmlFor="break_minutes" error={state.errors?.break_minutes}>
-          <Input type="number" min={0} step={5} {...f("break_minutes", "30")} />
-        </Field>
         <Field label={t.kind} htmlFor="kind">
           <NativeSelect {...f("kind", "work")}>
             <option value="work">{t.kinds.work}</option>
             <option value="on_call">{t.kinds.on_call}</option>
           </NativeSelect>
         </Field>
-        <Field
-          label={`${t.label} (${da.common.optional})`}
-          htmlFor="label"
-          className="lg:col-span-2"
-        >
+        <Field label={`${t.label} (${da.common.optional})`} htmlFor="label">
           <Input placeholder={t.labelPlaceholder} {...f("label")} />
         </Field>
         <Field
@@ -70,9 +73,13 @@ export function TemplateForm({
             ))}
           </NativeSelect>
         </Field>
-        <div className="flex items-end lg:col-span-2">
-          <SubmitButton>{t.newTemplate}</SubmitButton>
-        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />
+        <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
+      </div>
+      <div>
+        <SubmitButton>{t.newTemplate}</SubmitButton>
       </div>
     </form>
   );

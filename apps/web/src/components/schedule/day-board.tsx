@@ -247,6 +247,7 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
         departmentId={board.departmentId}
         employees={board.employees}
         templates={board.templates}
+        supplementTypes={board.supplementTypes}
       />
     </>
   );

@@ -40,8 +40,12 @@ export function PublishButton({
     setError(null);
     startLoading(async () => setPreview(await previewPublishAction({ departmentId, weekStart })));
   };
-  const blocking = preview?.violations.filter((v) => v.severity === "BLOCKING") ?? [];
-  const warnings = preview?.violations.filter((v) => v.severity === "WARNING") ?? [];
+  // "block" needs a reason; "allow" is always shown but permanently overridden by the settings.
+  const blocking = preview?.violations.filter((v) => v.handling === "block") ?? [];
+  const overridden =
+    preview?.violations.filter((v) => v.handling === "allow" && v.severity === "BLOCKING") ?? [];
+  const warnings =
+    preview?.violations.filter((v) => v.handling === "allow" && v.severity === "WARNING") ?? [];
   const ready =
     preview &&
     preview.shiftCount > 0 &&
@@ -128,6 +132,27 @@ export function PublishButton({
                   ) : null}
                 </div>
               ))}
+              {overridden.length ? (
+                <ul
+                  className="grid gap-1.5 rounded-lg border border-warning/50 bg-warning/5 p-3 text-sm"
+                  data-testid="overridden-violations"
+                >
+                  <li className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    {t.permanentlyOverriddenTitle}
+                  </li>
+                  {overridden.map((v) => (
+                    <li key={v.key} className="flex items-start gap-2">
+                      <OctagonAlert className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
+                      <span>
+                        <span className="font-medium">
+                          {v.employeeName} · {formatDate(v.date)}:
+                        </span>{" "}
+                        {v.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {warnings.length ? (
                 <ul className="grid gap-1.5 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
                   {warnings.map((v) => (

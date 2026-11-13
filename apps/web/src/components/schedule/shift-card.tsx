@@ -14,11 +14,16 @@ export function shiftStateLabel(s: BoardShift): string {
 
 export function ViolationIcon({ violations }: { violations: BoardShift["violations"] }) {
   if (!violations.length) return null;
-  const blocking = violations.some((v) => v.severity === "BLOCKING");
+  // Red when the organization blocks it; amber when it is a warning or permanently overridden.
+  const blocking = violations.some((v) => v.handling === "block");
   const title = violations
     .map(
       (v) =>
-        `${v.severity === "BLOCKING" ? da.schedule.blocking : da.schedule.warning}: ${v.message}`,
+        `${v.handling === "block" ? da.schedule.blocking : da.schedule.warning}: ${v.message}${
+          v.handling === "allow" && v.severity === "BLOCKING"
+            ? ` (${da.schedule.permanentlyOverridden})`
+            : ""
+        }`,
     )
     .join("\n");
   const Icon = blocking ? OctagonAlert : AlertTriangle;
@@ -40,7 +45,7 @@ export const ShiftCard = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> & { shift: BoardShift; dragging?: boolean }
 >(function ShiftCard({ shift, dragging, className, ...props }, ref) {
-  const blocking = shift.violations.some((v) => v.severity === "BLOCKING");
+  const blocking = shift.violations.some((v) => v.handling === "block");
   return (
     <button
       ref={ref}
@@ -69,6 +74,15 @@ export const ShiftCard = React.forwardRef<
       </span>
       <span className="flex items-center gap-1 truncate text-muted-foreground">
         {shift.kind === "on_call" ? <PhoneCall className="size-3" /> : null}
+        {shift.supplementTypeIds.length ? (
+          <span
+            className="rounded bg-accent px-1 text-[10px] font-medium text-accent-foreground no-underline"
+            title={da.schedule.supplements}
+            data-testid="supplement-badge"
+          >
+            +{shift.supplementTypeIds.length}
+          </span>
+        ) : null}
         {shift.label ?? (shift.kind === "on_call" ? da.schedule.kinds.on_call : "")}
         {shift.status === "draft" && !shift.removed ? (
           <span className="ml-auto rounded bg-muted px-1 text-[10px] text-muted-foreground no-underline">

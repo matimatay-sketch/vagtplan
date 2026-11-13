@@ -17,6 +17,7 @@ import {
   zonedTime,
 } from "@/lib/domain/schedule-time";
 import { formatHours } from "@/lib/domain/numbers";
+import { unpaidMinutes, type DbBreak } from "@/lib/domain/breaks";
 import { removeAvailabilityAction } from "@/lib/actions/availability";
 import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
@@ -62,7 +63,12 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
   const mine = list.filter((s) => s.is_mine);
   const total = mine
     .filter((s) => s.kind === "work")
-    .reduce((sum, s) => sum + durationMinutes(s.start_at, s.end_at, s.break_minutes), 0);
+    .reduce(
+      (sum, s) =>
+        sum +
+        durationMinutes(s.start_at, s.end_at, unpaidMinutes(s.breaks as unknown as DbBreak[])),
+      0,
+    );
 
   return (
     <>

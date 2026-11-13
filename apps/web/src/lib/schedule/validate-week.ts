@@ -8,6 +8,13 @@ import {
 import type { createClient } from "@/lib/supabase/server";
 import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { zonedTime } from "@/lib/domain/schedule-time";
+import type { DbBreak } from "@/lib/domain/breaks";
+import {
+  effectiveHandling,
+  organizationLayerFrom,
+  type Handling,
+  type RuleHandlingMap,
+} from "./rule-handling";
 import {
   EMPLOYEE_ENGINE_SELECT,
   engineInputFor,
@@ -20,7 +27,33 @@ type Client = Awaited<ReturnType<typeof createClient>>;
 /** Rolling rules (48 h average, weekend off) need history before the week. */
 const HISTORY_DAYS = 130;
 
-export type EmployeeViolation = Violation & { employeeId: string };
+export type EmployeeViolation = Violation & {
+  employeeId: string;
+  /** How the organization handles this violation at publishing (always flagged). */
+  handling: Handling;
+};
+
+export type OrganizationSettingsRow = {
+  notice_publish_hours: number | null;
+  notice_change_hours: number | null;
+  rule_handling: RuleHandlingMap;
+};
+
+export async function loadOrganizationSettings(
+  supabase: Client,
+  organizationId: string,
+): Promise<OrganizationSettingsRow> {
+  const { data } = await supabase
+    .from("organization_settings")
+    .select("notice_publish_hours, notice_change_hours, rule_handling")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  return {
+    notice_publish_hours: data?.notice_publish_hours ?? null,
+    notice_change_hours: data?.notice_change_hours ?? null,
+    rule_handling: (data?.rule_handling ?? {}) as RuleHandlingMap,
+  };
+}
 
 /**
  * Validates the draft schedule (all departments) of the given employees for
@@ -28,7 +61,13 @@ export type EmployeeViolation = Violation & { employeeId: string };
  */
 export async function validateWeek(
   supabase: Client,
-  opts: { employeeIds: string[]; weekStart: IsoDate; timezone: string; noticeFor?: NoticeShift[] },
+  opts: {
+    organizationId: string;
+    employeeIds: string[];
+    weekStart: IsoDate;
+    timezone: string;
+    noticeFor?: NoticeShift[];
+  },
 ): Promise<EmployeeViolation[]> {
   const ids = [...new Set(opts.employeeIds)];
   if (ids.length === 0) return [];
@@ -36,17 +75,27 @@ export async function validateWeek(
   const from = new Date(zonedTime(addDays(opts.weekStart, -HISTORY_DAYS))).toISOString();
   const to = new Date(zonedTime(addDays(opts.weekStart, 8))).toISOString();
 
-  const [data, { data: shifts, error }, { data: employees, error: empError }] = await Promise.all([
-    loadAgreements(supabase),
-    supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
-    supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", ids),
-  ]);
+  const [data, settings, { data: shifts, error }, { data: employees, error: empError }] =
+    await Promise.all([
+      loadAgreements(supabase),
+      loadOrganizationSettings(supabase, opts.organizationId),
+      supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
+      supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", ids),
+    ]);
   if (error) throw error;
   if (empError) throw empError;
 
   const out: EmployeeViolation[] = [];
   for (const e of (employees ?? []) as unknown as EmployeeEngineRow[]) {
-    const input = engineInputFor(e, data, opts.timezone);
+    const input = {
+      ...engineInputFor(e, data, opts.timezone),
+      organizationLayer: organizationLayerFrom(settings),
+    };
+    const tag = (v: Violation): EmployeeViolation => ({
+      ...v,
+      employeeId: e.id,
+      handling: effectiveHandling(v.code, v.severity, settings.rule_handling),
+    });
     if (input.contracts.length === 0) continue;
     const own = (shifts ?? []).filter((s) => s.employee_id === e.id);
     const intervals = shiftsToIntervals(
@@ -54,7 +103,11 @@ export async function validateWeek(
         id: s.id,
         start: s.start_at,
         end: s.end_at,
-        breakMinutes: s.break_minutes,
+        breaks: (s.breaks as unknown as DbBreak[]).map((b) => ({
+          start: b.start_at,
+          minutes: b.minutes,
+          paid: b.paid,
+        })),
         kind: s.kind,
       })),
     );
@@ -64,7 +117,7 @@ export async function validateWeek(
       from: opts.weekStart,
       to: weekEnd,
     });
-    out.push(...violations.map((v) => ({ ...v, employeeId: e.id })));
+    out.push(...violations.map(tag));
 
     const notice = (opts.noticeFor ?? []).filter((n) => n.employeeId === e.id);
     if (notice.length) {
@@ -73,7 +126,7 @@ export async function validateWeek(
         now: new Date().toISOString(),
         items: notice.map((n) => ({ intervalId: n.shiftId, start: n.start, change: n.change })),
       });
-      out.push(...r.violations.map((v) => ({ ...v, employeeId: e.id })));
+      out.push(...r.violations.map(tag));
     }
   }
   return out;

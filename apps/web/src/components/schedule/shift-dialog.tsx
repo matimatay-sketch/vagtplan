@@ -15,35 +15,39 @@ import { Field, FormMessage, SubmitButton } from "@/components/form";
 import { removeShiftAction, saveShiftAction } from "@/lib/actions/schedule";
 import { initialActionState } from "@/lib/actions/state";
 import { localParts } from "@/lib/domain/schedule-time";
-import type { BoardEmployee, BoardShift, BoardTemplate } from "@/lib/schedule/load-week";
+import { dbBreaksToForm, templateBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
+import type {
+  BoardEmployee,
+  BoardShift,
+  BoardSupplementType,
+  BoardTemplate,
+} from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
+import { BreaksEditor, SupplementPicker } from "./breaks-editor";
 
 export type ShiftDraft = { shift?: BoardShift; employeeId: string | null; date: string };
+
+type Props = {
+  departmentId: string;
+  employees: BoardEmployee[];
+  templates: BoardTemplate[];
+  supplementTypes: BoardSupplementType[];
+};
 
 export function ShiftDialog({
   draft,
   onClose,
-  departmentId,
-  employees,
-  templates,
-}: {
-  draft: ShiftDraft | null;
-  onClose: () => void;
-  departmentId: string;
-  employees: BoardEmployee[];
-  templates: BoardTemplate[];
-}) {
+  ...props
+}: Props & { draft: ShiftDraft | null; onClose: () => void }) {
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         {draft ? (
           <ShiftForm
             key={draft.shift?.id ?? `${draft.employeeId}-${draft.date}`}
             draft={draft}
             onDone={onClose}
-            departmentId={departmentId}
-            employees={employees}
-            templates={templates}
+            {...props}
           />
         ) : null}
       </DialogContent>
@@ -57,27 +61,32 @@ function ShiftForm({
   departmentId,
   employees,
   templates,
-}: {
-  draft: ShiftDraft;
-  onDone: () => void;
-  departmentId: string;
-  employees: BoardEmployee[];
-  templates: BoardTemplate[];
-}) {
+  supplementTypes,
+}: Props & { draft: ShiftDraft; onDone: () => void }) {
   const t = da.schedule;
   const [state, action] = useActionState(saveShiftAction, initialActionState);
   const [removing, startRemove] = useTransition();
   const s = draft.shift;
+  const first = s ? undefined : templates[0];
   const [values, setValues] = useState(() => ({
     employee_id: s ? (s.employeeId ?? "") : (draft.employeeId ?? ""),
     date: s ? localParts(s.start).date : draft.date,
-    start_time: s ? localParts(s.start).time : (templates[0]?.start ?? "08:00"),
-    end_time: s ? localParts(s.end).time : (templates[0]?.end ?? "16:00"),
-    break_minutes: String(s ? s.breakMinutes : (templates[0]?.breakMinutes ?? 30)),
-    label: s?.label ?? templates[0]?.label ?? "",
-    kind: s?.kind ?? templates[0]?.kind ?? "work",
-    template_id: s?.templateId ?? (s ? "" : (templates[0]?.id ?? "")),
+    start_time: s ? localParts(s.start).time : (first?.start ?? "08:00"),
+    end_time: s ? localParts(s.end).time : (first?.end ?? "16:00"),
+    label: s?.label ?? first?.label ?? "",
+    kind: s?.kind ?? first?.kind ?? "work",
+    template_id: s?.templateId ?? first?.id ?? "",
   }));
+  const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
+    s
+      ? dbBreaksToForm(s.breaks)
+      : first
+        ? templateBreaksToForm(first.breaks)
+        : [{ start: "", minutes: 30, paid: false }],
+  );
+  const [supplements, setSupplements] = useState<string[]>(
+    () => s?.supplementTypeIds ?? first?.supplementTypeIds ?? [],
+  );
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
 
@@ -87,19 +96,20 @@ function ShiftForm({
 
   const applyTemplate = (id: string) => {
     const tpl = templates.find((x) => x.id === id);
-    setValues((v) =>
-      tpl
-        ? {
-            ...v,
-            template_id: id,
-            start_time: tpl.start,
-            end_time: tpl.end,
-            break_minutes: String(tpl.breakMinutes),
-            label: tpl.label ?? "",
-            kind: tpl.kind,
-          }
-        : { ...v, template_id: "" },
-    );
+    if (!tpl) {
+      setValues((v) => ({ ...v, template_id: "" }));
+      return;
+    }
+    setValues((v) => ({
+      ...v,
+      template_id: id,
+      start_time: tpl.start,
+      end_time: tpl.end,
+      label: tpl.label ?? "",
+      kind: tpl.kind,
+    }));
+    setBreaks(templateBreaksToForm(tpl.breaks));
+    setSupplements(tpl.supplementTypeIds);
   };
   const err = (k: string) => state.errors?.[k];
 
@@ -171,29 +181,13 @@ function ShiftForm({
               onChange={set("end_time")}
             />
           </Field>
-          <Field label={t.breakMinutes} htmlFor="break_minutes" error={err("break_minutes")}>
-            <Input
-              id="break_minutes"
-              name="break_minutes"
-              type="number"
-              min={0}
-              step={5}
-              value={values.break_minutes}
-              onChange={set("break_minutes")}
-            />
-          </Field>
           <Field label={t.kind} htmlFor="kind">
             <NativeSelect id="kind" name="kind" value={values.kind} onChange={set("kind")}>
               <option value="work">{t.kinds.work}</option>
               <option value="on_call">{t.kinds.on_call}</option>
             </NativeSelect>
           </Field>
-          <Field
-            label={`${t.label} (${da.common.optional})`}
-            htmlFor="label"
-            error={err("label")}
-            className="sm:col-span-2"
-          >
+          <Field label={`${t.label} (${da.common.optional})`} htmlFor="label" error={err("label")}>
             <Input
               id="label"
               name="label"
@@ -203,6 +197,8 @@ function ShiftForm({
             />
           </Field>
         </div>
+        <BreaksEditor value={breaks} onChange={setBreaks} error={err("breaks")} />
+        <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
         {s?.violations.length ? (
           <ul className="grid gap-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
             {s.violations.map((v, i) => (
@@ -213,6 +209,9 @@ function ShiftForm({
                 }
               >
                 {v.severity === "BLOCKING" ? t.blocking : t.warning}: {v.message}
+                {v.handling === "allow" && v.severity === "BLOCKING"
+                  ? ` (${t.permanentlyOverridden})`
+                  : ""}
               </li>
             ))}
           </ul>

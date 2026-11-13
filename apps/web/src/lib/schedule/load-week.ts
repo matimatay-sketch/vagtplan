@@ -4,6 +4,7 @@ import type { AppContext } from "@/lib/auth";
 import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { ageOn } from "@/lib/domain/age";
 import { durationMinutes, zonedTime } from "@/lib/domain/schedule-time";
+import { unpaidMinutes, type DbBreak, type TemplateBreak } from "@/lib/domain/breaks";
 import { canInDepartment } from "@/lib/permissions";
 import { validateWeek } from "./validate-week";
 
@@ -14,6 +15,14 @@ export type BoardViolation = {
   severity: "BLOCKING" | "WARNING";
   message: string;
   date: IsoDate;
+  handling: "block" | "allow";
+};
+
+export type BoardSupplementType = {
+  id: string;
+  name: string;
+  amountType: "per_hour" | "fixed" | "percent";
+  amount: number;
 };
 
 export type BoardShift = {
@@ -21,7 +30,8 @@ export type BoardShift = {
   employeeId: string | null;
   start: string;
   end: string;
-  breakMinutes: number;
+  breaks: DbBreak[];
+  supplementTypeIds: string[];
   label: string | null;
   kind: "work" | "on_call";
   templateId: string | null;
@@ -38,6 +48,8 @@ export type BoardEmployee = {
   name: string;
   young: boolean;
   weekMinutes: number;
+  /** Contract norm for the week (prorated per day), null without contract access. */
+  normMinutes: number | null;
   /** Violations not tied to a single shift (weekly rest, averages …). */
   violations: BoardViolation[];
 };
@@ -57,7 +69,8 @@ export type BoardTemplate = {
   name: string;
   start: string;
   end: string;
-  breakMinutes: number;
+  breaks: TemplateBreak[];
+  supplementTypeIds: string[];
   label: string | null;
   kind: "work" | "on_call";
 };
@@ -69,6 +82,7 @@ export type WeekBoard = {
   shifts: BoardShift[];
   availability: BoardAvailability[];
   templates: BoardTemplate[];
+  supplementTypes: BoardSupplementType[];
   pendingCount: number;
   canManage: boolean;
   canPublish: boolean;
@@ -94,7 +108,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, break_minutes, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, label, kind, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -102,7 +116,9 @@ export async function loadWeek(
       .order("start_at"),
     supabase
       .from("shift_template")
-      .select("id, name, start_time, end_time, break_minutes, label, kind, department_id")
+      .select(
+        "id, name, start_time, end_time, breaks, supplement_type_ids, label, kind, department_id",
+      )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .or(`department_id.is.null,department_id.eq.${departmentId}`)
@@ -131,19 +147,48 @@ export async function loadWeek(
   }
   const employeeIds = [...employeeMap.keys()];
 
-  const [{ data: availability }, violations] = await Promise.all([
-    supabase
-      .from("availability")
-      .select("id, employee_id, date, kind, from_time, to_time, note")
-      .in(
-        "employee_id",
-        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
-      )
-      .is("archived_at", null)
-      .gte("date", weekStart)
-      .lte("date", weekEnd),
-    validateWeek(supabase, { employeeIds, weekStart, timezone: ctx.organization.timezone }),
-  ]);
+  const [{ data: availability }, violations, { data: contracts }, { data: supplementTypes }] =
+    await Promise.all([
+      supabase
+        .from("availability")
+        .select("id, employee_id, date, kind, from_time, to_time, note")
+        .in(
+          "employee_id",
+          employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+        )
+        .is("archived_at", null)
+        .gte("date", weekStart)
+        .lte("date", weekEnd),
+      validateWeek(supabase, {
+        organizationId: ctx.organization.id,
+        employeeIds,
+        weekStart,
+        timezone: ctx.organization.timezone,
+      }),
+      supabase
+        .from("contract")
+        .select("employee_id, valid_from, valid_to, weekly_norm_minutes")
+        .in(
+          "employee_id",
+          employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+        ),
+      supabase
+        .from("supplement_type")
+        .select("id, name, amount_type, amount")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+    ]);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const normFor = (employeeId: string): number | null => {
+    const own = (contracts ?? []).filter((c) => c.employee_id === employeeId);
+    if (own.length === 0) return null;
+    const total = weekDays.reduce((sum, d) => {
+      const c = own.find((x) => x.valid_from <= d && (x.valid_to === null || d <= x.valid_to));
+      return sum + (c ? c.weekly_norm_minutes / 7 : 0);
+    }, 0);
+    return Math.round(total);
+  };
 
   const shiftIds = new Set(visibleShifts.map((s) => s.id));
   const byShift = new Map<string, BoardViolation[]>();
@@ -154,6 +199,7 @@ export async function loadWeek(
       severity: v.severity,
       message: v.message,
       date: v.date,
+      handling: v.handling,
     };
     const here = v.intervalIds.filter((id) => shiftIds.has(id));
     if (v.intervalIds.length > 0 && here.length === 0) {
@@ -171,7 +217,8 @@ export async function loadWeek(
     employeeId: s.employee_id,
     start: s.start_at,
     end: s.end_at,
-    breakMinutes: s.break_minutes,
+    breaks: s.breaks as unknown as DbBreak[],
+    supplementTypeIds: s.supplement_type_ids,
     label: s.label,
     kind: s.kind,
     templateId: s.template_id,
@@ -188,7 +235,8 @@ export async function loadWeek(
       young: ageOn(e.birth_date, weekStart) < 18 || ageOn(e.birth_date, weekEnd) < 18,
       weekMinutes: boardShifts
         .filter((s) => s.employeeId === e.id && !s.removed && s.kind === "work")
-        .reduce((sum, s) => sum + durationMinutes(s.start, s.end, s.breakMinutes), 0),
+        .reduce((sum, s) => sum + durationMinutes(s.start, s.end, unpaidMinutes(s.breaks)), 0),
+      normMinutes: normFor(e.id),
       violations: byEmployee.get(e.id) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "da"));
@@ -212,9 +260,16 @@ export async function loadWeek(
       name: t.name,
       start: t.start_time.slice(0, 5),
       end: t.end_time.slice(0, 5),
-      breakMinutes: t.break_minutes,
+      breaks: t.breaks as unknown as TemplateBreak[],
+      supplementTypeIds: t.supplement_type_ids,
       label: t.label,
       kind: t.kind,
+    })),
+    supplementTypes: (supplementTypes ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      amountType: t.amount_type,
+      amount: t.amount,
     })),
     pendingCount: (shifts ?? []).filter(
       (s) =>
