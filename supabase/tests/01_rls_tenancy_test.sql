@@ -14,8 +14,9 @@ select plan(27);
 
 -- A second, unrelated organization with its own admin.
 select tests.create_user('other-admin@test.dk') as other_admin \gset
-select tests.login_as(:'other_admin');
-select public.create_organization('Anden Virksomhed A/S') as org2 \gset
+select tests.login_as('10000000-0000-0000-0000-000000000009');
+select public.platform_create_organization('Anden Virksomhed A/S') as org2 \gset
+select public.platform_add_owner(:'org2', :'other_admin');
 select tests.logout();
 
 -- ---------------------------------------------------------------- tenancy
@@ -24,7 +25,7 @@ select is((select count(*) from public.organization), 1::bigint, 'other admin se
 select is((select count(*) from public.employee), 0::bigint, 'other admin sees no employees of org1');
 select is((select count(*) from public.department), 0::bigint, 'other admin sees no departments of org1');
 select is((select count(*) from public.contract), 0::bigint, 'other admin sees no contracts of org1');
-select is((select count(*) from public.pay_period_group), 1::bigint, 'create_organization made a default pay period group');
+select is((select count(*) from public.pay_period_group), 1::bigint, 'a new organization gets a default pay period group');
 select is((select count(*) from public.agreement where organization_id is null), 2::bigint, 'system agreement templates are readable');
 select throws_ok(
   format($$insert into public.department (organization_id, name) values (%L, 'Hack')$$, :'org1'),
