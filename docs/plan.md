@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -206,6 +206,13 @@ Opgaver:
 5. Lederens godkendelsesliste med filter og massegodkendelse. Rettelser laver en ny række med `supersedes_id`.
 6. Audit-log-visning pr. registrering.
 7. Projektfordelingen arves fra den planlagte vagt til den registrerede tid. Medarbejderen kan rette den, indtil tiden er godkendt. Projektoversigten og CSV-eksporten viser også faktisk registreret tid.
+
+Status (bygget 2026-11-13):
+
+- `/tid` (medarbejder): stempling med offline-kø, "Gennemført som planlagt" pr. vagt eller samlet, egne registreringer pr. dag med dagens arbejdstid, rettelse med begrundelse og historik.
+- `/tid/godkend` (leder): uge, afdeling og status, massegodkendelse, rettelse af godkendt tid som ny version, afrunding ("afregnes"), regelbrud i den faktiske tid, undtagne medarbejdere markeret.
+- Appen kan installeres som PWA (manifest, ikoner og service worker i produktion).
+- Ikke med endnu: slettejob efter 5 år (opbevaringsreglen) og tilkald (kommer i fase 5). Validering af faktisk tid ser 14 dage tilbage, så 48-timers-gennemsnittet er kun fuldt på vagtplanen.
 
 Acceptkriterier:
 

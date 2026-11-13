@@ -109,3 +109,24 @@ Rettigheder: `projects.manage` (organisation) og `projects.view` (afdelinger ell
 | `organization.archived_at` | En arkiveret kunde: medlemmerne mister adgangen (`is_member`, `permission_scope` og `my_permissions` ser bort fra den). Kun platformen kan arkivere (trigger) |
 
 Selvbetjening er fjernet (`create_organization` findes ikke længere). Platform-RPC'erne kræver `is_platform_admin()`: `platform_organizations()`, `platform_create_organization(name)`, `platform_user_id(email)`, `platform_add_owner(org, user)` og `platform_set_archived(org, bool)`. Ukendte e-mails inviteres via service-klienten, efter at databasen har bekræftet platformsrettigheden. Platformsbrugeren kan ikke se kundernes data.
+
+## Tidsregistrering (fase 4)
+
+| Tabel / felt | Bemærkning                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `time_entry` | `employee_id`, `department_id`, `shift_id` (planlagt vagt), `start_at`/`end_at` (null = stemplet ind), `breaks`, `project_allocations`, `source` (stamp/planned/manual), `status` (open/pending/approved), `deviation_reason`, `note`, `offline` |
+| Versioner    | Godkendte rækker kan ikke ændres (trigger). En rettelse er en ny række med `supersedes_id`, og den gamle får `superseded_at`. "Gældende" = ikke erstattet og ikke arkiveret                                                                      |
+| Idempotens   | `client_id` (stempl ind) og `end_client_id` (stempl ud) er unikke pr. organisation. Offline-køen kan sendes igen uden dubletter                                                                                                                  |
+| Overlap      | Exclusion-constraint: gældende registreringer for samme medarbejder overlapper ikke (en åben løber til den stemples ud)                                                                                                                          |
+
+Rettigheder: `time.view`, `time.manage` (registrere og rette for andre) og `time.approve`, alle med omfanget afdelinger eller hele virksomheden. Medarbejderen ser og retter altid sin egen tid, indtil den er godkendt. En leder med afdelingsomfang kan ikke godkende sin egen tid.
+
+RPC'er:
+
+- `stamp(org, client_id, 'in'|'out', at)` knytter en ind-stempling til den nærmeste offentliggjorte vagt inden for 4 timer og arver pauser og projekter. Enhedstid accepteres op til 7 dage tilbage og markeres `offline`, hvis den afviger mere end 5 minutter fra serverens ur.
+- `complete_as_planned(shift_ids)`
+- `approve_time_entries(ids)`
+- `correct_time_entry(...)` laver en ny version, der skal godkendes igen.
+- `time_overview(from, to)` returnerer registreringer med plan og manglende registreringer.
+- `time_entry_history(id)`
+- `project_time_entries(from, to)`
