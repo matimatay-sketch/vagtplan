@@ -20,6 +20,9 @@ describe("permission catalog", () => {
       "schedule.override",
       "projects.view",
       "projects.manage",
+      "time.view",
+      "time.manage",
+      "time.approve",
     ]);
   });
 });

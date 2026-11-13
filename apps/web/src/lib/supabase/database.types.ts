@@ -673,17 +673,70 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"time_entry": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"note": string | null,"offline": boolean,"organization_id": string,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_entry_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "time_entry_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "time_entry_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_entry_organization_id_shift_id_fkey"
+      columns: ["organization_id","shift_id"]
+isOneToOne: false
+      referencedRelation: "shift"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "time_entry_organization_id_supersedes_id_fkey"
+      columns: ["organization_id","supersedes_id"]
+isOneToOne: false
+      referencedRelation: "time_entry"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "can_on_department":
+            "approve_time_entries":
+{ Args: { "p_ids": (string)[] }; Returns: number
+                           },
+"can_on_department":
 { Args: { "dept": string,"perm": string }; Returns: boolean
                            },
 "can_on_employee":
 { Args: { "emp": string,"perm": string }; Returns: boolean
+                           },
+"complete_as_planned":
+{ Args: { "p_shift_ids": (string)[] }; Returns: number
+                           },
+"correct_time_entry":
+{ Args: { "p_breaks": Json,"p_end_at": string,"p_id": string,"p_project_allocations": Json,"p_reason": string,"p_start_at": string }; Returns: string
                            },
 "create_employee":
 { Args: { "p_birth_date": string,"p_department_id": string,"p_email"?: string,"p_employee_number": string,"p_first_name": string,"p_hired_on"?: string,"p_last_name": string,"p_phone"?: string,"p_school_obligated"?: boolean,"p_school_obligation_ends_on"?: string }; Returns: string
@@ -723,6 +776,11 @@ isOneToOne: false
               "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"project_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["shift_status"]
             }[]
                            },
+"project_time_entries":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"project_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["time_entry_status"]
+            }[]
+                           },
 "publish_schedule":
 { Args: { "p_actor": string,"p_department_id": string,"p_from": string,"p_from_date": string,"p_to": string,"p_to_date": string,"p_violations": Json }; Returns: string
                            },
@@ -738,10 +796,13 @@ isOneToOne: false
 { Args: { "p_employee_ids": (string)[],"p_from": string,"p_to": string }; Returns: {
               "breaks": Json,"department_id": string,"employee_id": string,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"start_at": string,"status": Database["public"]['Enums']["shift_status"]
             }[]
+                           },
+"stamp":
+{ Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_organization_id": string }; Returns: string
                            }
           }
           Enums: {
-            "agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent"
+            "agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -857,7 +918,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"]
+            "agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
           }
         }
 } as const
