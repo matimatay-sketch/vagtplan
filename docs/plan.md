@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er godkendt 2026-11-13. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -206,6 +206,11 @@ Opgaver:
 5. Lederens godkendelsesliste med filter og massegodkendelse. Rettelser laver en ny række med `supersedes_id`.
 6. Audit-log-visning pr. registrering.
 7. Projektfordelingen arves fra den planlagte vagt til den registrerede tid. Medarbejderen kan rette den, indtil tiden er godkendt. Projektoversigten og CSV-eksporten viser også faktisk registreret tid.
+
+Beslutninger (bekræftet af bruger 2026-11-13):
+
+- En leder med afdelingsomfang kan ikke godkende sin egen tid. Den godkendes af en anden med `time.approve` for afdelingen, fx lederens egen leder eller en administrator.
+- Offline-stemplinger: Enhedens tidspunkt accepteres op til 7 dage tilbage. Afviger det mere end 5 minutter fra serverens ur, markeres stemplingen "Sendt offline".
 
 Status (bygget 2026-11-13):
 
