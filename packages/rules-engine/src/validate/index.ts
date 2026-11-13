@@ -23,6 +23,7 @@ import {
   normalizeIntervals,
   overlap,
   workPieces,
+  workingTimePieces,
   type Span,
   type WorkInterval,
 } from "../timeline";
@@ -84,7 +85,13 @@ function minutesByDate(
   const out = new Map<IsoDate, number>();
   for (const i of intervals) {
     if (i.kind === "on_call") continue;
-    for (const piece of workPieces(i)) {
+    const breakRule = ctx.rule(localDate(i.start, ctx.tz), "break");
+    const pieces = workingTimePieces(
+      i,
+      breakRule?.params.paid ?? false,
+      breakRule?.params.paid_counts_as_working_time ?? true,
+    );
+    for (const piece of pieces) {
       const first = localDate(piece.start, ctx.tz);
       const cuts: number[] = [];
       for (let d = addDays(first, 1); startOfLocalDay(d, ctx.tz) < piece.end; d = addDays(d, 1)) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseAgreementDocument } from "../agreement/schema";
 import { validateSchedule } from "./index";
-import { makeInput, shift } from "../../test/support";
+import { cph, makeInput, shift } from "../../test/support";
 
 type Input = Parameters<typeof makeInput>[0];
 const run = (intervals: ReturnType<typeof shift>[], from: string, to: string, input: Input = {}) =>
@@ -197,6 +197,33 @@ describe("young workers", () => {
     expect(codes(run([tooLong], "2026-01-05", "2026-01-05", sixteen))).toEqual([
       "YOUNG_MAX_DAILY@2026-01-05:BLOCKING",
     ]);
+  });
+
+  it("16-year-old: a paid break counts as working time, an unpaid one does not", () => {
+    const withBreak = (paid: boolean | undefined) => {
+      const s = shift("2026-01-05 08:00", "2026-01-05 16:30");
+      return {
+        ...s,
+        breaks: [{ start: cph("2026-01-05 12:00"), end: cph("2026-01-05 12:30"), paid }],
+      };
+    };
+    // 8 h 30 min with a 30 min break: 8 h without the break, 8 h 30 min with it.
+    expect(codes(run([withBreak(false)], "2026-01-05", "2026-01-05", sixteen))).toEqual([]);
+    expect(codes(run([withBreak(undefined)], "2026-01-05", "2026-01-05", sixteen))).toEqual([]);
+    expect(codes(run([withBreak(true)], "2026-01-05", "2026-01-05", sixteen))).toEqual([
+      "YOUNG_MAX_DAILY@2026-01-05:BLOCKING",
+    ]);
+  });
+
+  it("a paid break is still a break for the break rule", () => {
+    const s = shift("2026-01-05 08:00", "2026-01-05 16:00");
+    const paid = {
+      ...s,
+      breaks: [{ start: cph("2026-01-05 12:00"), end: cph("2026-01-05 12:30"), paid: true }],
+    };
+    expect(codes(run([paid], "2026-01-05", "2026-01-05", sixteen))).not.toContain(
+      "YOUNG_BREAK@2026-01-05:BLOCKING",
+    );
   });
 
   it("16-year-old: a shift across midnight counts on both days", () => {

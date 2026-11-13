@@ -123,6 +123,11 @@ export const ruleSchemas = {
     after_minutes: minutes,
     min_minutes: minutes.nullable(),
     paid: z.boolean(),
+    /**
+     * Paid breaks count as working time in the working-time rules (daily and
+     * weekly limits, averages). Unpaid breaks never do.
+     */
+    paid_counts_as_working_time: z.boolean().default(true),
   }),
 
   /** Hviletid og fridøgn. */

@@ -106,7 +106,12 @@ describe("resolveAgreement", () => {
       { id: "test-ok", version: 1 },
     ]);
     const pause = r.rules.find((x) => x.id === "pause")!;
-    expect(pause.params).toEqual({ after_minutes: 360, min_minutes: 30, paid: true });
+    expect(pause.params).toEqual({
+      after_minutes: 360,
+      min_minutes: 30,
+      paid: true,
+      paid_counts_as_working_time: true,
+    });
     expect(pause.layers.map((l) => l.agreementId)).toEqual(["basis-dk", "test-ok"]);
     expect(r.rules.map((x) => x.id)).toEqual(["hviletid", "max-48", "pause", "aften"]);
   });

@@ -29,23 +29,23 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 
 ## Primitiver
 
-| Primitiv                 | Dansk                                                                                                            | Bruges af       |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------- |
-| `pay_rate`               | Lønsats (personalegruppe, trin, alder, datoer)                                                                   | løn             |
-| `norm`                   | Normtid (uge eller N uger, dagsnorm, deltidsgrænser)                                                             | overarbejde     |
-| `overtime`               | Overarbejde (`daily_norm`, `weekly_norm`, `period_norm`, `outside_planned`, trin, udbetaling eller afspadsering) | løn             |
-| `time_window_supplement` | Tidsvinduestillæg (ugedage, `weekday`, `holiday`, `any`, vinduer over midnat)                                    | løn             |
-| `holiday_calendar`       | Helligdagskalender (påskeberegnet, særdage, halve dage)                                                          | løn, unge       |
-| `break`                  | Pause                                                                                                            | validering      |
-| `rest`                   | Hviletid og fridøgn                                                                                              | validering      |
-| `max_weekly_average`     | 48 timer i gennemsnit over en referenceperiode (advarsel og grænse)                                              | validering      |
-| `min_shift`              | Minimum vagtlængde og garantibetaling                                                                            | validering, løn |
-| `night_work`             | Natarbejde (gennemsnit pr. døgn)                                                                                 | validering      |
-| `rounding`               | Afrunding og tolerance mod planlagt vagt                                                                         | løn             |
-| `young_worker`           | Unge under 18 (grupper efter alder og undervisningspligt)                                                        | validering      |
-| `on_call`                | Rådighed og tilkald (minimumsbetaling)                                                                           | løn             |
-| `absence`                | Fravær (typer, betaling, tæller med i normen, ret til dage)                                                      | løn             |
-| `vacation`               | Ferie og feriefridage                                                                                            | optjening       |
+| Primitiv                 | Dansk                                                                                                                                    | Bruges af       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `pay_rate`               | Lønsats (personalegruppe, trin, alder, datoer)                                                                                           | løn             |
+| `norm`                   | Normtid (uge eller N uger, dagsnorm, deltidsgrænser)                                                                                     | overarbejde     |
+| `overtime`               | Overarbejde (`daily_norm`, `weekly_norm`, `period_norm`, `outside_planned`, trin, udbetaling eller afspadsering)                         | løn             |
+| `time_window_supplement` | Tidsvinduestillæg (ugedage, `weekday`, `holiday`, `any`, vinduer over midnat)                                                            | løn             |
+| `holiday_calendar`       | Helligdagskalender (påskeberegnet, særdage, halve dage)                                                                                  | løn, unge       |
+| `break`                  | Pause. `paid_counts_as_working_time` (standard `true`): betalte pauser tæller med i daglige/ugentlige grænser og 48-timers-gennemsnittet | validering      |
+| `rest`                   | Hviletid og fridøgn                                                                                                                      | validering      |
+| `max_weekly_average`     | 48 timer i gennemsnit over en referenceperiode (advarsel og grænse)                                                                      | validering      |
+| `min_shift`              | Minimum vagtlængde og garantibetaling                                                                                                    | validering, løn |
+| `night_work`             | Natarbejde (gennemsnit pr. døgn)                                                                                                         | validering      |
+| `rounding`               | Afrunding og tolerance mod planlagt vagt                                                                                                 | løn             |
+| `young_worker`           | Unge under 18 (grupper efter alder og undervisningspligt)                                                                                | validering      |
+| `on_call`                | Rådighed og tilkald (minimumsbetaling)                                                                                                   | løn             |
+| `absence`                | Fravær (typer, betaling, tæller med i normen, ret til dage)                                                                              | løn             |
+| `vacation`               | Ferie og feriefridage                                                                                                                    | optjening       |
 
 Planlagt til fase 3: `notice` (varsling) og `weekend_off` (weekendfri).
 

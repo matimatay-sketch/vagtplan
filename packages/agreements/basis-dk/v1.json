@@ -57,8 +57,13 @@
       "label": "Pause ved mere end 6 timers arbejde",
       "source": "Arbejdsmiljøreglerne om pauser",
       "severity": "WARNING",
-      "todo_jura": "Pausens længde og betaling fastsættes i overenskomsten.",
-      "params": { "after_minutes": 360, "min_minutes": null, "paid": false }
+      "todo_jura": "Pausens længde og betaling fastsættes i overenskomsten. At betalte pauser tæller som arbejdstid, er besluttet af brugeren 2026-11-13 (jura-todo nr. 16) uden kildehenvisning.",
+      "params": {
+        "after_minutes": 360,
+        "min_minutes": null,
+        "paid": false,
+        "paid_counts_as_working_time": true
+      }
     },
     {
       "id": "unge",

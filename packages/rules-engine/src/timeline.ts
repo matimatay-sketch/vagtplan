@@ -49,7 +49,19 @@ export function payPieces(i: WorkInterval, defaultPaid: boolean): Span[] {
   return workPieces({ ...i, breaks: i.breaks.filter((b) => !(b.paid ?? defaultPaid)) });
 }
 
-/** Work time of an interval minus its breaks (unpaid or paid – working-time rules ignore breaks). */
+/**
+ * Working time for the working-time rules: minus unpaid breaks, and minus paid
+ * breaks too unless they count as working time.
+ */
+export function workingTimePieces(
+  i: WorkInterval,
+  defaultPaid: boolean,
+  paidCountsAsWorkingTime: boolean,
+): Span[] {
+  return paidCountsAsWorkingTime ? payPieces(i, defaultPaid) : workPieces(i);
+}
+
+/** Time of an interval minus all its breaks. */
 export function workPieces(i: WorkInterval): Span[] {
   const out: Span[] = [];
   let cursor = i.start;
