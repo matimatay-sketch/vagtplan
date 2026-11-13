@@ -23,7 +23,13 @@ export type ReportProject = {
   departmentIds: string[];
 };
 
-export type ReportFilter = { from: IsoDate; to: IsoDate; departmentId: string | null };
+export type ReportFilter = {
+  from: IsoDate;
+  to: IsoDate;
+  departmentId: string | null;
+  /** Planned shifts or registered time. */
+  source: "plan" | "actual";
+};
 
 /** Reads ?fra=&til=&afdeling= with the current month as default. At most a year. */
 export function reportFilter(
@@ -37,7 +43,12 @@ export function reportFilter(
   let to = isValidIsoDate(str(sp.til)) ? str(sp.til) : makeIsoDate(y, m, daysInMonth(y, m));
   if (to < from) [from, to] = [to, from];
   if (to > addDays(from, 366)) to = addDays(from, 366);
-  return { from, to, departmentId: str(sp.afdeling) || null };
+  return {
+    from,
+    to,
+    departmentId: str(sp.afdeling) || null,
+    source: str(sp.kilde) === "registreret" ? "actual" : "plan",
+  };
 }
 
 export async function loadProjectReport(
@@ -58,7 +69,7 @@ export async function loadProjectReport(
       .is("archived_at", null)
       .order("name"),
     ctx.permissions["projects.view"]
-      ? supabase.rpc("project_shifts", {
+      ? supabase.rpc(filter.source === "actual" ? "project_time_entries" : "project_shifts", {
           p_from: new Date(zonedTime(filter.from)).toISOString(),
           p_to: new Date(zonedTime(addDays(filter.to, 1))).toISOString(),
         })

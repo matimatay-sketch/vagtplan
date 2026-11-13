@@ -2,7 +2,10 @@ import type { DbBreak } from "./breaks";
 import { projectMinutes, type ProjectAllocation } from "./projects";
 import { localParts } from "./schedule-time";
 
-/** A row from the `project_shifts` RPC. */
+/** Planned shifts (draft/published) or registered time (open/pending/approved). */
+export type ReportStatus = "draft" | "published" | "open" | "pending" | "approved";
+
+/** A row from the `project_shifts` or `project_time_entries` RPC. */
 export type ProjectShiftRow = {
   id: string;
   department_id: string;
@@ -14,8 +17,8 @@ export type ProjectShiftRow = {
   end_at: string;
   breaks: DbBreak[];
   project_allocations: ProjectAllocation[];
-  status: "draft" | "published";
-  kind: "work" | "on_call";
+  status: ReportStatus;
+  kind?: "work" | "on_call";
 };
 
 export type ProjectLine = {
@@ -29,7 +32,7 @@ export type ProjectLine = {
   employeeNumber: string | null;
   employeeName: string | null;
   departmentName: string;
-  status: "draft" | "published";
+  status: ReportStatus;
   minutes: number;
 };
 

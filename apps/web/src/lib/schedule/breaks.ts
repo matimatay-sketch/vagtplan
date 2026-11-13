@@ -16,6 +16,13 @@ const TZ = "Europe/Copenhagen";
 const hhmm = (m: number) =>
   `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
+/** Start/end instants for a local date and wall-clock times (DST-safe). */
+export function localInstants(date: string, start: string, end: string, endsNextDay: boolean) {
+  const s = wallTime(date, start, TZ);
+  const e = wallTime(endsNextDay ? addDays(date, 1) : date, end, TZ);
+  return { start_at: formatInstant(s), end_at: formatInstant(e) };
+}
+
 export function formBreaksToDb(breaks: readonly FormBreak[], shiftDate: string): DbBreak[] {
   return breaks.map((b) => ({
     start_at: b.start

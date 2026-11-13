@@ -26,6 +26,7 @@ import {
   formProjectsToDb,
   moveAllocations,
   moveDbBreaks,
+  localInstants as instants,
   type DbBreak,
 } from "@/lib/schedule/breaks";
 import { allocationProblems, type ProjectAllocation } from "@/lib/domain/projects";
@@ -39,13 +40,6 @@ const isoDate = z.string().refine(isValidIsoDate);
 
 const hhmm = (minuteOfDay: number) =>
   `${String(Math.floor(minuteOfDay / 60)).padStart(2, "0")}:${String(minuteOfDay % 60).padStart(2, "0")}`;
-
-/** Start/end instants for a local date and wall-clock times (DST-safe). */
-function instants(date: string, start: string, end: string, endsNextDay: boolean) {
-  const s = wallTime(date, start, TZ);
-  const e = wallTime(endsNextDay ? engineAddDays(date, 1) : date, end, TZ);
-  return { start_at: formatInstant(s), end_at: formatInstant(e) };
-}
 
 function revalidateSchedule() {
   revalidatePath("/vagtplan", "layout");

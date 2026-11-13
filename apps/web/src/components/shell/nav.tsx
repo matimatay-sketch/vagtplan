@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ClipboardCheck,
+  Timer,
   FolderKanban,
   Building2,
   CalendarClock,
@@ -62,6 +64,13 @@ const items: Item[] = [
     anyOf: ["users.manage"],
   },
   { href: "/vagtplan/turnus", label: da.nav.turnus, icon: Repeat, anyOf: ["schedule.manage"] },
+  { href: "/tid", label: da.nav.time, icon: Timer, anyOf: [], needsEmployee: true },
+  {
+    href: "/tid/godkend",
+    label: da.nav.approveTime,
+    icon: ClipboardCheck,
+    anyOf: ["time.view", "time.manage", "time.approve"],
+  },
   {
     href: "/projekter",
     label: da.nav.projects,
