@@ -24,7 +24,24 @@ export type ContractFacts = {
   payStep: string | null;
 };
 
-export type BreakInput = { start: string; end: string };
+export type BreakInput = {
+  start: string;
+  end: string;
+  /** Paid break; default: the agreement's break rule decides. */
+  paid?: boolean | null;
+};
+
+/** A supplement put on a specific shift (configured by the organization, not by an agreement). */
+export type ShiftSupplementInput = {
+  id: string;
+  label: string;
+  payCode: string;
+  amount:
+    | { type: "ore_per_hour"; ore: number }
+    | { type: "percent_of_base"; bp: number }
+    | { type: "fixed"; ore: number };
+  source: string;
+};
 
 export type WorkIntervalInput = {
   id: string;
@@ -34,6 +51,7 @@ export type WorkIntervalInput = {
   /** work = ordinary work, on_call = rådighed, call_out = tilkald during rådighed. */
   kind?: "work" | "on_call" | "call_out";
   breaks?: BreakInput[];
+  supplements?: ShiftSupplementInput[];
   /** Id of the planned shift this registration belongs to. */
   plannedShiftId?: string | null;
 };
@@ -55,4 +73,6 @@ export type EngineInput = {
   contracts: ContractFacts[];
   /** Local dates that are school days (for young workers). Default: weekdays that are not holidays. */
   schoolDays?: IsoDate[] | null;
+  /** Organization-wide settings layer (applied after local agreements, before the contract). */
+  organizationLayer?: { rules: RuleLayer[] } | null;
 };

@@ -625,10 +625,12 @@ export function validateNotice(input: NoticeInput): ValidationResult {
     const date = localDate(start, ctx.tz);
     const rule = ctx.rule(date, "notice");
     if (!rule) continue;
+    const p = rule.params;
     const hours =
       item.change === "new"
-        ? rule.params.publish_notice_days * 24
-        : rule.params.change_notice_hours;
+        ? (p.publish_notice_hours ??
+          (p.publish_notice_days === null ? null : p.publish_notice_days * 24))
+        : p.change_notice_hours;
     if (hours === null) continue;
     const ahead = (start - now) / (60 * MINUTE);
     if (ahead >= hours) continue;
@@ -639,7 +641,7 @@ export function validateNotice(input: NoticeInput): ValidationResult {
         intervalIds: [item.intervalId],
         message:
           item.change === "new"
-            ? `Vagten offentliggøres med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} varsel (krav: ${rule.params.publish_notice_days} dage).`
+            ? `Vagten offentliggøres med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} varsel (krav: ${hours} timer).`
             : `Ændringen varsles med ${formatMinutes(Math.max(0, Math.round(ahead * 60)))} (krav: ${hours} timer).`,
         details: {
           requiredHours: hours,

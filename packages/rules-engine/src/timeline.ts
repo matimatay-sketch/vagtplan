@@ -1,13 +1,14 @@
 import { parseInstant, type Instant, MINUTE } from "./time/local-time";
-import type { WorkIntervalInput } from "./model";
+import type { ShiftSupplementInput, WorkIntervalInput } from "./model";
 
 export type Span = { start: Instant; end: Instant };
 
 export type WorkInterval = Span & {
   id: string;
   kind: "work" | "on_call" | "call_out";
-  breaks: Span[];
+  breaks: (Span & { paid: boolean | null })[];
   plannedShiftId: string | null;
+  supplements: ShiftSupplementInput[];
 };
 
 export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkInterval[] {
@@ -20,6 +21,7 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         .map((b) => ({
           start: Math.max(start, parseInstant(b.start)),
           end: Math.min(end, parseInstant(b.end)),
+          paid: b.paid ?? null,
         }))
         .filter((b) => b.end > b.start)
         .sort((a, b) => a.start - b.start);
@@ -30,6 +32,7 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         kind: i.kind ?? "work",
         breaks,
         plannedShiftId: i.plannedShiftId ?? null,
+        supplements: i.supplements ?? [],
       };
     })
     .sort((a, b) => a.start - b.start || a.end - b.end);
@@ -39,6 +42,11 @@ export const minutesOf = (s: Span) => Math.round((s.end - s.start) / MINUTE);
 
 export function overlap(a: Span, b: Span): number {
   return Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
+}
+
+/** Paid time of an interval: minus breaks that are unpaid (per break, else `defaultPaid`). */
+export function payPieces(i: WorkInterval, defaultPaid: boolean): Span[] {
+  return workPieces({ ...i, breaks: i.breaks.filter((b) => !(b.paid ?? defaultPaid)) });
 }
 
 /** Work time of an interval minus its breaks (unpaid or paid – working-time rules ignore breaks). */

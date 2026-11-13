@@ -247,7 +247,9 @@ export const ruleSchemas = {
 
   /** Varsling: how early a schedule (or a change to it) must be published. */
   notice: z.object({
-    publish_notice_days: z.number().int().min(0),
+    /** Use days or hours (hours win when both are set). */
+    publish_notice_days: z.number().int().min(0).nullable().default(null),
+    publish_notice_hours: z.number().int().min(0).nullable().default(null),
     change_notice_hours: z.number().int().min(0).nullable().default(null),
   }),
 

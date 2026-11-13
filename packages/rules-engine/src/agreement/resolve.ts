@@ -43,6 +43,8 @@ export type ResolveRequest = {
   localAgreementId?: string | null;
   /** Contract layer (individual contract terms). */
   contractOverrides?: { rules: RuleLayer[] } | null;
+  /** Organization-wide settings (e.g. notice), applied before the contract layer. */
+  organizationLayer?: { rules: RuleLayer[] } | null;
   date: IsoDate;
 };
 
@@ -167,6 +169,14 @@ export function resolveAgreement(
   for (const doc of chain) {
     applyLayer(drafts, doc.rules, { agreementId: doc.id, version: doc.version }, removals);
     Object.assign(payCodes, doc.pay_codes);
+  }
+  if (req.organizationLayer?.rules.length) {
+    applyLayer(
+      drafts,
+      req.organizationLayer.rules,
+      { agreementId: "organization", version: 1 },
+      removals,
+    );
   }
   if (req.contractOverrides?.rules.length) {
     applyLayer(

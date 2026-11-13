@@ -49,6 +49,7 @@ export class EngineContext {
         agreementId: contract.agreementId,
         localAgreementId: contract.localAgreementId,
         contractOverrides: contract.overrides,
+        organizationLayer: this.input.organizationLayer ?? null,
         date,
       });
       for (const w of resolved.warnings) {

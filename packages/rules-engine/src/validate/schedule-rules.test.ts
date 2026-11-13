@@ -120,7 +120,9 @@ describe("shiftsToIntervals", () => {
     const [i] = shiftsToIntervals([
       { id: "s", start: cph("2026-01-05 08:00"), end: cph("2026-01-05 16:00"), breakMinutes: 30 },
     ]);
-    expect(i!.breaks).toEqual([{ start: cph("2026-01-05 11:45"), end: cph("2026-01-05 12:15") }]);
+    expect(i!.breaks).toEqual([
+      { start: cph("2026-01-05 11:45"), end: cph("2026-01-05 12:15"), paid: false },
+    ]);
   });
   it("ignores breaks that do not fit", () => {
     const [i] = shiftsToIntervals([

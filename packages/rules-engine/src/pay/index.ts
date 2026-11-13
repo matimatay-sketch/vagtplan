@@ -2,7 +2,13 @@ import { Temporal } from "temporal-polyfill";
 import type { LayerRef, ResolvedRule } from "../agreement/resolve";
 import type { Amount, Primitive, Rule } from "../agreement/schema";
 import { EngineContext } from "../context";
-import type { AbsenceInput, ContractFacts, EngineInput, WorkIntervalInput } from "../model";
+import type {
+  AbsenceInput,
+  ContractFacts,
+  EngineInput,
+  ShiftSupplementInput,
+  WorkIntervalInput,
+} from "../model";
 import {
   addDays,
   formatInstant,
@@ -22,7 +28,7 @@ import {
   minutesOf,
   normalizeIntervals,
   overlap,
-  workPieces,
+  payPieces,
   type Span,
   type WorkInterval,
 } from "../timeline";
@@ -54,14 +60,15 @@ export type ExplainedInterval = {
 export type PayLine = {
   payCode: string;
   label: string;
-  /** hours: money for minutes worked; time_off_minutes: credited time off; days: absence registration. */
-  unit: "hours" | "time_off_minutes";
+  /** hours: money for minutes worked; time_off_minutes: credited time off; fixed: amount per shift (quantity 0). */
+  unit: "hours" | "time_off_minutes" | "fixed";
   quantityMinutes: number;
   rateOre: number;
   amountOre: number;
   explanation: {
     ruleId: string;
-    primitive: Primitive;
+    /** "shift_supplement" for supplements put on a shift by the organization. */
+    primitive: Primitive | "shift_supplement";
     source: string;
     layer: LayerRef;
     todoJura: string | null;
@@ -503,15 +510,23 @@ class LineBook {
       } else acc.line.explanation.intervals.push({ ...interval });
     }
     acc.line.quantityMinutes =
-      c.unit === "time_off_minutes" ? Math.round((acc.minutes * c.factorBp) / 10000) : acc.minutes;
+      c.unit === "time_off_minutes"
+        ? Math.round((acc.minutes * c.factorBp) / 10000)
+        : c.unit === "fixed"
+          ? 0
+          : acc.minutes;
   }
 
   lines(): PayLine[] {
     return [...this.map.values()]
-      .map(({ line }) => ({
+      .map(({ line, minutes }) => ({
         ...line,
         amountOre:
-          line.unit === "hours" ? Math.round((line.quantityMinutes * line.rateOre) / 60) : 0,
+          line.unit === "hours"
+            ? Math.round((line.quantityMinutes * line.rateOre) / 60)
+            : line.unit === "fixed"
+              ? line.rateOre * minutes // `minutes` counts shifts for fixed amounts
+              : 0,
       }))
       .sort((a, b) => a.payCode.localeCompare(b.payCode) || a.rateOre - b.rateOre);
   }
@@ -544,8 +559,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
   for (const i of worked) {
     if (i.kind === "on_call" || i.end <= i.start) continue;
     const date = localDate(i.start, ctx.tz);
-    const paidBreaks = ctx.rule(date, "break")?.params.paid ?? false;
-    const pieces = paidBreaks ? [{ start: i.start, end: i.end }] : workPieces(i);
+    const pieces = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false);
     for (const piece of pieces) {
       for (const s of cutSpan(piece, boundaryCuts(piece, ctx, plannedSpans))) {
         const d = localDate(s.start, ctx.tz);
@@ -648,8 +662,12 @@ export function calculatePay(input: CalcPayInput): PayResult {
       };
       book.add(c, minutes, interval);
     }
+    const paidMinutes = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false).reduce(
+      (s, p) => s + minutesOf(p),
+      0,
+    );
     if (i.kind === "call_out" && onCall) {
-      const paid = workPieces(i).reduce((s, p) => s + minutesOf(p), 0);
+      const paid = paidMinutes;
       const missing = onCall.params.call_out_min_minutes - paid;
       if (missing > 0) {
         book.add(
@@ -673,8 +691,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
       minShift?.params.guarantee_pay &&
       contract.payForm === "hourly"
     ) {
-      const paid = workPieces(i).reduce((s, p) => s + minutesOf(p), 0);
-      const missing = minShift.params.min_minutes - paid;
+      const missing = minShift.params.min_minutes - paidMinutes;
       if (missing > 0) {
         book.add(
           {
@@ -689,6 +706,68 @@ export function calculatePay(input: CalcPayInput): PayResult {
           interval,
         );
       }
+    }
+  }
+
+  // 4b. Supplements put on individual shifts (organization configuration).
+  const byId = new Map(worked.map((i) => [i.id, i]));
+  const supplementRule = (s: ShiftSupplementInput) =>
+    ({
+      id: `supplement:${s.id}`,
+      primitive: "shift_supplement",
+      source: s.source,
+      todo_jura: null,
+      priority: 0,
+      stacking: { mode: "additive", group: null, replaces: [] },
+      layers: [{ agreementId: "organization", version: 1 }],
+    }) as unknown as ResolvedRule;
+  for (const seg of segments) {
+    if (seg.date < from || seg.date > to) continue;
+    const interval = byId.get(seg.intervalId);
+    const contract = ctx.contractOn(seg.date);
+    if (!interval?.supplements.length || !contract) continue;
+    const base = baseRate(ctx, seg.date, contract)?.ore ?? 0;
+    for (const s of interval.supplements) {
+      if (s.amount.type === "fixed") continue;
+      const rateOre =
+        s.amount.type === "ore_per_hour" ? s.amount.ore : Math.round((base * s.amount.bp) / 10000);
+      book.add(
+        {
+          rule: supplementRule(s),
+          payCode: s.payCode,
+          rateOre,
+          unit: "hours",
+          factorBp: 10000,
+          note: s.label,
+        },
+        minutesOf(seg),
+        explained(seg),
+      );
+    }
+  }
+  for (const i of worked) {
+    const date = localDate(i.start, ctx.tz);
+    if (date < from || date > to) continue;
+    for (const s of i.supplements) {
+      if (s.amount.type !== "fixed") continue;
+      book.add(
+        {
+          rule: supplementRule(s),
+          payCode: s.payCode,
+          rateOre: s.amount.ore,
+          unit: "fixed",
+          factorBp: 10000,
+          note: s.label,
+        },
+        1,
+        {
+          intervalId: i.id,
+          date,
+          start: formatInstant(i.start),
+          end: formatInstant(i.end),
+          minutes: minutesOf(i),
+        },
+      );
     }
   }
 
