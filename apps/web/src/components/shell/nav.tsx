@@ -102,7 +102,10 @@ export function Nav({
       className={variant === "sidebar" ? "grid gap-0.5" : "flex gap-1 overflow-x-auto px-2"}
     >
       {visible.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+        // Only the most specific matching item is active (e.g. /vagtplan/turnus, not /vagtplan).
+        const matches = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
+        const active =
+          matches(href) && !visible.some((o) => o.href.length > href.length && matches(o.href));
         return (
           <Link
             key={href}

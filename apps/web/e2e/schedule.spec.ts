@@ -32,7 +32,10 @@ async function createShift(
   const form = page.getByTestId("shift-form");
   await form.getByLabel("Start").fill(start);
   await form.getByLabel("Slut").fill(end);
-  await form.getByLabel("Pause (min.)").fill(breakMinutes);
+  // The dialog starts with one unplaced 30-minute break.
+  const rows = form.getByTestId("break-row");
+  if (breakMinutes === "0") await rows.first().getByRole("button", { name: "Fjern pause" }).click();
+  else await rows.first().getByLabel("Minutter").fill(breakMinutes);
   await form.getByRole("button", { name: "Gem vagt" }).click();
   await expect(form).toHaveCount(0);
   await expect(c.getByTestId("shift-card").filter({ hasText: start })).toBeVisible();

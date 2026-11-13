@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import type { EditableBreak } from "@/lib/domain/breaks";
 import { da } from "@/lib/i18n/da";
+import { formatSupplementAmount } from "@/lib/domain/supplements";
 
 /** Controlled list of breaks; posts a JSON field named `name`. */
 export function BreaksEditor({
@@ -95,14 +96,6 @@ export type SupplementOption = {
   amountType: "per_hour" | "fixed" | "percent";
   amount: number;
 };
-
-export function formatSupplementAmount(s: Pick<SupplementOption, "amountType" | "amount">): string {
-  const kr = (ore: number) =>
-    (ore / 100).toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (s.amountType === "per_hour") return `${kr(s.amount)} kr./t`;
-  if (s.amountType === "fixed") return `${kr(s.amount)} kr./vagt`;
-  return `${(s.amount / 100).toLocaleString("da-DK")} %`;
-}
 
 /** Checkbox list of supplement types; posts a JSON field named `name`. */
 export function SupplementPicker({

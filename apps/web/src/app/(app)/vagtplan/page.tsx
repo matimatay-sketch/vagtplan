@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutTemplate } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutTemplate, Repeat } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -165,6 +165,13 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         </div>
         {board.canManage ? (
           <Button asChild variant="ghost" size="sm" className="ml-auto">
+            <Link href="/vagtplan/turnus">
+              <Repeat /> {da.nav.turnus}
+            </Link>
+          </Button>
+        ) : null}
+        {board.canManage ? (
+          <Button asChild variant="ghost" size="sm">
             <Link href="/vagtplan/skabeloner">
               <LayoutTemplate /> {t.templates}
             </Link>

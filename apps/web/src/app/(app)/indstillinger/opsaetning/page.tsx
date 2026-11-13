@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { formatSupplementAmount } from "@/components/schedule/breaks-editor";
+import { formatSupplementAmount } from "@/lib/domain/supplements";
 import { requireContext } from "@/lib/auth";
 import { hasOrg } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
