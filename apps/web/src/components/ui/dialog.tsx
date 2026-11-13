@@ -20,7 +20,10 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
         {...props}
       >
         {children}
-        <P.Close className="absolute top-4 right-4 rounded-md p-1 opacity-70 hover:bg-muted hover:opacity-100" aria-label="Luk">
+        <P.Close
+          className="absolute top-4 right-4 rounded-md p-1 opacity-70 hover:bg-muted hover:opacity-100"
+          aria-label="Luk"
+        >
           <X className="size-4" />
         </P.Close>
       </P.Content>
@@ -37,4 +40,12 @@ function DialogDescription({ className, ...props }: React.ComponentProps<typeof 
   return <P.Description className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
 
-export { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription };
+export {
+  Dialog,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+};

@@ -17,10 +17,12 @@ export function TemplateForm({
   departments,
   allowOrgWide,
   supplementTypes,
+  projects,
 }: {
   departments: { id: string; name: string }[];
   allowOrgWide: boolean;
   supplementTypes: SupplementOption[];
+  projects: { id: string; number: string; name: string }[];
 }) {
   const [state, action] = useActionState(createTemplateAction, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
@@ -73,6 +75,23 @@ export function TemplateForm({
             ))}
           </NativeSelect>
         </Field>
+        {projects.length ? (
+          <Field
+            label={`${da.projects.defaultProject} (${da.common.optional})`}
+            htmlFor="project_id"
+            error={state.errors?.project_id}
+            className="lg:col-span-2"
+          >
+            <NativeSelect {...f("project_id", "")}>
+              <option value="">{da.projects.noProject}</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.number} · {p.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />

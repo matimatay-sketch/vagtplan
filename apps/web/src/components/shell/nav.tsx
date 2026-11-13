@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  FolderKanban,
   Building2,
   CalendarClock,
   CalendarHeart,
@@ -61,6 +62,12 @@ const items: Item[] = [
     anyOf: ["users.manage"],
   },
   { href: "/vagtplan/turnus", label: da.nav.turnus, icon: Repeat, anyOf: ["schedule.manage"] },
+  {
+    href: "/projekter",
+    label: da.nav.projects,
+    icon: FolderKanban,
+    anyOf: ["projects.view", "projects.manage"],
+  },
   {
     href: "/indstillinger/opsaetning",
     label: da.nav.settings,

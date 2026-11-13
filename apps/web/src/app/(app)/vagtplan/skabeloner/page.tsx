@@ -27,30 +27,39 @@ export default async function TemplatesPage() {
   const ctx = await requireContext(["schedule.manage"]);
   const supabase = await createClient();
   const t = da.schedule;
-  const [{ data: templates }, { data: departments }, { data: supplementTypes }] = await Promise.all(
-    [
-      supabase
-        .from("shift_template")
-        .select(
-          "id, name, start_time, end_time, breaks, supplement_type_ids, label, kind, department_id",
-        )
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("start_time"),
-      supabase
-        .from("department")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      supabase
-        .from("supplement_type")
-        .select("id, name, amount_type, amount")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-    ],
-  );
+  const [
+    { data: templates },
+    { data: departments },
+    { data: supplementTypes },
+    { data: projects },
+  ] = await Promise.all([
+    supabase
+      .from("shift_template")
+      .select(
+        "id, name, start_time, end_time, breaks, supplement_type_ids, project_id, label, kind, department_id",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("start_time"),
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("supplement_type")
+      .select("id, name, amount_type, amount")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("project")
+      .select("id, number, name, archived_at")
+      .eq("organization_id", ctx.organization.id)
+      .order("number"),
+  ]);
+  const projectName = new Map((projects ?? []).map((p) => [p.id, `${p.number} · ${p.name}`]));
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const manageable = (departments ?? []).filter((d) =>
     canInDepartment(ctx.permissions, "schedule.manage", d.id, ctx.responsibleDepartmentIds),
@@ -79,6 +88,9 @@ export default async function TemplatesPage() {
               amountType: x.amount_type,
               amount: x.amount,
             }))}
+            projects={(projects ?? [])
+              .filter((p) => !p.archived_at)
+              .map((p) => ({ id: p.id, number: p.number, name: p.name }))}
           />
         </CardContent>
       </Card>
@@ -105,6 +117,11 @@ export default async function TemplatesPage() {
                     {tpl.name}
                     {tpl.label ? (
                       <span className="ml-2 text-muted-foreground">{tpl.label}</span>
+                    ) : null}
+                    {tpl.project_id ? (
+                      <Badge variant="outline" className="ml-2">
+                        {projectName.get(tpl.project_id)}
+                      </Badge>
                     ) : null}
                     {tpl.kind === "on_call" ? (
                       <Badge variant="secondary" className="ml-2">

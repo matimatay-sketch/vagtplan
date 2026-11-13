@@ -30,7 +30,9 @@ type ShiftTemplate = {
   kind: "work" | "on_call";
   breaks: { start_time: string | null; minutes: number; paid: boolean }[];
   supplementTypeIds: string[];
+  projectId: string | null;
 };
+type Project = { id: string; number: string; name: string };
 
 export function RotationGrid({
   rotationId,
@@ -39,6 +41,7 @@ export function RotationGrid({
   slots,
   supplementTypes,
   shiftTemplates,
+  projects,
 }: {
   rotationId: string;
   weekIndex: number;
@@ -46,6 +49,7 @@ export function RotationGrid({
   slots: RotationSlot[];
   supplementTypes: SupplementOption[];
   shiftTemplates: ShiftTemplate[];
+  projects: Project[];
 }) {
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const t = da.turnus;
@@ -131,6 +135,7 @@ export function RotationGrid({
               weekIndex={weekIndex}
               lines={lines}
               supplementTypes={supplementTypes}
+              projects={projects}
               shiftTemplates={shiftTemplates}
               onDone={() => setDraft(null)}
             />
@@ -148,6 +153,7 @@ function SlotForm({
   lines,
   supplementTypes,
   shiftTemplates,
+  projects,
   onDone,
 }: {
   draft: Draft;
@@ -156,6 +162,7 @@ function SlotForm({
   lines: Line[];
   supplementTypes: SupplementOption[];
   shiftTemplates: ShiftTemplate[];
+  projects: Project[];
   onDone: () => void;
 }) {
   const t = da.turnus;
@@ -170,6 +177,7 @@ function SlotForm({
     end_time: s?.endTime ?? "16:00",
     label: s?.label ?? "",
     kind: s?.kind ?? "work",
+    project_id: s?.projectId ?? "",
   });
   const [breaks, setBreaks] = React.useState<EditableBreak[]>(() =>
     s ? templateBreaksToForm(s.breaks) : [{ start: "", minutes: 30, paid: false }],
@@ -189,6 +197,10 @@ function SlotForm({
       end_time: tpl.end,
       label: tpl.label ?? "",
       kind: tpl.kind,
+      project_id:
+        tpl.projectId && projects.some((p) => p.id === tpl.projectId)
+          ? tpl.projectId
+          : v.project_id,
     }));
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
@@ -285,6 +297,28 @@ function SlotForm({
               onChange={set("label")}
             />
           </Field>
+          {projects.length ? (
+            <Field
+              label={`${da.projects.defaultProject} (${da.common.optional})`}
+              htmlFor="project_id"
+              error={state.errors?.project_id}
+              className="sm:col-span-2"
+            >
+              <NativeSelect
+                id="project_id"
+                name="project_id"
+                value={values.project_id}
+                onChange={set("project_id")}
+              >
+                <option value="">{da.projects.noProject}</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.number} · {p.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+          ) : null}
         </div>
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />
         <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
