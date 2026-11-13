@@ -46,6 +46,10 @@ export function DeviationText({ row }: { row: TimeRow }) {
   );
 }
 
+const sameInstant = (a: { start: string; end: string }, b: { start: string; end: string }) =>
+  new Date(a.start).getTime() === new Date(b.start).getTime() &&
+  new Date(a.end).getTime() === new Date(b.end).getTime();
+
 export function RowDetails({ row }: { row: TimeRow }) {
   const t = da.time;
   return (
@@ -58,9 +62,7 @@ export function RowDetails({ row }: { row: TimeRow }) {
       ) : (
         <span>{t.noPlan}</span>
       )}
-      {row.settled &&
-      row.end &&
-      (row.settled.start !== row.start || row.settled.end !== row.end) ? (
+      {row.settled && row.end && !sameInstant(row.settled, { start: row.start, end: row.end }) ? (
         <span className="tabular" title={t.settledHelp}>
           {t.settled} {timeRange(row.settled.start, row.settled.end)}
         </span>

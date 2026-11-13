@@ -48,11 +48,14 @@ export async function syncStampsAction(input: unknown): Promise<StampResult[]> {
       p_at: e.at,
     });
     if (!error) out.push({ clientId: e.clientId, status: "ok" });
-    else if (error.code === "P0001")
-      out.push({ clientId: e.clientId, status: "rejected", reason: error.hint ?? "unknown" });
-    else if (error.code === "42501" || error.code === "22023")
-      out.push({ clientId: e.clientId, status: "rejected", reason: "unknown" });
-    else break; // Transient: keep this and the following items queued.
+    // The server answered, so the stamp leaves the queue either way; only a
+    // network failure (the action throws in the browser) keeps it queued.
+    else
+      out.push({
+        clientId: e.clientId,
+        status: "rejected",
+        reason: error.code === "P0001" ? (error.hint ?? "unknown") : "unknown",
+      });
   }
   if (out.length) revalidateTime();
   return out;
