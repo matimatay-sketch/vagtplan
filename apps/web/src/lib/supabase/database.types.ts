@@ -351,6 +351,7 @@ export type Database = {
       };
       employee: {
         Row: {
+          approver_user_id: string | null;
           archived_at: string | null;
           birth_date: string;
           created_at: string;
@@ -369,6 +370,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          approver_user_id?: string | null;
           archived_at?: string | null;
           birth_date: string;
           created_at?: string;
@@ -386,6 +388,7 @@ export type Database = {
           user_id?: string | null;
         };
         Update: {
+          approver_user_id?: string | null;
           archived_at?: string | null;
           birth_date?: string;
           created_at?: string;
@@ -1612,6 +1615,7 @@ export type Database = {
         Args: { p_action: string; p_at: string; p_client_id: string; p_organization_id: string };
         Returns: string;
       };
+      time_approvees: { Args: { p_org: string }; Returns: string[] };
       time_entry_history: {
         Args: { p_id: string };
         Returns: {
