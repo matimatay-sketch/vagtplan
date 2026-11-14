@@ -190,8 +190,9 @@ export async function archiveTimeEntryAction(id: string): Promise<ActionState> {
   return { ok: true };
 }
 
+/** The database checks time.approve on the department or the personal approver. */
 export async function approveTimeEntriesAction(ids: string[]): Promise<ActionState> {
-  await requireContext(["time.approve"]);
+  await requireContext();
   const parsed = z.array(z.guid()).min(1).max(500).parse(ids);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("approve_time_entries", { p_ids: parsed });

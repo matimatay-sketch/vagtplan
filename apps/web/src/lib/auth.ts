@@ -25,6 +25,8 @@ export type AppContext = {
   organizations: { id: string; name: string }[];
   /** May create and archive customers (platform level, outside any organization). */
   isPlatformAdmin: boolean;
+  /** Employees whose time this user approves personally ("Godkendes af"). */
+  timeApproverOf: string[];
 };
 
 /**
@@ -55,22 +57,28 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
   const active = usable.find((m) => m.organization!.id === preferred) ?? usable[0]!;
   const org = active.organization!;
 
-  const [{ data: grants }, { data: responsible }, { data: employee }, { data: platform }] =
-    await Promise.all([
-      supabase.rpc("my_permissions", { org: org.id }),
-      supabase
-        .from("department_manager")
-        .select("department_id")
-        .eq("user_id", userId)
-        .eq("organization_id", org.id),
-      supabase
-        .from("employee")
-        .select("id, first_name, last_name")
-        .eq("user_id", userId)
-        .eq("organization_id", org.id)
-        .maybeSingle(),
-      supabase.rpc("is_platform_admin"),
-    ]);
+  const [
+    { data: grants },
+    { data: responsible },
+    { data: employee },
+    { data: platform },
+    { data: approvees },
+  ] = await Promise.all([
+    supabase.rpc("my_permissions", { org: org.id }),
+    supabase
+      .from("department_manager")
+      .select("department_id")
+      .eq("user_id", userId)
+      .eq("organization_id", org.id),
+    supabase
+      .from("employee")
+      .select("id, first_name, last_name")
+      .eq("user_id", userId)
+      .eq("organization_id", org.id)
+      .maybeSingle(),
+    supabase.rpc("is_platform_admin"),
+    supabase.rpc("time_approvees", { p_org: org.id }),
+  ]);
 
   const permissions: Permissions = {};
   for (const g of grants ?? [])
@@ -90,6 +98,7 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
     employee: employee ?? null,
     organizations: usable.map((m) => ({ id: m.organization!.id, name: m.organization!.name })),
     isPlatformAdmin: platform === true,
+    timeApproverOf: approvees ?? [],
   };
 });
 

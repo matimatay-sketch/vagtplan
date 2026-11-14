@@ -28,6 +28,8 @@ type Item = {
   /** Visible when the user has any of these permissions; empty = everyone. */
   anyOf: readonly PermissionKey[];
   needsEmployee?: boolean;
+  /** Also visible for personal time approvers ("Godkendes af"). */
+  forApprovers?: boolean;
 };
 
 const items: Item[] = [
@@ -70,6 +72,7 @@ const items: Item[] = [
     label: da.nav.approveTime,
     icon: ClipboardCheck,
     anyOf: ["time.view", "time.manage", "time.approve"],
+    forApprovers: true,
   },
   {
     href: "/projekter",
@@ -101,16 +104,19 @@ const items: Item[] = [
 export function Nav({
   permissions,
   hasEmployee,
+  isApprover = false,
   variant,
 }: {
   permissions: Permissions;
   hasEmployee: boolean;
+  isApprover?: boolean;
   variant: "sidebar" | "bar";
 }) {
   const pathname = usePathname();
   const visible = items.filter(
     (i) =>
-      (i.anyOf.length === 0 || hasAny(permissions, i.anyOf)) && (!i.needsEmployee || hasEmployee),
+      (i.anyOf.length === 0 || hasAny(permissions, i.anyOf) || (i.forApprovers && isApprover)) &&
+      (!i.needsEmployee || hasEmployee),
   );
   return (
     <nav

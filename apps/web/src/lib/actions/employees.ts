@@ -174,3 +174,26 @@ export async function inviteEmployeeAction(
   revalidatePath(`/medarbejdere/${employee.id}`);
   return { ok: true, message: da.employees.inviteSent };
 }
+
+/** Sets who approves this employee's time personally ("Godkendes af"). */
+export async function setTimeApproverAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["users.manage"]);
+  const input = z
+    .object({ employee_id: z.guid(), approver_user_id: z.union([z.guid(), z.literal("")]) })
+    .safeParse(Object.fromEntries(formData));
+  if (!input.success) return { message: da.common.unknownError };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("employee")
+    .update({ approver_user_id: input.data.approver_user_id || null })
+    .eq("id", input.data.employee_id)
+    .select("id");
+  if (error) return { message: dbErrorMessage(error, { "23514": da.employees.approverInvalid }) };
+  if (!data?.length) return { message: da.common.notAllowed };
+  revalidatePath(`/medarbejdere/${input.data.employee_id}`);
+  revalidatePath("/tid/godkend");
+  return { ok: true, message: da.common.saved };
+}

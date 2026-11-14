@@ -75,6 +75,12 @@ export const da = {
     nameTaken: "Der findes allerede en afdeling med det navn.",
   },
   employees: {
+    approver: "Godkendes af",
+    approverLead:
+      "Den bruger, der godkender medarbejderens tid, ud over dem der har godkendelse for afdelingen. Brug det fx til lederens egen leder.",
+    approverByDepartment: "Afdelingens godkendere",
+    approverInvalid:
+      "Godkenderen skal være en bruger i virksomheden og må ikke være medarbejderen selv.",
     title: "Medarbejdere",
     lead: "Stamdata, afdelinger og kontrakter.",
     new: "Ny medarbejder",

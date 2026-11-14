@@ -7,7 +7,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { ApprovalTable, type DepartmentRights } from "@/components/time/approval-table";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { canInDepartment } from "@/lib/permissions";
+import { canInDepartment, hasAny } from "@/lib/permissions";
+import { redirect } from "next/navigation";
 import { addDays, isValidIsoDate, todayIn } from "@/lib/domain/civil-date";
 import { isoWeekNumber, weekDates, weekStartOf } from "@/lib/domain/schedule-time";
 import { loadTimeOverview } from "@/lib/time/load";
@@ -17,7 +18,13 @@ import { da } from "@/lib/i18n/da";
 export const metadata: Metadata = { title: "Godkend tid" };
 
 export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/godkend">) {
-  const ctx = await requireContext(["time.view", "time.manage", "time.approve"]);
+  const ctx = await requireContext();
+  const approverOf = new Set(ctx.timeApproverOf);
+  if (
+    !hasAny(ctx.permissions, ["time.view", "time.manage", "time.approve"]) &&
+    approverOf.size === 0
+  )
+    redirect("/oversigt?adgang=nej");
   const sp = await searchParams;
   const t = da.time;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -35,7 +42,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   const visible = (departments ?? []).filter(
     (d) => can("time.view", d.id) || can("time.manage", d.id) || can("time.approve", d.id),
   );
-  if (visible.length === 0)
+  if (visible.length === 0 && approverOf.size === 0)
     return (
       <>
         <PageHeader title={t.approveTitle} />
@@ -59,7 +66,8 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   ]);
   const rows = overview.rows.filter(
     (r) =>
-      rights[r.departmentId] && (status === "all" || r.kind === "missing" || r.status === status),
+      (rights[r.departmentId] || approverOf.has(r.employeeId)) &&
+      (status === "all" || r.kind === "missing" || r.status === status),
   );
   const href = (p: Record<string, string>) =>
     `/tid/godkend?${new URLSearchParams({ uge: weekStart, status, ...(departmentId ? { afdeling: departmentId } : {}), ...p })}`;
@@ -115,6 +123,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           exempt={[...overview.exempt]}
           rights={rights}
           approveOwn={ctx.permissions["time.approve"] === "organization"}
+          approverOf={[...approverOf]}
           projects={projects}
           dates={dates}
         />

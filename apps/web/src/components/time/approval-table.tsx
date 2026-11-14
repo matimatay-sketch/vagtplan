@@ -21,6 +21,7 @@ export function ApprovalTable({
   exempt,
   rights,
   approveOwn,
+  approverOf,
   projects,
   dates,
 }: {
@@ -30,6 +31,8 @@ export function ApprovalTable({
   rights: DepartmentRights;
   /** Organization-wide approvers may approve their own time. */
   approveOwn: boolean;
+  /** Employees the user approves personally ("Godkendes af"). */
+  approverOf: string[];
   projects: (BoardProject & { departmentIds: string[] })[];
   dates: string[];
 }) {
@@ -55,7 +58,7 @@ export function ApprovalTable({
   const approvable = (r: TimeRow) =>
     r.kind === "entry" &&
     r.status === "pending" &&
-    rights[r.departmentId]?.approve === true &&
+    (rights[r.departmentId]?.approve === true || approverOf.includes(r.employeeId)) &&
     (!r.isMine || approveOwn);
   const approvableIds = rows.filter(approvable).map((r) => r.entryId!);
   const toggle = (id: string) =>

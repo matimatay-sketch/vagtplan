@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <Nav
               permissions={ctx.permissions}
               hasEmployee={Boolean(ctx.employee)}
+              isApprover={ctx.timeApproverOf.length > 0}
               variant="sidebar"
             />
           </div>
@@ -49,7 +50,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 py-1.5 backdrop-blur md:hidden">
-          <Nav permissions={ctx.permissions} hasEmployee={Boolean(ctx.employee)} variant="bar" />
+          <Nav
+            permissions={ctx.permissions}
+            hasEmployee={Boolean(ctx.employee)}
+            isApprover={ctx.timeApproverOf.length > 0}
+            variant="bar"
+          />
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { EmployeeForm } from "@/components/employees/employee-form";
 import { EndContractForm, NewContractForm } from "@/components/employees/contract-forms";
 import { InviteForm } from "@/components/employees/invite-form";
 import { MemberProfileForm } from "@/components/employees/profile-form";
+import { ApproverForm } from "@/components/employees/approver-form";
 import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
 import { canIn, requireContext } from "@/lib/auth";
 import { hasOrg, type PermissionKey } from "@/lib/permissions";
@@ -46,7 +47,7 @@ export default async function EmployeePage({
   const { data: employee } = await supabase
     .from("employee")
     .select(
-      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
+      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, approver_user_id, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -97,6 +98,16 @@ export default async function EmployeePage({
       ])
     : [{ data: null }, { data: [] as { department_id: string }[] }];
   const profileName = profiles?.find((p) => p.id === membership?.profile_id)?.name ?? null;
+  // Possible personal time approvers: users of the organization, not the employee.
+  const { data: members } = canManageUsers
+    ? await supabase.rpc("organization_members", { org: ctx.organization.id })
+    : { data: null };
+  const approverOptions = (members ?? [])
+    .filter((m) => m.user_id !== employee.user_id)
+    .map((m) => ({
+      userId: m.user_id,
+      label: m.first_name ? `${m.first_name} ${m.last_name} (${m.email})` : m.email,
+    }));
   const responsibleIds = (responsible ?? []).map((r) => r.department_id);
 
   const age = ageOn(employee.birth_date, today);
@@ -327,6 +338,22 @@ export default async function EmployeePage({
               ) : null}
             </CardContent>
           </Card>
+
+          {canManageUsers ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t.approver}</CardTitle>
+                <CardDescription>{t.approverLead}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ApproverForm
+                  employeeId={employee.id}
+                  approverUserId={employee.approver_user_id}
+                  members={approverOptions}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>

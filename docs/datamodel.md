@@ -130,3 +130,9 @@ RPC'er:
 - `time_overview(from, to)` returnerer registreringer med plan og manglende registreringer.
 - `time_entry_history(id)`
 - `project_time_entries(from, to)`
+
+### Godkendes af
+
+`employee.approver_user_id` er en bruger, der ser og godkender netop denne medarbejders tid, uanset rettighedsprofil. Den bruges fx til lederens egen leder. Den kræver `users.manage` for at blive sat og må ikke være medarbejderen selv. Den udvider `time_entry_select`, `approve_time_entries`, `time_overview` og `time_entry_history`. `time_approvees(org)` returnerer de medarbejdere, brugeren godkender personligt.
+
+`private.has_org_permission` returnerer altid `true` eller `false`. Før 2026-11-14 kunne den returnere NULL, så `organization_members()` ikke afviste brugere uden `users.manage`.
