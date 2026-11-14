@@ -1,0 +1,45 @@
+{
+  "description": "Syg mandag–fredag og fylder 18 onsdag: sygeløn med ungesats mandag og tirsdag, voksensats fra onsdag. Beregnet i hånden: 2 × 444 min à 100 kr./t = 1.480 kr. og 3 × 444 min à 150 kr./t = 3.330 kr.",
+  "employee": {
+    "birthDate": "2008-01-07",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-11"
+  },
+  "worked": [],
+  "absences": [
+    {
+      "id": "syg",
+      "type": "sick",
+      "from": "2026-01-05",
+      "to": "2026-01-09"
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "SYG",
+        "rateOre": 10000,
+        "quantityMinutes": 888,
+        "amountOre": 148000
+      },
+      {
+        "payCode": "SYG",
+        "rateOre": 15000,
+        "quantityMinutes": 1332,
+        "amountOre": 333000
+      }
+    ],
+    "dailyMinutes": {},
+    "violations": []
+  }
+}

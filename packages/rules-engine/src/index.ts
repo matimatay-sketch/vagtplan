@@ -28,6 +28,8 @@ export { simulateWeek } from "./simulate";
 export type { SimulateInput, SimulationResult } from "./simulate";
 export { vacationAccrual, yearStartContaining } from "./vacation";
 export type { VacationEntry } from "./vacation";
+export { leaveAccruals, leaveDays, mainHolidayStatus } from "./vacation/ledger";
+export type { LeavePosting } from "./vacation/ledger";
 export { ageOn } from "./context";
 export { formatMinutes } from "./format";
 export * from "./model";
