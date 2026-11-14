@@ -132,6 +132,18 @@ export const PERMISSIONS = [
     label: "Godkende fravær og ferie",
     scopes: ["departments", "organization"],
   },
+  {
+    key: "payroll.view",
+    group: "Løn",
+    label: "Se lønlinjer",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "payroll.manage",
+    group: "Løn",
+    label: "Beregne, afslutte og eksportere løn",
+    scopes: ["organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;
@@ -191,6 +203,7 @@ const IMPLIES: Partial<Record<PermissionKey, PermissionKey>> = {
   "time.approve": "time.view",
   "absence.manage": "absence.view",
   "absence.approve": "absence.view",
+  "payroll.manage": "payroll.view",
 };
 
 /** Removes disallowed scopes and adds implied permissions. */

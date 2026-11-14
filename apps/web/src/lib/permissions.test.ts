@@ -26,6 +26,8 @@ describe("permission catalog", () => {
       "absence.view",
       "absence.manage",
       "absence.approve",
+      "payroll.view",
+      "payroll.manage",
     ]);
   });
 });
