@@ -114,6 +114,24 @@ export const PERMISSIONS = [
     label: "Godkende registreret tid",
     scopes: ["departments", "organization"],
   },
+  {
+    key: "absence.view",
+    group: "Fravær og ferie",
+    label: "Se fravær og saldi",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "absence.manage",
+    group: "Fravær og ferie",
+    label: "Registrere fravær og rette saldi",
+    scopes: ["departments", "organization"],
+  },
+  {
+    key: "absence.approve",
+    group: "Fravær og ferie",
+    label: "Godkende fravær og ferie",
+    scopes: ["departments", "organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;
@@ -171,6 +189,8 @@ const IMPLIES: Partial<Record<PermissionKey, PermissionKey>> = {
   "schedule.override": "schedule.publish",
   "time.manage": "time.view",
   "time.approve": "time.view",
+  "absence.manage": "absence.view",
+  "absence.approve": "absence.view",
 };
 
 /** Removes disallowed scopes and adds implied permissions. */

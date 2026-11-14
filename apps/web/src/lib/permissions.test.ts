@@ -23,6 +23,9 @@ describe("permission catalog", () => {
       "time.view",
       "time.manage",
       "time.approve",
+      "absence.view",
+      "absence.manage",
+      "absence.approve",
     ]);
   });
 });
