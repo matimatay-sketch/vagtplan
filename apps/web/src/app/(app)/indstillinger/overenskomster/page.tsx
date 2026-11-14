@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +46,12 @@ export default async function AgreementsPage() {
             {(agreements ?? []).map((a) => (
               <TableRow key={a.id}>
                 <TableCell>
-                  <div className="font-medium">{a.name}</div>
+                  <Link
+                    href={`/indstillinger/overenskomster/${a.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {a.name}
+                  </Link>
                   {a.description ? (
                     <div className="text-xs text-muted-foreground">{a.description}</div>
                   ) : null}

@@ -31,7 +31,12 @@ export async function loadPeriods(supabase: Client, ctx: AppContext): Promise<Pe
   const today = todayIn(ctx.organization.timezone);
   if (hasOrg(ctx.permissions, "payroll.manage")) {
     const wanted = (groups ?? []).flatMap((g) =>
-      payPeriodsFrom(g as unknown as PayPeriodGroupSpec, addDays(today, -100), 6).map((p) => ({
+      // About 100 days back and one period ahead, whatever the period length.
+      payPeriodsFrom(
+        g as unknown as PayPeriodGroupSpec,
+        addDays(today, -100),
+        g.frequency === "monthly" ? 5 : g.frequency === "weekly" ? 16 : 9,
+      ).map((p) => ({
         organization_id: ctx.organization.id,
         group_id: g.id,
         start_date: p.start,
