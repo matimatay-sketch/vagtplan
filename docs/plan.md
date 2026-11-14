@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er godkendt 2026-11-13. Fase 5 (fravær, ferie og rådighed/tilkald) er godkendt 2026-11-14. Ferietillæg, feriegodtgørelse og sygeløn beregnes i lønsystemet, ikke i Turnus (besluttet 2026-11-14). Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er godkendt 2026-11-13. Fase 5 (fravær, ferie og rådighed/tilkald) er godkendt 2026-11-14. Ferietillæg, feriegodtgørelse og sygeløn beregnes i lønsystemet, ikke i Turnus (besluttet 2026-11-14). Fase 6 (løn, eksport og overenskomst-admin) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -261,6 +261,16 @@ Opgaver:
 4. Eksport-adapter-interface + generisk CSV-adapter + `pay_code_mapping`.
 5. Admin-UI til overenskomster: versioner, arv, formular pr. primitiv (plus JSON-visning), validering, publicering af en ny version.
 6. Simulator: vælg en testuge, og se lønlinjer og overtrædelser **før og efter** ændringen side om side.
+
+Beslutning 2026-11-14: Eksportfilen konfigureres af konsulenten, så den passer til lønsystemet. Kolonner, format og lønarter vælges selv, og beløb er en valgfri kolonne. Skabeloner til ProLøn og Lessor kommer, når importspecifikationen foreligger.
+
+Status (bygget 2026-11-14):
+
+- `/lon`: perioder pr. gruppe, "Beregn alle", lønlinjer med "Hvorfor?", "Afslut periode" og eksport med en valgt skabelon.
+- `/lon/skabeloner`: skabelon-editor med forhåndsvisning (start: generisk CSV).
+- `/indstillinger/overenskomster/[id]`: versioner, kopi/lokalaftale, formular og JSON, validering, publicering og simulator.
+- Afvigelse fra planen: Afslutning og eksport kræver `payroll.manage`, som kun administratorer har som standard. En leder kan få rettigheden via sin profil.
+- Ikke med: alle golden-uger kørt gennem UI'en (kun en lønlinje i e2e) og automatisk generering af alle perioder bagud i tid.
 
 Acceptkriterier:
 

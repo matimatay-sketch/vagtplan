@@ -150,3 +150,21 @@ Saldoen er altid summen af posteringer. Optjening beregnes af regelmotoren (`lea
 Ved godkendelse beregner appen feriedagene: mandag–fredag uden helligdage. Dagene trækkes fra de perioder, der udløber først, og `decide_absence` bogfører forbruget. Ved annullering af godkendt fravær modposterer `cancel_absence`. Overførsel, udbetaling og rettelse bogføres med `add_leave_posting` og kræver en begrundelse.
 
 Rettigheder: `absence.view`, `absence.manage` og `absence.approve`. "Godkendes af" på medarbejderen gælder også fravær. Planlæggere (`schedule.view`/`schedule.manage`) ser fravær, men ikke saldi.
+
+## Løn og eksport (fase 6)
+
+| Tabel             | Bemærkning                                                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pay_period`      | Pr. lønperiode-gruppe (`start_date`/`end_date`, `status` open/closed). Oprettes automatisk omkring dags dato (`payroll.manage`). Afsluttes kun via `close_pay_period`                                                                            |
+| `pay_run`         | Én beregning af én medarbejder i én periode (`engine_version`, `notes`, `daily_minutes`, `pending_entries`). En ny beregning erstatter den forrige (`superseded_at`). En afsluttet periode kan ikke beregnes igen. Skrives kun af `save_pay_run` |
+| `pay_line`        | Lønlinjer: `pay_code`, `unit`, `quantity_minutes`, `rate_ore`, `amount_ore` og `explanation` (regel, kilde, lag og tidsrum til "Hvorfor?"). Kan ikke ændres                                                                                      |
+| `export_template` | Konsulentens eksportskabelon: skilletegn, decimaltegn, overskrift, BOM, linjeskift, datoformat, rækker pr. lønart eller pr. linje, kolonner og oversættelse af lønarter (`src/lib/domain/export.ts`)                                             |
+| `export_log`      | Hver eksport: periode, skabelon, antal rækker og SHA-256 af filen                                                                                                                                                                                |
+
+Rettigheder: `payroll.view` (afdelinger eller organisation, Leder i egne afdelinger) og `payroll.manage` (organisation: beregne, afslutte, eksportere og vedligeholde skabeloner). Medarbejderen ser sine egne lønlinjer. Lønnen beregnes ud fra godkendt tid, den offentliggjorte plan bag tiden (til afrunding, garantier og vagttillæg) og godkendt fravær. Tid, der afventer godkendelse, tælles og vises som en advarsel. Ferietillæg, feriegodtgørelse og sygeløn beregnes i lønsystemet.
+
+## Administration af overenskomster (fase 6)
+
+- Systemskabeloner (`organization_id` null) kan ikke ændres. Kunden laver en egen kopi (ny nøgle `<nøgle>-egen`) eller en lokalaftale, der arver.
+- Egne overenskomster: "Ny version fra dato" kopierer den seneste version som kladde. Kladden redigeres med en formular pr. regel eller som JSON, valideres med skemaet og ved opløsning mod det, den arver (advarsler under lovens minimum), og publiceres med `publish_agreement_version`. Den forrige version slutter dagen før, og publicerede versioner kan ikke ændres (trigger).
+- Simulator: en medarbejder og en uge (godkendt tid, ellers vagtplanen) beregnes før og efter side om side. Kladden bruges, som om medarbejderen var på den (`simulateWeek` med `assign`).
