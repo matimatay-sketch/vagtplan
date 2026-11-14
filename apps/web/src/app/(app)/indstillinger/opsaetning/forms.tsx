@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import {
   createSupplementTypeAction,
+  saveLeaveRulesAction,
   saveNoticeAction,
   saveRuleHandlingAction,
 } from "@/lib/actions/settings";
 import { initialActionState } from "@/lib/actions/state";
-import { RULE_CATALOG, type RuleHandlingMap } from "@/lib/schedule/rule-handling";
+import { RULE_CATALOG, type LeaveRules, type RuleHandlingMap } from "@/lib/schedule/rule-handling";
 import { da } from "@/lib/i18n/da";
 
 const t = da.settings;
@@ -150,6 +151,87 @@ export function SupplementTypeForm() {
         <SubmitButton>{t.newSupplement}</SubmitButton>
       </div>
       <div className="sm:col-span-5">{state.ok ? null : <FormMessage state={state} />}</div>
+    </form>
+  );
+}
+
+export function LeaveRulesForm({ rules }: { rules: LeaveRules }) {
+  const [state, action] = useActionState(saveLeaveRulesAction, initialActionState);
+  const str = (v: boolean | undefined) => (v === undefined ? "" : String(v));
+  const follow = <option value="">{t.followAgreement}</option>;
+  return (
+    <form action={action} className="grid gap-4" noValidate data-testid="leave-rules-form">
+      <FormMessage state={state} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t.proration} htmlFor="entitlement_proration">
+          <NativeSelect
+            id="entitlement_proration"
+            name="entitlement_proration"
+            defaultValue={rules.entitlement_proration ?? ""}
+          >
+            {follow}
+            <option value="none">{t.prorationOptions.none}</option>
+            <option value="remaining_months">{t.prorationOptions.remaining_months}</option>
+          </NativeSelect>
+        </Field>
+        <Field label={t.onCallRest} htmlFor="on_call_counts_as_rest">
+          <NativeSelect
+            id="on_call_counts_as_rest"
+            name="on_call_counts_as_rest"
+            defaultValue={str(rules.on_call_counts_as_rest)}
+          >
+            {follow}
+            <option value="true">{t.onCallRestOptions.true}</option>
+            <option value="false">{t.onCallRestOptions.false}</option>
+          </NativeSelect>
+        </Field>
+        <Field label={t.leaveDayBasis} htmlFor="leave_day_basis">
+          <NativeSelect
+            id="leave_day_basis"
+            name="leave_day_basis"
+            defaultValue={rules.leave_day_basis ?? ""}
+          >
+            {follow}
+            <option value="weekdays">{t.leaveDayBasisOptions.weekdays}</option>
+            <option value="planned_days">{t.leaveDayBasisOptions.planned_days}</option>
+          </NativeSelect>
+        </Field>
+        <span className="hidden sm:block" />
+        {(["transfer", "payout"] as const).map((k) => (
+          <fieldset key={k} className="grid gap-3 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">{t[k]}</legend>
+            <NativeSelect
+              name={`${k}_allowed`}
+              aria-label={t[k]}
+              defaultValue={str(rules[`${k}_allowed`])}
+            >
+              {follow}
+              <option value="true">{t.moveOptions.true}</option>
+              <option value="false">{t.moveOptions.false}</option>
+            </NativeSelect>
+            <Field
+              label={t.onlyAbove}
+              htmlFor={`${k}_only_above_days`}
+              error={state.errors?.[`${k}_only_above_days`]}
+              help={t.onlyAboveHelp}
+            >
+              <Input
+                type="number"
+                min={0}
+                max={366}
+                {...fieldProps(
+                  `${k}_only_above_days`,
+                  state,
+                  rules[`${k}_only_above_days`]?.toString() ?? "",
+                )}
+              />
+            </Field>
+          </fieldset>
+        ))}
+      </div>
+      <div>
+        <SubmitButton>{da.common.save}</SubmitButton>
+      </div>
     </form>
   );
 }

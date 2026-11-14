@@ -10,7 +10,7 @@ import {
 import type { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AppContext } from "@/lib/auth";
-import { todayIn, type IsoDate } from "@/lib/domain/civil-date";
+import { addDays, todayIn, type IsoDate } from "@/lib/domain/civil-date";
 import { balances, planUsage, type Balance, type Posting } from "@/lib/domain/leave";
 import {
   EMPLOYEE_ENGINE_SELECT,
@@ -18,6 +18,8 @@ import {
   loadAgreements,
   type EmployeeEngineRow,
 } from "@/lib/engine";
+import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
+import { organizationLayerFrom } from "@/lib/schedule/rule-handling";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
@@ -60,14 +62,16 @@ export async function engineInputs(
   employeeIds: string[],
 ): Promise<Map<string, EngineInput>> {
   if (employeeIds.length === 0) return new Map();
-  const [agreements, { data }] = await Promise.all([
+  const [agreements, settings, { data }] = await Promise.all([
     loadAgreements(supabase),
+    loadOrganizationSettings(supabase, ctx.organization.id),
     supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", employeeIds),
   ]);
+  const organizationLayer = organizationLayerFrom(settings);
   return new Map(
     ((data ?? []) as unknown as EmployeeEngineRow[]).map((e) => [
       e.id,
-      engineInputFor(e, agreements, ctx.organization.timezone),
+      { ...engineInputFor(e, agreements, ctx.organization.timezone), organizationLayer },
     ]),
   );
 }
@@ -178,7 +182,12 @@ export async function loadLeave(
             a.typeCode === "vacation" &&
             (a.status === "approved" || a.status === "requested"),
         )
-        .flatMap((a) => leaveDays(input, a.from, a.to));
+        // Every calendar day of the absence: the check skips weekends and holidays itself.
+        .flatMap((a) => {
+          const out: string[] = [];
+          for (let d = a.from; d <= a.to; d = addDays(d, 1)) out.push(d);
+          return out;
+        });
       // The holiday year whose summer is next (or now).
       try {
         mainHoliday = mainHolidayStatus(input, today, vacationDates);
@@ -203,7 +212,12 @@ export async function usageFor(
 ): Promise<{ account: string; period_start: string; usable_until: string; hundredths: number }[]> {
   const type = leaveTypes(input, absence.from).find((t) => t.code === absence.typeCode);
   if (!type?.hasBalance) return [];
-  const days = leaveDays(input, absence.from, absence.to).length * 100;
+  const { data: planned } = await supabase.rpc("planned_work_dates", {
+    p_employee_id: absence.employeeId,
+    p_from: absence.from,
+    p_to: absence.to,
+  });
+  const days = leaveDays(input, absence.from, absence.to, planned ?? []).length * 100;
   if (days === 0) return [];
   const { data } = await supabase
     .from("leave_posting")

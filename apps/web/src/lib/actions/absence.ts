@@ -7,6 +7,8 @@ import { fieldErrors } from "@/lib/forms/schemas";
 import { absenceRequestSchema, leavePostingSchema } from "@/lib/forms/absence";
 import { todayIn } from "@/lib/domain/civil-date";
 import { engineInputs, usageFor } from "@/lib/absence/load";
+import { balances, formatDays } from "@/lib/domain/leave";
+import { vacationMoveLimit } from "@vagtplan/rules-engine";
 import { da } from "@/lib/i18n/da";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
 
@@ -150,6 +152,42 @@ export async function addLeavePostingAction(
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
   const f = parsed.data;
   const supabase = await createClient();
+  // Transfers and payouts of vacation follow the configured limits.
+  if (
+    f.account === "vacation" &&
+    (f.kind === "transfer" || f.kind === "payout") &&
+    f.hundredths < 0
+  ) {
+    const ctx = await requireContext();
+    const input = (await engineInputs(supabase, ctx, [f.employee_id])).get(f.employee_id);
+    const { data: rows } = await supabase
+      .from("leave_posting")
+      .select("account, kind, period_start, usable_until, hundredths")
+      .eq("employee_id", f.employee_id)
+      .eq("account", "vacation")
+      .eq("period_start", f.period_start);
+    const row = balances(
+      (rows ?? []).map((p) => ({
+        account: p.account,
+        kind: p.kind,
+        periodStart: p.period_start,
+        usableUntil: p.usable_until,
+        hundredths: p.hundredths,
+      })),
+    )[0] ?? { earned: 0, balance: 0, other: 0 };
+    if (input) {
+      let limit: { allowed: boolean; max: number };
+      try {
+        limit = vacationMoveLimit(input, todayIn(ctx.organization.timezone), f.kind, row);
+      } catch {
+        // No agreement in force today: refuse rather than guess.
+        return { message: da.absence.moveNotAllowed[f.kind], values };
+      }
+      if (!limit.allowed) return { message: da.absence.moveNotAllowed[f.kind], values };
+      if (-f.hundredths > limit.max)
+        return { errors: { days: da.absence.moveTooMuch(formatDays(limit.max)) }, values };
+    }
+  }
   const { error } = await supabase.rpc("add_leave_posting", {
     p_employee_id: f.employee_id,
     p_account: f.account,

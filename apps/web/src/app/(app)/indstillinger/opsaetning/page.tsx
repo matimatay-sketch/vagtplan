@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { archiveSupplementTypeAction } from "@/lib/actions/settings";
 import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
 import { da } from "@/lib/i18n/da";
-import { NoticeForm, RuleHandlingForm, SupplementTypeForm } from "./forms";
+import { LeaveRulesForm, NoticeForm, RuleHandlingForm, SupplementTypeForm } from "./forms";
 
 export const metadata: Metadata = { title: "Opsætning" };
 
@@ -62,6 +62,15 @@ export default async function SettingsPage() {
               publish={settings.notice_publish_hours}
               change={settings.notice_change_hours}
             />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.leaveTitle}</CardTitle>
+            <CardDescription>{t.leaveLead}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LeaveRulesForm rules={settings.leave_rules} />
           </CardContent>
         </Card>
         <Card>

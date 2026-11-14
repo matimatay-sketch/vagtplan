@@ -118,3 +118,38 @@ test("a call-out is registered as its own kind", async ({ page }) => {
     .filter({ hasText: "22:00–23:30" });
   await expect(entry.getByTestId("call-out-badge")).toHaveText("Tilkald");
 });
+
+test("the consultant's leave settings apply: payouts can be switched off", async ({ page }) => {
+  await login(page, users.admin);
+  await page.goto("/indstillinger/opsaetning");
+  const rules = page.getByTestId("leave-rules-form");
+  await rules.getByLabel("Udbetaling af ferie").selectOption("false");
+  await rules.getByRole("button", { name: "Gem" }).click();
+  await expect(rules.getByText("Gemt")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("leave-rules-form").getByLabel("Udbetaling af ferie")).toHaveValue(
+    "false",
+  );
+  await page.context().clearCookies();
+
+  await login(page, users.manager);
+  await page.goto("/fravaer/godkend");
+  const posting = page.getByTestId("posting-form");
+  await posting.getByLabel("Medarbejder").selectOption({ label: MADS });
+  await posting.getByLabel("Konto").selectOption({ index: 2 });
+  await posting.getByLabel("Postering").selectOption("payout");
+  await posting.getByLabel("Dage").fill("1");
+  await posting.getByLabel("Bemærkning").fill("Udbetaling ved fratræden");
+  await posting.getByRole("button", { name: "Tilføj postering" }).click();
+  await expect(
+    posting.getByText("Udbetaling af ferie er ikke tilladt i opsætningen eller overenskomsten."),
+  ).toBeVisible();
+  await page.context().clearCookies();
+
+  // Back to following the agreement.
+  await login(page, users.admin);
+  await page.goto("/indstillinger/opsaetning");
+  await page.getByTestId("leave-rules-form").getByLabel("Udbetaling af ferie").selectOption("");
+  await page.getByTestId("leave-rules-form").getByRole("button", { name: "Gem" }).click();
+  await expect(page.getByTestId("leave-rules-form").getByText("Gemt")).toBeVisible();
+});

@@ -35,23 +35,62 @@ export function effectiveHandling(
 export const PERMANENT_OVERRIDE_REASON = "Tilsidesat permanent i opsætningen";
 
 /** Organization-wide rule layer from settings (currently notice). */
+/** Leave and on-call rules set in the organization's settings (empty = follow the agreement). */
+export type LeaveRules = {
+  entitlement_proration?: "none" | "remaining_months";
+  on_call_counts_as_rest?: boolean;
+  leave_day_basis?: "weekdays" | "planned_days";
+  transfer_allowed?: boolean;
+  transfer_only_above_days?: number | null;
+  payout_allowed?: boolean;
+  payout_only_above_days?: number | null;
+};
+
+const ORG_SOURCE = "Virksomhedens opsætning";
+
+/** The organization layer for the rules engine: notice and leave settings. */
 export function organizationLayerFrom(s: {
   notice_publish_hours: number | null;
   notice_change_hours: number | null;
+  leave_rules?: LeaveRules | null;
 }): { rules: RuleLayer[] } | null {
+  const rules: RuleLayer[] = [];
   const params: Record<string, number> = {};
   if (s.notice_publish_hours !== null) params.publish_notice_hours = s.notice_publish_hours;
   if (s.notice_change_hours !== null) params.change_notice_hours = s.notice_change_hours;
-  if (Object.keys(params).length === 0) return null;
-  return {
-    rules: [
-      {
-        id: "varsling",
-        primitive: "notice",
-        label: "Varsling (opsætning)",
-        source: "Virksomhedens opsætning",
-        params,
-      },
-    ],
+  if (Object.keys(params).length > 0)
+    rules.push({
+      id: "varsling",
+      primitive: "notice",
+      label: "Varsling (opsætning)",
+      source: ORG_SOURCE,
+      params,
+    });
+
+  const l = s.leave_rules ?? {};
+  const merge = (id: string, primitive: RuleLayer["primitive"], p: Record<string, unknown>) => {
+    if (Object.keys(p).length)
+      rules.push({ id, primitive, merge_into: "primitive", source: ORG_SOURCE, params: p });
   };
+  merge("org-fravaer", "absence", {
+    ...(l.entitlement_proration ? { entitlement_proration: l.entitlement_proration } : {}),
+  });
+  merge("org-raadighed", "on_call", {
+    ...(l.on_call_counts_as_rest !== undefined ? { counts_as_rest: l.on_call_counts_as_rest } : {}),
+  });
+  merge("org-ferie", "vacation", {
+    ...(l.leave_day_basis ? { leave_day_basis: l.leave_day_basis } : {}),
+    ...(l.transfer_allowed !== undefined
+      ? {
+          transfer: {
+            allowed: l.transfer_allowed,
+            only_above_days: l.transfer_only_above_days ?? null,
+          },
+        }
+      : {}),
+    ...(l.payout_allowed !== undefined
+      ? { payout: { allowed: l.payout_allowed, only_above_days: l.payout_only_above_days ?? null } }
+      : {}),
+  });
+  return rules.length ? { rules } : null;
 }

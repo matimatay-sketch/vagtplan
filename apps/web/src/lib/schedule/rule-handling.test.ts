@@ -51,3 +51,59 @@ describe("organizationLayerFrom", () => {
     });
   });
 });
+
+describe("organizationLayerFrom – leave rules", () => {
+  it("turns the consultant's choices into merge-by-primitive rules; empty keys follow the agreement", () => {
+    expect(
+      organizationLayerFrom({
+        notice_publish_hours: null,
+        notice_change_hours: null,
+        leave_rules: {
+          entitlement_proration: "remaining_months",
+          on_call_counts_as_rest: false,
+          leave_day_basis: "planned_days",
+          transfer_allowed: true,
+          transfer_only_above_days: 20,
+          payout_allowed: false,
+        },
+      }),
+    ).toEqual({
+      rules: [
+        {
+          id: "org-fravaer",
+          primitive: "absence",
+          merge_into: "primitive",
+          source: "Virksomhedens opsætning",
+          params: { entitlement_proration: "remaining_months" },
+        },
+        {
+          id: "org-raadighed",
+          primitive: "on_call",
+          merge_into: "primitive",
+          source: "Virksomhedens opsætning",
+          params: { counts_as_rest: false },
+        },
+        {
+          id: "org-ferie",
+          primitive: "vacation",
+          merge_into: "primitive",
+          source: "Virksomhedens opsætning",
+          params: {
+            leave_day_basis: "planned_days",
+            transfer: { allowed: true, only_above_days: 20 },
+            payout: { allowed: false, only_above_days: null },
+          },
+        },
+      ],
+    });
+  });
+  it("ignores empty leave rules", () => {
+    expect(
+      organizationLayerFrom({
+        notice_publish_hours: null,
+        notice_change_hours: null,
+        leave_rules: {},
+      }),
+    ).toBeNull();
+  });
+});

@@ -592,6 +592,11 @@ export const da = {
     balanceAfter: "Saldo efter",
     overlap: "Der er allerede fravær i perioden.",
     mainHolidayShort: "Hovedferie mangler",
+    moveNotAllowed: {
+      transfer: "Overførsel af ferie er ikke tilladt i opsætningen eller overenskomsten.",
+      payout: "Udbetaling af ferie er ikke tilladt i opsætningen eller overenskomsten.",
+    },
+    moveTooMuch: (max: string) => `Der kan højst flyttes ${max} dage fra perioden.`,
     postingLead:
       "Overførsel, udbetaling eller rettelse. Det bliver en ny postering med begrundelse. Lovens betingelser for overførsel og udbetaling kontrolleres ikke.",
   },
@@ -635,6 +640,27 @@ export const da = {
     noticeChange: "Ændringer og aflysninger (timer før)",
     followAgreement: "Følg overenskomsten",
     hoursInvalid: "Angiv hele timer (0–8760)",
+    daysInvalid: "Angiv hele dage (0–366)",
+    leaveTitle: "Fravær, ferie og rådighed",
+    leaveLead:
+      'Valg, der gælder for hele virksomheden og går forud for overenskomsten. "Følg overenskomsten" bruger overenskomstens regel. Kontrollér selv, at valgene er i overensstemmelse med lov og overenskomst.',
+    proration: "Omsorgsdage m.m. ved start midt i året",
+    prorationOptions: {
+      none: "Fuld tildeling",
+      remaining_months: "Forholdsmæssigt for de resterende måneder",
+    },
+    onCallRest: "Rådighed uden tilkald",
+    onCallRestOptions: { true: "Tæller som hviletid", false: "Tæller som arbejde (hviletid)" },
+    leaveDayBasis: "Feriedage trækkes for",
+    leaveDayBasisOptions: {
+      weekdays: "Mandag–fredag (uden helligdage)",
+      planned_days: "De dage, medarbejderen var planlagt",
+    },
+    transfer: "Overførsel af ferie",
+    payout: "Udbetaling af ferie",
+    moveOptions: { true: "Tilladt", false: "Ikke tilladt" },
+    onlyAbove: "Kun dage ud over (dage)",
+    onlyAboveHelp: "Fx 20 = kun ferie ud over 4 uger. Tomt = ingen grænse.",
     rulesTitle: "Regelhåndtering",
     rulesLead:
       "Alle regelbrud vises altid på vagtplanen. Her bestemmer I, om et regelbrud skal blokere offentliggørelse (kræver tilsidesættelse med begrundelse) eller tilsidesættes permanent.",

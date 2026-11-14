@@ -13,6 +13,7 @@ import {
   effectiveHandling,
   organizationLayerFrom,
   type Handling,
+  type LeaveRules,
   type RuleHandlingMap,
 } from "./rule-handling";
 import {
@@ -37,6 +38,7 @@ export type OrganizationSettingsRow = {
   notice_publish_hours: number | null;
   notice_change_hours: number | null;
   rule_handling: RuleHandlingMap;
+  leave_rules: LeaveRules;
 };
 
 export async function loadOrganizationSettings(
@@ -45,13 +47,14 @@ export async function loadOrganizationSettings(
 ): Promise<OrganizationSettingsRow> {
   const { data } = await supabase
     .from("organization_settings")
-    .select("notice_publish_hours, notice_change_hours, rule_handling")
+    .select("notice_publish_hours, notice_change_hours, rule_handling, leave_rules")
     .eq("organization_id", organizationId)
     .maybeSingle();
   return {
     notice_publish_hours: data?.notice_publish_hours ?? null,
     notice_change_hours: data?.notice_change_hours ?? null,
     rule_handling: (data?.rule_handling ?? {}) as RuleHandlingMap,
+    leave_rules: (data?.leave_rules ?? {}) as LeaveRules,
   };
 }
 

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { noticeSchema, ruleHandlingFromForm, supplementTypeSchema } from "./settings";
+import {
+  noticeSchema,
+  ruleHandlingFromForm,
+  supplementTypeSchema,
+  leaveRulesSchema,
+} from "./settings";
 
 describe("noticeSchema", () => {
   it("empty means: follow the agreement", () => {
@@ -79,5 +84,37 @@ describe("supplementTypeSchema", () => {
         amount: "abc",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("leaveRulesSchema", () => {
+  it("empty selects follow the agreement; choices become typed values", () => {
+    expect(leaveRulesSchema.parse({})).toEqual({});
+    expect(
+      leaveRulesSchema.parse({
+        entitlement_proration: "remaining_months",
+        on_call_counts_as_rest: "false",
+        leave_day_basis: "planned_days",
+        transfer_allowed: "true",
+        transfer_only_above_days: "20",
+        payout_allowed: "false",
+        payout_only_above_days: "",
+      }),
+    ).toEqual({
+      entitlement_proration: "remaining_months",
+      on_call_counts_as_rest: false,
+      leave_day_basis: "planned_days",
+      transfer_allowed: true,
+      transfer_only_above_days: 20,
+      payout_allowed: false,
+    });
+  });
+  it("a limit only applies when the move is allowed, and must be whole days 0–366", () => {
+    expect(leaveRulesSchema.parse({ transfer_only_above_days: "20" })).toEqual({});
+    const r = leaveRulesSchema.safeParse({
+      transfer_allowed: "true",
+      transfer_only_above_days: "2,5",
+    });
+    expect(r.error!.issues[0]!.path).toEqual(["transfer_only_above_days"]);
   });
 });

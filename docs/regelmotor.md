@@ -84,3 +84,14 @@ Al tid er reel forløbet tid. En vagt hen over sommertid er derfor en time korte
 - `packages/rules-engine`: 100 enhedstests for grænseværdier, midnat, sommertid (marts og oktober), stabling i alle tilstande, fødselsdag midt i ugen, kontraktskift, unge og skoledage. Der er en minimumsgrænse for dækning (linjer 97 %, forgreninger 88 %).
 - `packages/agreements/*/fixtures`: golden tests med testuger og forventede lønlinjer, dagstotaler og overtrædelser.
 - `supabase/seeds/agreements.sql` genereres fra JSON-dokumenterne (`pnpm --filter @vagtplan/agreements seed`). En test fejler, hvis filen er forældet.
+
+## Konfigurerbare valg (2026-11-14)
+
+| Primitiv   | Parameter                                             | Standard            |
+| ---------- | ----------------------------------------------------- | ------------------- |
+| `absence`  | `entitlement_proration`: `none` / `remaining_months`  | `none`              |
+| `on_call`  | `counts_as_rest`                                      | `true`              |
+| `vacation` | `leave_day_basis`: `weekdays` / `planned_days`        | `weekdays`          |
+| `vacation` | `transfer` / `payout`: `{ allowed, only_above_days }` | tilladt uden grænse |
+
+Valgene sættes i overenskomsten eller af konsulenten på siden Opsætning. Siden gemmer dem i `organization_settings.leave_rules`, og de bliver til organisationslaget med `merge_into: "primitive"`. Det betyder, at de fletter parametrene ind i alle regler af den primitiv, uanset regel-id. Har overenskomsten ingen regel af den primitiv, oprettes der ingen. Reglen beholder sin egen kilde.
