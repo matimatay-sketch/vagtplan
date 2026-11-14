@@ -674,6 +674,7 @@ export type Database = {
       };
       organization_settings: {
         Row: {
+          leave_rules: NonNullable<Json>;
           notice_change_hours: number | null;
           notice_publish_hours: number | null;
           organization_id: string;
@@ -682,6 +683,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          leave_rules?: NonNullable<Json>;
           notice_change_hours?: number | null;
           notice_publish_hours?: number | null;
           organization_id: string;
@@ -689,6 +691,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          leave_rules?: NonNullable<Json>;
           notice_change_hours?: number | null;
           notice_publish_hours?: number | null;
           organization_id?: string;
@@ -1677,6 +1680,10 @@ export type Database = {
           profile_id: string;
           user_id: string;
         }[];
+      };
+      planned_work_dates: {
+        Args: { p_employee_id: string; p_from: string; p_to: string };
+        Returns: string[];
       };
       platform_add_owner: { Args: { p_org: string; p_user: string }; Returns: undefined };
       platform_create_organization: { Args: { p_name: string }; Returns: string };
