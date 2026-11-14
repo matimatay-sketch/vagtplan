@@ -88,3 +88,16 @@ export function engineInputFor(
   });
   return { timezone, registry: data.registry, employee, contracts };
 }
+
+/** Labels of absence types across the loaded agreements (code → label), plus vacation. */
+export function absenceLabels(registry: AgreementRegistry): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const docs of Object.values(registry))
+    for (const doc of docs)
+      for (const rule of doc.rules)
+        if (rule.primitive === "absence")
+          for (const t of (rule.params as { types?: { code: string; label: string }[] }).types ??
+            [])
+            if (!out.has(t.code)) out.set(t.code, t.label);
+  return out;
+}

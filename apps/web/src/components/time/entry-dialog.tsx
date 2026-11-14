@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
 import { BreaksEditor } from "@/components/schedule/breaks-editor";
 import { ProjectsEditor } from "@/components/schedule/projects-editor";
@@ -81,6 +82,7 @@ function EntryForm({
     end_time: row?.end ? localParts(row.end).time : "16:00",
     deviation_reason: draft.mode === "correct" ? "" : (row?.deviationReason ?? ""),
     note: row?.note ?? "",
+    kind: row?.workKind === "call_out" ? "call_out" : "work",
   }));
   const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
     row ? dbBreaksToForm(row.breaks) : [{ start: "", minutes: 30, paid: false }],
@@ -127,6 +129,14 @@ function EntryForm({
             <input type="hidden" name="department_id" value={draft.departmentId ?? ""} />
           </>
         ) : null}
+        {draft.mode === "correct" ? null : (
+          <Field label={t.kind} htmlFor="kind">
+            <NativeSelect id="kind" name="kind" value={values.kind} onChange={set("kind")}>
+              <option value="work">{t.kinds.work}</option>
+              <option value="call_out">{t.kinds.call_out}</option>
+            </NativeSelect>
+          </Field>
+        )}
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label={da.schedule.date} htmlFor="date" error={state.errors?.date}>
             <Input id="date" name="date" type="date" value={values.date} onChange={set("date")} />

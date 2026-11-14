@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutTemplate, Repeat } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NativeSelect } from "@/components/ui/native-select";
 import { WeekBoard } from "@/components/schedule/week-board";
 import { DayBoard } from "@/components/schedule/day-board";
@@ -179,6 +180,13 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         ) : null}
       </div>
 
+      {board.shifts.some((x) => x.uncovered) ? (
+        <Alert className="mb-4" data-testid="uncovered-alert">
+          <AlertDescription>
+            {da.absence.uncoveredShifts(board.shifts.filter((x) => x.uncovered).length)}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {view === "dag" ? (
         <>
           <div className="mb-3 flex flex-wrap gap-1" role="tablist" aria-label={t.dayView}>

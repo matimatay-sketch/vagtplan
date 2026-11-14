@@ -83,6 +83,14 @@ export const ShiftCard = React.forwardRef<
             +{shift.supplementTypeIds.length}
           </span>
         ) : null}
+        {shift.uncovered ? (
+          <span
+            className="rounded bg-destructive px-1 text-[10px] font-medium text-white no-underline"
+            data-testid="uncovered-badge"
+          >
+            {da.absence.uncovered}
+          </span>
+        ) : null}
         {shift.projectAllocations.length ? (
           <span
             className="flex items-center gap-0.5 rounded bg-secondary px-1 text-[10px] font-medium text-secondary-foreground no-underline"

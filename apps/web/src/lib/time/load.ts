@@ -51,6 +51,8 @@ export type TimeRow = {
   version: number;
   isMine: boolean;
   plan: { start: string; end: string; breaks: DbBreak[] } | null;
+  /** Work, on-call or a call-out (tilkald). */
+  workKind: "work" | "on_call" | "call_out";
   /** Times after the agreement's rounding (null while open). */
   settled: { start: string; end: string } | null;
   violations: Violation[];
@@ -89,6 +91,7 @@ type RpcRow = {
   plan_start: string | null;
   plan_end: string | null;
   plan_breaks: unknown;
+  kind: "work" | "on_call" | "call_out" | null;
 };
 
 const engineBreaks = (b: DbBreak[]) =>
@@ -140,6 +143,7 @@ export async function loadTimeOverview(
         r.plan_start && r.plan_end
           ? { start: r.plan_start, end: r.plan_end, breaks: (r.plan_breaks ?? []) as DbBreak[] }
           : null,
+      workKind: r.kind ?? "work",
     }));
 
   const employeeIds = [...new Set(all.map((r) => r.employeeId))];
@@ -191,7 +195,11 @@ export async function loadTimeOverview(
         end: r.end!,
         breaks: engineBreaks(r.breaks),
       })),
-    ).map((i, k) => ({ ...i, plannedShiftId: closed[k]!.plan ? closed[k]!.shiftId : null }));
+    ).map((i, k) => ({
+      ...i,
+      kind: closed[k]!.workKind,
+      plannedShiftId: closed[k]!.plan ? closed[k]!.shiftId : null,
+    }));
     const planned = closed.flatMap((r) =>
       r.plan && r.shiftId ? [{ id: r.shiftId, start: r.plan.start, end: r.plan.end }] : [],
     );

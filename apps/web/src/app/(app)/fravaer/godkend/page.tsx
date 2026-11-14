@@ -13,7 +13,7 @@ import { formatDays } from "@/lib/domain/leave";
 import { loadLeave } from "@/lib/absence/load";
 import { da } from "@/lib/i18n/da";
 
-export const metadata: Metadata = { title: "Fravær" };
+export const metadata: Metadata = { title: "Godkend fravær" };
 
 const PERMS = ["absence.view", "absence.manage", "absence.approve"] as const;
 

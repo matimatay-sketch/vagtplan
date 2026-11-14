@@ -33,6 +33,7 @@ export const timeEntryFormSchema = z
     project_allocations: projectsField,
     deviation_reason: optionalText,
     note: optionalText,
+    kind: z.enum(["work", "call_out"]).default("work"),
   })
   .transform((val, ctx) => {
     if (val.start_time === val.end_time) {

@@ -75,13 +75,26 @@ export async function validateWeek(
   const from = new Date(zonedTime(addDays(opts.weekStart, -HISTORY_DAYS))).toISOString();
   const to = new Date(zonedTime(addDays(opts.weekStart, 8))).toISOString();
 
-  const [data, settings, { data: shifts, error }, { data: employees, error: empError }] =
-    await Promise.all([
-      loadAgreements(supabase),
-      loadOrganizationSettings(supabase, opts.organizationId),
-      supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
-      supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", ids),
-    ]);
+  const [
+    data,
+    settings,
+    { data: shifts, error },
+    { data: employees, error: empError },
+    { data: absences },
+  ] = await Promise.all([
+    loadAgreements(supabase),
+    loadOrganizationSettings(supabase, opts.organizationId),
+    supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
+    supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", ids),
+    // Approved absence is neutral in the 48-hour average.
+    supabase
+      .from("absence")
+      .select("id, employee_id, type_code, from_date, to_date")
+      .in("employee_id", ids)
+      .eq("status", "approved")
+      .lte("from_date", weekEnd)
+      .gte("to_date", addDays(opts.weekStart, -HISTORY_DAYS)),
+  ]);
   if (error) throw error;
   if (empError) throw empError;
 
@@ -114,6 +127,9 @@ export async function validateWeek(
     const { violations } = validateSchedule({
       ...input,
       intervals,
+      absences: (absences ?? [])
+        .filter((a) => a.employee_id === e.id)
+        .map((a) => ({ id: a.id, type: a.type_code, from: a.from_date, to: a.to_date })),
       from: opts.weekStart,
       to: weekEnd,
     });

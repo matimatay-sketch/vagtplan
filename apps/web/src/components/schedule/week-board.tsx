@@ -284,6 +284,29 @@ export function WeekBoard({
                     onCreate={() => setDraft({ employeeId: employee?.id ?? null, date })}
                   >
                     {employee
+                      ? board.absences
+                          .filter(
+                            (a) => a.employeeId === employee.id && a.from <= date && date <= a.to,
+                          )
+                          .map((a) => (
+                            <span
+                              key={a.id}
+                              data-testid="absence-chip"
+                              className={cn(
+                                "rounded px-1.5 py-0.5 text-[11px] font-medium",
+                                a.status === "approved"
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "border border-dashed border-destructive/40 text-destructive",
+                              )}
+                            >
+                              {a.label}
+                              {a.status === "requested"
+                                ? ` (${da.absence.statuses.requested.toLowerCase()})`
+                                : ""}
+                            </span>
+                          ))
+                      : null}
+                    {employee
                       ? board.availability
                           .filter((a) => a.employeeId === employee.id && a.date === date)
                           .map((a) => (

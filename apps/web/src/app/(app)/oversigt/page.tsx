@@ -9,7 +9,8 @@ import { requireContext } from "@/lib/auth";
 import { hasAny } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { findActiveContract } from "@/lib/domain/contracts";
-import { todayIn } from "@/lib/domain/civil-date";
+import { addDays, todayIn } from "@/lib/domain/civil-date";
+import { localParts, zonedTime } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Oversigt" };
@@ -33,6 +34,34 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null),
   ]);
+  // To act on: absence requests waiting for the user, and shifts left uncovered by absence.
+  const soon = addDays(today, 14);
+  const [{ data: requests }, { data: absent }] = await Promise.all([
+    supabase.from("absence").select("id, employee_id").eq("status", "requested"),
+    supabase
+      .from("absence")
+      .select("employee_id, from_date, to_date")
+      .eq("status", "approved")
+      .lte("from_date", soon)
+      .gte("to_date", today),
+  ]);
+  const pendingRequests = (requests ?? []).filter((r) => r.employee_id !== ctx.employee?.id).length;
+  const absentIds = [...new Set((absent ?? []).map((a) => a.employee_id))];
+  const { data: shifts } = absentIds.length
+    ? await supabase
+        .from("shift")
+        .select("employee_id, start_at")
+        .in("employee_id", absentIds)
+        .is("archived_at", null)
+        .gte("start_at", new Date(zonedTime(today)).toISOString())
+        .lt("start_at", new Date(zonedTime(addDays(soon, 1))).toISOString())
+    : { data: [] };
+  const uncovered = (shifts ?? []).filter((s) => {
+    const d = localParts(s.start_at).date;
+    return (absent ?? []).some(
+      (a) => a.employee_id === s.employee_id && a.from_date <= d && d <= a.to_date,
+    );
+  }).length;
   const list = employees ?? [];
   const withActive = list.filter((e) => findActiveContract(e.contract, today)).length;
   const firstName = ctx.employee?.first_name ?? ctx.email.split("@")[0] ?? "";
@@ -85,24 +114,45 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           ))}
         </div>
       ) : null}
+      {pendingRequests > 0 || uncovered > 0 ? (
+        <Card className="mt-8" data-testid="to-act-on">
+          <CardHeader>
+            <CardTitle className="text-base">{t.toActOn}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            {pendingRequests > 0 ? (
+              <Link href="/fravaer/godkend" className="flex items-center gap-2 hover:underline">
+                <Clock className="size-4" /> {t.pendingAbsence(pendingRequests)}
+              </Link>
+            ) : null}
+            {uncovered > 0 ? (
+              <Link
+                href="/vagtplan"
+                className="flex items-center gap-2 text-destructive hover:underline"
+              >
+                <CalendarClock className="size-4" /> {t.uncoveredSoon(uncovered)}
+              </Link>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {[
-          { icon: Clock, title: "Stempling", text: "Fase 4" },
-          { icon: Wallet, title: "Løn og eksport", text: "Fase 6" },
-        ].map(({ icon: Icon, title, text }) => (
-          <div
-            key={title}
-            className="flex items-center gap-3 rounded-xl border border-dashed p-4 text-sm text-muted-foreground"
-          >
-            <span className="grid size-9 place-items-center rounded-lg bg-accent text-accent-foreground">
-              <Icon className="size-4" />
-            </span>
-            <span>
-              <span className="block font-medium text-foreground">{title}</span>
-              {text}
-            </span>
-          </div>
-        ))}
+        {[{ icon: Wallet, title: "Løn og eksport", text: "Fase 6" }].map(
+          ({ icon: Icon, title, text }) => (
+            <div
+              key={title}
+              className="flex items-center gap-3 rounded-xl border border-dashed p-4 text-sm text-muted-foreground"
+            >
+              <span className="grid size-9 place-items-center rounded-lg bg-accent text-accent-foreground">
+                <Icon className="size-4" />
+              </span>
+              <span>
+                <span className="block font-medium text-foreground">{title}</span>
+                {text}
+              </span>
+            </div>
+          ),
+        )}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {hasAny(ctx.permissions, ["schedule.view", "schedule.manage"]) ? (

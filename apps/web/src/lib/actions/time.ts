@@ -135,6 +135,7 @@ export async function saveTimeEntryAction(
     project_allocations: asJson(allocations),
     deviation_reason: f.deviation_reason,
     note: f.note,
+    kind: f.kind,
   };
   if (existing) {
     const { data, error } = await supabase

@@ -54,6 +54,14 @@ export function RowDetails({ row }: { row: TimeRow }) {
   const t = da.time;
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      {row.workKind === "call_out" ? (
+        <span
+          className="rounded bg-signal/20 px-1 font-medium text-foreground"
+          data-testid="call-out-badge"
+        >
+          {t.callOut}
+        </span>
+      ) : null}
       {row.source ? <span>{t.sources[row.source]}</span> : null}
       {row.plan ? (
         <span className="tabular">

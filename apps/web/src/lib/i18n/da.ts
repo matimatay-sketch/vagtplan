@@ -35,7 +35,7 @@ export const da = {
     time: "Tid",
     approveTime: "Godkend tid",
     absence: "Fravær og ferie",
-    absenceAdmin: "Fravær",
+    absenceAdmin: "Godkend fravær",
     agreements: "Overenskomster",
     myProfile: "Min profil",
     signOut: "Log ud",
@@ -61,6 +61,13 @@ export const da = {
     activeContracts: "Aktive kontrakter",
     missingContract: "uden aktiv kontrakt",
     comingSoon: "Stempling, fravær og løn kommer i de næste faser.",
+    toActOn: "Til handling",
+    pendingAbsence: (n: number) =>
+      n === 1 ? "1 ansøgning om fravær venter" : `${n} ansøgninger om fravær venter`,
+    uncoveredSoon: (n: number) =>
+      n === 1
+        ? "1 vagt de næste 14 dage er udækket pga. fravær"
+        : `${n} vagter de næste 14 dage er udækket pga. fravær`,
   },
   departments: {
     title: "Afdelinger",
@@ -515,12 +522,15 @@ export const da = {
     missingTeam: "Vagter uden registrering",
     registerFor: "Registrér for medarbejderen",
     duration: "Arbejdstid",
+    kind: "Type",
+    kinds: { work: "Arbejde", call_out: "Tilkald under rådighed" },
+    callOut: "Tilkald",
     by: "af",
   },
   absence: {
     title: "Fravær og ferie",
     lead: "Søg om ferie og fravær, og se dine saldi. Saldoen er altid summen af posteringer: optjening, forbrug, overførsler og rettelser.",
-    approveTitle: "Fravær",
+    approveTitle: "Godkend fravær",
     approveLead:
       "Godkend ansøgninger, registrér fravær (fx sygdom) og se saldi for de medarbejdere, du har adgang til.",
     request: "Søg om fravær",

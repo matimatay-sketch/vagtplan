@@ -7,6 +7,9 @@ import { durationMinutes, zonedTime } from "@/lib/domain/schedule-time";
 import { unpaidMinutes, type DbBreak, type TemplateBreak } from "@/lib/domain/breaks";
 import type { ProjectAllocation } from "@/lib/domain/projects";
 import { canInDepartment } from "@/lib/permissions";
+import { absenceLabels, loadAgreements } from "@/lib/engine";
+import { localParts } from "@/lib/domain/schedule-time";
+import { da } from "@/lib/i18n/da";
 import { validateWeek } from "./validate-week";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -45,6 +48,8 @@ export type BoardShift = {
   /** Archived but still published – disappears on next publish. */
   removed: boolean;
   violations: BoardViolation[];
+  /** The employee has approved absence on the shift's date (vagten er udækket). */
+  uncovered: boolean;
 };
 
 export type BoardEmployee = {
@@ -56,6 +61,15 @@ export type BoardEmployee = {
   normMinutes: number | null;
   /** Violations not tied to a single shift (weekly rest, averages …). */
   violations: BoardViolation[];
+};
+
+export type BoardAbsence = {
+  id: string;
+  employeeId: string;
+  from: IsoDate;
+  to: IsoDate;
+  status: "requested" | "approved";
+  label: string;
 };
 
 export type BoardAvailability = {
@@ -86,6 +100,8 @@ export type WeekBoard = {
   employees: BoardEmployee[];
   shifts: BoardShift[];
   availability: BoardAvailability[];
+  /** Approved and requested absence in the week. */
+  absences: BoardAbsence[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
   /** Active projects available in this department. */
@@ -160,6 +176,8 @@ export async function loadWeek(
     { data: contracts },
     { data: supplementTypes },
     { data: projects },
+    { data: absences },
+    agreements,
   ] = await Promise.all([
     supabase
       .from("availability")
@@ -196,7 +214,34 @@ export async function loadWeek(
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("number"),
+    supabase
+      .from("absence")
+      .select("id, employee_id, type_code, from_date, to_date, status")
+      .in(
+        "employee_id",
+        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+      )
+      .in("status", ["requested", "approved"])
+      .lte("from_date", weekEnd)
+      .gte("to_date", weekStart),
+    loadAgreements(supabase),
   ]);
+  const labels = absenceLabels(agreements.registry);
+  const boardAbsences: BoardAbsence[] = (absences ?? []).map((a) => ({
+    id: a.id,
+    employeeId: a.employee_id,
+    from: a.from_date,
+    to: a.to_date,
+    status: a.status as "requested" | "approved",
+    label: labels.get(a.type_code) ?? da.absence.accounts[a.type_code] ?? a.type_code,
+  }));
+  const absentOn = (employeeId: string | null, iso: string) => {
+    if (!employeeId) return false;
+    const d = localParts(iso).date;
+    return boardAbsences.some(
+      (a) => a.employeeId === employeeId && a.status === "approved" && a.from <= d && d <= a.to,
+    );
+  };
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const normFor = (employeeId: string): number | null => {
     const own = (contracts ?? []).filter((c) => c.employee_id === employeeId);
@@ -245,6 +290,7 @@ export async function loadWeek(
     changed: s.status === "draft" && s.published !== null && s.archived_at === null,
     removed: s.archived_at !== null,
     violations: byShift.get(s.id) ?? [],
+    uncovered: s.archived_at === null && absentOn(s.employee_id, s.start_at),
   }));
 
   const employees: BoardEmployee[] = [...employeeMap.values()]
@@ -265,6 +311,7 @@ export async function loadWeek(
     weekStart,
     employees,
     shifts: boardShifts,
+    absences: boardAbsences,
     availability: (availability ?? []).map((a) => ({
       id: a.id,
       employeeId: a.employee_id,
