@@ -201,6 +201,8 @@ export const ruleSchemas = {
     pay_code: payCode,
     call_out_min_minutes: minutes,
     call_out_guarantee_pay_code: payCode,
+    /** On-call time without a call-out counts as rest (true) or as work (false) for the rest rules. */
+    counts_as_rest: z.boolean().default(true),
   }),
 
   /** Fravær. */
@@ -225,6 +227,11 @@ export const ruleSchemas = {
         }),
       )
       .min(1),
+    /**
+     * Upfront entitlements for someone who starts during the period: the full
+     * number of days ("none") or a share for the months left ("remaining_months").
+     */
+    entitlement_proration: z.enum(["none", "remaining_months"]).default("none"),
   }),
 
   /** Ferie (ferieloven) + evt. feriefridage. null bp = TODO(jura), not yet configured. */
@@ -248,6 +255,19 @@ export const ruleSchemas = {
       })
       .nullable()
       .default(null),
+    /**
+     * Which days count as leave days: Monday–Friday without holidays, or only
+     * the days the employee was planned to work (part-time with fewer days).
+     */
+    leave_day_basis: z.enum(["weekdays", "planned_days"]).default("weekdays"),
+    /** Transfer to the next holiday year: allowed, and only days above this many (e.g. 20 = four weeks). */
+    transfer: z
+      .object({ allowed: z.boolean(), only_above_days: z.number().min(0).nullable() })
+      .default({ allowed: true, only_above_days: null }),
+    /** Payout: allowed, and only days above this many. */
+    payout: z
+      .object({ allowed: z.boolean(), only_above_days: z.number().min(0).nullable() })
+      .default({ allowed: true, only_above_days: null }),
   }),
 
   /** Varsling: how early a schedule (or a change to it) must be published. */
@@ -301,6 +321,11 @@ export const ruleLayerSchema = z
     stacking: z.record(z.string(), z.unknown()).optional(),
     applies_to: z.record(z.string(), z.unknown()).optional(),
     params: z.record(z.string(), z.unknown()).optional(),
+    /**
+     * "primitive": merge into every existing rule of `primitive`, whatever its
+     * id (used by organization settings). Creates nothing if none exists.
+     */
+    merge_into: z.literal("primitive").optional(),
   })
   .strict();
 export type RuleLayer = z.infer<typeof ruleLayerSchema>;

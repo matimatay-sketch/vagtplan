@@ -137,3 +137,38 @@ describe("shiftsToIntervals", () => {
     expect(i).toMatchObject({ breaks: [], kind: "on_call" });
   });
 });
+
+describe("on-call and rest (on_call.counts_as_rest)", () => {
+  const onCall = (countsAsRest: boolean): RuleLayer => ({
+    id: "raadighed",
+    primitive: "on_call",
+    source: "§ 9",
+    params: {
+      amount: { type: "ore_per_hour", ore: 2000 },
+      pay_code: "RAADIGHED",
+      call_out_min_minutes: 180,
+      call_out_guarantee_pay_code: "TILKALD",
+      counts_as_rest: countsAsRest,
+    },
+  });
+  // Work 08–16, on call 16–23, work again at 06:00.
+  const intervals = [
+    shift("2026-01-05 08:00", "2026-01-05 16:00", { id: "a" }),
+    shift("2026-01-05 16:00", "2026-01-05 23:00", { id: "b", kind: "on_call" }),
+    shift("2026-01-06 06:00", "2026-01-06 10:00", { id: "c" }),
+  ];
+  const run = (countsAsRest: boolean) =>
+    validateSchedule({
+      ...makeInput({ extraDocs: [doc([onCall(countsAsRest)])], agreementId: "plan-test" }),
+      intervals,
+      from: "2026-01-05",
+      to: "2026-01-06",
+    }).violations.map((v) => v.code);
+
+  it("on-call time counts as rest by default: 14 hours of rest", () => {
+    expect(run(true)).not.toContain("REST_DAILY");
+  });
+  it("when configured as work, the rest is only 7 hours", () => {
+    expect(run(false)).toContain("REST_DAILY");
+  });
+});

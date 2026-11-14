@@ -114,6 +114,17 @@ function applyLayer(
 ) {
   for (const input of rules) {
     const r = ruleLayerSchema.parse(input);
+    if (r.merge_into === "primitive") {
+      if (!r.primitive) throw new Error(`Rule ${r.id}: merge_into needs a primitive`);
+      // Only parameters: the rule keeps its own label and source.
+      const patch = { params: r.params ?? {} };
+      for (const d of drafts.values())
+        if (d.raw.primitive === r.primitive) {
+          d.raw = deepMerge(d.raw, patch) as Record<string, unknown>;
+          d.layers.push(layer);
+        }
+      continue;
+    }
     const existing = drafts.get(r.id);
     if (r.remove) {
       drafts.delete(r.id);

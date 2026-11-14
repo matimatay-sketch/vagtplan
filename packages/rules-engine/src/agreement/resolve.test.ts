@@ -116,6 +116,37 @@ describe("resolveAgreement", () => {
     expect(r.rules.map((x) => x.id)).toEqual(["hviletid", "max-48", "pause", "aften"]);
   });
 
+  it("an organization rule with merge_into adjusts every rule of that primitive, whatever its id", () => {
+    const r = resolveAgreement(registry, {
+      agreementId: "test-ok",
+      date: "2026-03-01",
+      organizationLayer: {
+        rules: [
+          {
+            id: "org-pause",
+            primitive: "break",
+            merge_into: "primitive",
+            source: "Virksomhedens opsætning",
+            params: { paid_counts_as_working_time: false },
+          },
+          // Nothing of this primitive exists: nothing is created.
+          {
+            id: "org-raadighed",
+            primitive: "on_call",
+            merge_into: "primitive",
+            source: "Virksomhedens opsætning",
+            params: { counts_as_rest: false },
+          },
+        ],
+      },
+    });
+    const pause = r.rules.find((x) => x.id === "pause")!;
+    expect(pause.params).toMatchObject({ paid: true, paid_counts_as_working_time: false });
+    expect(pause.layers.map((l) => l.agreementId)).toEqual(["basis-dk", "test-ok", "organization"]);
+    expect(pause.source).not.toBe("Virksomhedens opsætning");
+    expect(r.rules.some((x) => x.primitive === "on_call")).toBe(false);
+  });
+
   it("picks the version valid on the date", () => {
     const amount = (date: string) =>
       (

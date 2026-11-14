@@ -83,10 +83,17 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
           const date = later(start, c.validFrom);
           if (granted.has(key) || date > last) continue;
           granted.add(key);
+          // Optionally a share for the months left of the period (from the starting month).
+          const monthsLeft =
+            P(end).year * 12 + P(end).month - (P(date).year * 12 + P(date).month) + 1;
+          const prorate =
+            absence?.params.entitlement_proration === "remaining_months" && date > start;
           out.push({
             account: t.code,
             date,
-            hundredths: Math.round(ent.days * 100),
+            hundredths: prorate
+              ? Math.round((ent.days * 100 * Math.min(12, monthsLeft)) / 12)
+              : Math.round(ent.days * 100),
             periodStart: start,
             usableUntil: end,
             note: t.label,
@@ -94,14 +101,6 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
         } else {
           for (const e of vacationAccrual(
             {
-              ...(vacation?.params ?? {
-                holiday_year_start: yearStart,
-                usage_extends_months: 0,
-                main_holiday: { min_consecutive_days: 0, from: "01-01", to: "01-01" },
-                vacation_pay_bp: null,
-                vacation_supplement_bp: null,
-                special_vacation_pay_bp: null,
-              }),
               days_per_month: ent.days / 12,
               holiday_year_start: yearStart,
               usage_extends_months: 0,
@@ -128,9 +127,19 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.account.localeCompare(b.account));
 }
 
-/** Leave days in a period: Monday–Friday that are not holidays. */
-export function leaveDays(input: EngineInput, from: IsoDate, to: IsoDate): IsoDate[] {
+/**
+ * Leave days in a period: Monday–Friday that are not holidays, or – when the
+ * vacation rule says `planned_days` – the days the employee was planned to work.
+ */
+export function leaveDays(
+  input: EngineInput,
+  from: IsoDate,
+  to: IsoDate,
+  plannedDates: readonly IsoDate[] = [],
+): IsoDate[] {
   const ctx = new EngineContext(input);
+  if (ctx.rule(from, "vacation")?.params.leave_day_basis === "planned_days")
+    return [...new Set(plannedDates)].filter((d) => d >= from && d <= to).sort();
   const out: IsoDate[] = [];
   for (let d = from; d <= to; d = addDays(d, 1))
     if (isoWeekday(d) <= 5 && ctx.holiday(d) === null) out.push(d);
@@ -189,4 +198,30 @@ export function leaveTypes(
   for (const t of ctx.rule(date, "absence")?.params.types ?? [])
     out.push({ code: t.code, label: t.label, hasBalance: t.entitlement !== null });
   return out;
+}
+
+/**
+ * How much vacation may be transferred or paid out of a holiday year, per the
+ * vacation rule: not at all, or only days above `only_above_days` of what was
+ * earned (minus what already left the period), never more than the balance.
+ */
+export function vacationMoveLimit(
+  input: EngineInput,
+  /** The posting date: the rule in force then applies. */
+  onDate: IsoDate,
+  kind: "transfer" | "payout",
+  row: { earned: number; balance: number; other: number },
+): { allowed: boolean; max: number } {
+  const ctx = new EngineContext(input);
+  const cfg = ctx.rule(onDate, "vacation")?.params[kind] ?? {
+    allowed: true,
+    only_above_days: null,
+  };
+  if (!cfg.allowed) return { allowed: false, max: 0 };
+  const movedOut = Math.max(0, -row.other);
+  const cap =
+    cfg.only_above_days === null
+      ? row.balance
+      : Math.min(row.balance, row.earned - Math.round(cfg.only_above_days * 100) - movedOut);
+  return { allowed: true, max: Math.max(0, cap) };
 }

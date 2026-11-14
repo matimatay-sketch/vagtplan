@@ -63,7 +63,10 @@ function monthlyPostings(
  * prorated by calendar days. TODO(jura): verify proration rule for partial months.
  */
 export function vacationAccrual(
-  rule: ParamsOf<"vacation">,
+  rule: Pick<
+    ParamsOf<"vacation">,
+    "days_per_month" | "holiday_year_start" | "usage_extends_months" | "extra_days"
+  >,
   employment: Employment,
   upTo: IsoDate,
 ): VacationEntry[] {

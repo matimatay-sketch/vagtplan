@@ -106,6 +106,12 @@ export function minutesByDate(
   return out;
 }
 
+/** Time that counts as rest for the rest rules: on-call without a call-out, unless configured otherwise. */
+function restsDuring(i: WorkInterval, ctx: EngineContext): boolean {
+  if (i.kind !== "on_call") return false;
+  return ctx.rule(localDate(i.start, ctx.tz), "on_call")?.params.counts_as_rest ?? true;
+}
+
 function datesBetween(from: IsoDate, to: IsoDate): IsoDate[] {
   const out: IsoDate[] = [];
   for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
@@ -136,7 +142,7 @@ function checkDailyRest(
   from: IsoDate,
   to: IsoDate,
 ): Violation[] {
-  const blocks = mergeSpans(work.filter((i) => i.kind !== "on_call"));
+  const blocks = mergeSpans(work.filter((i) => !restsDuring(i, ctx)));
   const reported = new Map<number, Violation>();
   const windows: Span[] = blocks.flatMap((b) => [
     { start: b.start, end: b.start + H24 },
@@ -183,7 +189,7 @@ function checkWeeklyRest(
   from: IsoDate,
   to: IsoDate,
 ): Violation[] {
-  const blocks = mergeSpans(work.filter((i) => i.kind !== "on_call"));
+  const blocks = mergeSpans(work.filter((i) => !restsDuring(i, ctx)));
   if (blocks.length === 0) return [];
   const everything: Span = {
     start: blocks[0]!.start - 30 * H24,

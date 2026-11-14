@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseAgreementDocument } from "../agreement/schema";
-import { leaveAccruals, leaveDays, leaveTypes, mainHolidayStatus } from "./ledger";
+import {
+  leaveAccruals,
+  leaveDays,
+  leaveTypes,
+  mainHolidayStatus,
+  vacationMoveLimit,
+} from "./ledger";
 import { makeInput } from "../../test/support";
 
 const doc = parseAgreementDocument({
@@ -313,5 +319,83 @@ describe("leaveAccruals – other entitlement shapes", () => {
       },
     ]);
     expect(mainHolidayStatus(input, "2026-01-15", [])).toMatchObject({ required: 0, ok: true });
+  });
+});
+
+describe("configurable leave rules", () => {
+  const configured = (absence: Record<string, unknown>, vacation: Record<string, unknown>) =>
+    parseAgreementDocument({
+      ...doc,
+      id: "konfig",
+      rules: doc.rules.map((r) =>
+        r.primitive === "absence"
+          ? { ...r, params: { ...r.params, ...absence } }
+          : r.primitive === "vacation"
+            ? { ...r, params: { ...r.params, ...vacation } }
+            : r,
+      ),
+    });
+  const input = (absence = {}, vacation = {}, from = "2026-08-15") =>
+    makeInput({
+      extraDocs: [configured(absence, vacation)],
+      contracts: [{ ...contract(from, null), agreementId: "konfig" }],
+    });
+
+  it("upfront entitlements can be prorated by the months left (August–December = 5/12)", () => {
+    const r = leaveAccruals(input({ entitlement_proration: "remaining_months" }), "2026-09-30");
+    // 2 days × 5/12 = 0.83.
+    expect(r.find((p) => p.account === "care_day")!.hundredths).toBe(83);
+    // Starting before the period: the full grant.
+    const full = leaveAccruals(
+      input({ entitlement_proration: "remaining_months" }, {}, "2025-06-01"),
+      "2026-01-31",
+    );
+    expect(
+      full.filter((p) => p.account === "care_day").map((p) => [p.periodStart, p.hundredths]),
+    ).toEqual([
+      ["2025-01-01", 117], // started June 2025: 7/12 of 2 days
+      ["2026-01-01", 200],
+    ]);
+  });
+
+  it("leave days can follow the planned days instead of Monday–Friday", () => {
+    const planned = ["2026-03-31", "2026-04-02", "2026-04-04", "2026-04-08"];
+    const i = input({}, { leave_day_basis: "planned_days" }, "2020-01-01");
+    expect(leaveDays(i, "2026-03-30", "2026-04-04", planned)).toEqual([
+      "2026-03-31",
+      "2026-04-02",
+      "2026-04-04",
+    ]);
+    // The default ignores the plan.
+    expect(
+      leaveDays(input({}, {}, "2020-01-01"), "2026-03-30", "2026-04-01", planned),
+    ).toHaveLength(3);
+  });
+
+  it("transfers and payouts follow the configured limits", () => {
+    const i = input(
+      {},
+      {
+        transfer: { allowed: true, only_above_days: 20 },
+        payout: { allowed: false, only_above_days: null },
+      },
+      "2020-01-01",
+    );
+    const row = { earned: 2500, balance: 800, other: 0 };
+    // Only days above 20 of the 25 earned: 5 days, and never more than the balance.
+    expect(vacationMoveLimit(i, "2025-09-01", "transfer", row)).toEqual({
+      allowed: true,
+      max: 500,
+    });
+    expect(vacationMoveLimit(i, "2025-09-01", "transfer", { ...row, other: -300 })).toEqual({
+      allowed: true,
+      max: 200,
+    });
+    expect(vacationMoveLimit(i, "2025-09-01", "payout", row)).toEqual({ allowed: false, max: 0 });
+    // Without limits: the whole balance.
+    expect(vacationMoveLimit(input({}, {}, "2020-01-01"), "2025-09-01", "payout", row)).toEqual({
+      allowed: true,
+      max: 800,
+    });
   });
 });
