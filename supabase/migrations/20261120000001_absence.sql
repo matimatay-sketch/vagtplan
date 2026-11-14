@@ -315,8 +315,109 @@ grant execute on function public.post_leave_accruals(uuid, jsonb) to service_rol
 revoke execute on function public.decide_absence(uuid, boolean, text, jsonb), public.cancel_absence(uuid, text),
   public.add_leave_posting(uuid, text, public.leave_posting_kind, date, date, integer, text) from public, anon;
 
--- Call-outs (tilkald) are registered as time entries of kind call_out.
-alter type public.shift_kind add value 'call_out';
+-- Call-outs (tilkald) are registered as time entries of kind call_out. Shifts
+-- keep their own kind (work/on_call); registrations get a wider type.
+create type public.time_entry_kind as enum ('work', 'on_call', 'call_out');
+alter table public.time_entry alter column kind drop default;
+alter table public.time_entry alter column kind type public.time_entry_kind using kind::text::public.time_entry_kind;
+alter table public.time_entry alter column kind set default 'work';
+
+create or replace function public.stamp(p_organization_id uuid, p_client_id uuid, p_action text, p_at timestamptz)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare
+  emp uuid;
+  at timestamptz := least(coalesce(p_at, now()), now());
+  late boolean := abs(extract(epoch from now() - coalesce(p_at, now()))) > 300;
+  existing uuid;
+  open_entry public.time_entry;
+  sh record;
+  dept uuid;
+begin
+  select e.id into emp from public.employee e
+  where e.organization_id = p_organization_id and e.user_id = (select auth.uid()) and e.archived_at is null;
+  if emp is null or not private.is_member(p_organization_id) then
+    raise exception 'not an employee' using errcode = '42501';
+  end if;
+  -- Replays of an action already received return the same registration.
+  select id into existing from public.time_entry
+  where organization_id = p_organization_id and (client_id = p_client_id or end_client_id = p_client_id);
+  if existing is not null then return existing; end if;
+  if at < now() - interval '7 days' then
+    raise exception 'stamp too old' using errcode = '22023';
+  end if;
+
+  select * into open_entry from public.time_entry
+  where employee_id = emp and status = 'open' and superseded_at is null and archived_at is null;
+
+  if p_action = 'in' then
+    if open_entry.id is not null then
+      raise exception 'already stamped in' using errcode = 'P0001', hint = 'already_in';
+    end if;
+    -- The employee's published shift closest to the stamp (within 4 hours) that has no registration.
+    select s.id, s.department_id, s.published into sh
+    from public.shift s
+    where s.published is not null and s.archived_at is null
+      and (s.published ->> 'employee_id')::uuid = emp
+      and abs(extract(epoch from (s.published ->> 'start_at')::timestamptz - at)) <= 4 * 3600
+      and not exists (select 1 from public.time_entry t
+                      where t.shift_id = s.id and t.superseded_at is null and t.archived_at is null)
+    order by abs(extract(epoch from (s.published ->> 'start_at')::timestamptz - at))
+    limit 1;
+    if sh.id is not null then
+      dept := sh.department_id;
+    else
+      select ed.department_id into dept from public.employee_department ed
+      where ed.employee_id = emp order by ed.is_primary desc limit 1;
+    end if;
+    if dept is null then raise exception 'employee has no department' using errcode = '23514'; end if;
+    insert into public.time_entry (organization_id, employee_id, department_id, shift_id, start_at,
+      breaks, project_allocations, kind, source, status, client_id, offline)
+    values (p_organization_id, emp, dept, sh.id, at,
+      coalesce(sh.published -> 'breaks', '[]'::jsonb), coalesce(sh.published -> 'project_allocations', '[]'::jsonb),
+      coalesce(sh.published ->> 'kind', 'work')::public.time_entry_kind, 'stamp', 'open', p_client_id, late)
+    returning id into existing;
+    return existing;
+  elsif p_action = 'out' then
+    if open_entry.id is null then
+      raise exception 'not stamped in' using errcode = 'P0001', hint = 'not_in';
+    end if;
+    if at <= open_entry.start_at then at := open_entry.start_at + interval '1 minute'; end if;
+    update public.time_entry set
+      end_at = at, end_client_id = p_client_id, status = 'pending',
+      breaks = private.fit_breaks(breaks, start_at, at),
+      offline = offline or late
+    where id = open_entry.id;
+    return open_entry.id;
+  end if;
+  raise exception 'unknown action' using errcode = '22023';
+end $$;
+
+create or replace function public.complete_as_planned(p_shift_ids uuid[])
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  s record;
+  n integer := 0;
+  emp uuid;
+begin
+  for s in select * from public.shift where id = any (p_shift_ids) loop
+    emp := (s.published ->> 'employee_id')::uuid;
+    continue when s.published is null or s.archived_at is not null or emp is null;
+    continue when (s.published ->> 'end_at')::timestamptz > now();
+    if not (private.is_own_employee(emp) or private.can_on_department('time.manage', s.department_id)) then
+      raise exception 'not allowed' using errcode = '42501';
+    end if;
+    continue when exists (select 1 from public.time_entry t
+                          where t.shift_id = s.id and t.superseded_at is null and t.archived_at is null);
+    insert into public.time_entry (organization_id, employee_id, department_id, shift_id, start_at, end_at,
+      breaks, project_allocations, kind, source, status)
+    values (s.organization_id, emp, s.department_id, s.id,
+      (s.published ->> 'start_at')::timestamptz, (s.published ->> 'end_at')::timestamptz,
+      coalesce(s.published -> 'breaks', '[]'::jsonb), coalesce(s.published -> 'project_allocations', '[]'::jsonb),
+      (s.published ->> 'kind')::public.time_entry_kind, 'planned', 'pending');
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
 
 drop function public.time_overview(timestamptz, timestamptz);
 create function public.time_overview(p_from timestamptz, p_to timestamptz)
@@ -326,7 +427,7 @@ returns table (
   project_allocations jsonb, status public.time_entry_status, source public.time_entry_source,
   deviation_reason text, note text, offline boolean, approved_at timestamptz, approved_by_email text,
   version integer, is_mine boolean, plan_start timestamptz, plan_end timestamptz, plan_breaks jsonb,
-  kind public.shift_kind
+  kind public.time_entry_kind
 )
 language sql stable security definer set search_path = '' as $$
   with visible_department as (
@@ -362,7 +463,7 @@ language sql stable security definer set search_path = '' as $$
          (s.published ->> 'end_at')::timestamptz, s.published -> 'breaks', s.published -> 'project_allocations',
          null, null, null, null, false, null, null, 0, private.is_own_employee(e.id),
          (s.published ->> 'start_at')::timestamptz, (s.published ->> 'end_at')::timestamptz, s.published -> 'breaks',
-         (s.published ->> 'kind')::public.shift_kind
+         (s.published ->> 'kind')::public.time_entry_kind
   from public.shift s
   join visible_department vd on vd.id = s.department_id
   join public.employee e on e.id = (s.published ->> 'employee_id')::uuid
