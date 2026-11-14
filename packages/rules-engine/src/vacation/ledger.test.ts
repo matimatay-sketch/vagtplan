@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseAgreementDocument } from "../agreement/schema";
-import { leaveAccruals, leaveDays, mainHolidayStatus } from "./ledger";
+import { leaveAccruals, leaveDays, leaveTypes, mainHolidayStatus } from "./ledger";
 import { makeInput } from "../../test/support";
 
 const doc = parseAgreementDocument({
@@ -117,6 +117,13 @@ describe("leaveAccruals", () => {
     expect(r.filter((p) => p.account === "care_day")).toHaveLength(1);
   });
 
+  it("starts when the agreement starts if the contract is older (no rules before)", () => {
+    const later = { ...doc, valid_from: "2026-03-01" };
+    const input = makeInput({ extraDocs: [later], contracts: [contract("2023-08-15", null)] });
+    const r = leaveAccruals(input, "2026-03-31");
+    expect(r.filter((p) => p.account === "vacation").map((p) => p.date)).toEqual(["2026-03-31"]);
+  });
+
   it("stops when employment ends mid-month", () => {
     const input = makeInput({
       extraDocs: [doc],
@@ -175,5 +182,136 @@ describe("mainHolidayStatus", () => {
     const r = mainHolidayStatus(input, "2025-09-01", weekdays("2026-04-13", "2026-05-08"));
     // Only 1–8 May are inside: Friday 1 May + 4–8 May = 6 (Ascension Day is 14 May).
     expect(r).toMatchObject({ longest: 6, ok: false });
+  });
+});
+
+describe("leaveTypes", () => {
+  it("lists vacation and the agreement's absence types; balance types are marked", () => {
+    const input = makeInput({ extraDocs: [doc], contracts: [contract("2020-01-01", null)] });
+    expect(leaveTypes(input, "2026-06-01")).toEqual([
+      { code: "vacation", label: "Ferie", hasBalance: true },
+      { code: "sick", label: "Syg", hasBalance: false },
+      { code: "care_day", label: "Omsorgsdag", hasBalance: true },
+    ]);
+  });
+  it("is empty without a contract", () => {
+    expect(leaveTypes(makeInput({ extraDocs: [doc], contracts: [] }), "2026-06-01")).toEqual([]);
+  });
+});
+
+describe("leaveAccruals – other entitlement shapes", () => {
+  const withRules = (rules: unknown[]) =>
+    parseAgreementDocument({
+      id: "ret-test",
+      name: "Ret",
+      kind: "agreement",
+      version: 1,
+      valid_from: "2020-01-01",
+      valid_to: null,
+      inherits_from: "test-base",
+      source: "x",
+      rules,
+    });
+  const c = { ...contract("2026-01-01", null), agreementId: "ret-test" };
+
+  it("monthly entitlements per holiday year and upfront extra days once per year", () => {
+    const docMonthly = withRules([
+      {
+        id: "ferie",
+        primitive: "vacation",
+        source: "x",
+        params: {
+          days_per_month: 2.08,
+          holiday_year_start: "09-01",
+          usage_extends_months: 4,
+          main_holiday: { min_consecutive_days: 15, from: "05-01", to: "09-30" },
+          vacation_pay_bp: null,
+          vacation_supplement_bp: null,
+          special_vacation_pay_bp: null,
+          extra_days: { days_per_year: 5, year_start: "05-01", accrual: "upfront" },
+        },
+      },
+      {
+        id: "fravaer",
+        primitive: "absence",
+        source: "x",
+        params: {
+          types: [
+            {
+              code: "senior_day",
+              label: "Seniordag",
+              payment: "full",
+              pay_code: "SENIOR",
+              counts_towards_norm: true,
+              entitlement: { days: 6, period: "holiday_year", accrual: "monthly" },
+            },
+          ],
+        },
+      },
+    ]);
+    const input = makeInput({
+      extraDocs: [docMonthly],
+      // A contract change in the middle must not grant the extra days twice.
+      contracts: [
+        { ...c, validTo: "2026-06-30" },
+        { ...c, id: "c2", validFrom: "2026-07-01" },
+      ],
+    });
+    const r = leaveAccruals(input, "2026-07-31");
+    // 6 days a year = 0.5 a month, in the holiday year that started 1 September 2025.
+    expect(
+      r.filter((p) => p.account === "senior_day").map((p) => [p.date, p.hundredths, p.periodStart]),
+    ).toEqual([
+      ["2026-01-31", 50, "2025-09-01"],
+      ["2026-02-28", 50, "2025-09-01"],
+      ["2026-03-31", 50, "2025-09-01"],
+      ["2026-04-30", 50, "2025-09-01"],
+      ["2026-05-31", 50, "2025-09-01"],
+      ["2026-06-30", 50, "2025-09-01"],
+      ["2026-07-31", 50, "2025-09-01"],
+    ]);
+    expect(r.filter((p) => p.account === "extra").map((p) => [p.date, p.hundredths])).toEqual([
+      ["2026-05-01", 500],
+    ]);
+    expect(leaveTypes(input, "2026-07-01").map((t) => t.code)).toEqual([
+      "vacation",
+      "extra",
+      "senior_day",
+    ]);
+  });
+
+  it("an entitlement without a vacation rule uses the default holiday year; no vacation postings", () => {
+    const onlyAbsence = withRules([
+      {
+        id: "fravaer",
+        primitive: "absence",
+        source: "x",
+        params: {
+          types: [
+            {
+              code: "care_day",
+              label: "Omsorgsdag",
+              payment: "full",
+              pay_code: "OMSORG",
+              counts_towards_norm: true,
+              entitlement: { days: 12, period: "holiday_year", accrual: "monthly" },
+            },
+          ],
+        },
+      },
+    ]);
+    const input = makeInput({ extraDocs: [onlyAbsence], contracts: [c] });
+    const r = leaveAccruals(input, "2026-01-31");
+    expect(r).toEqual([
+      {
+        account: "care_day",
+        date: "2026-01-31",
+        hundredths: 100,
+        periodStart: "2025-09-01",
+        usableUntil: "2026-08-31",
+        note: "Omsorgsdag",
+      },
+    ]);
+    expect(mainHolidayStatus(input, "2026-01-15", [])).toMatchObject({ required: 0, ok: true });
   });
 });

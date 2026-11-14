@@ -33,8 +33,17 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
   const granted = new Set<string>();
   const contracts = [...input.contracts].sort((a, b) => a.validFrom.localeCompare(b.validFrom));
 
-  for (const c of contracts) {
-    if (c.validFrom > upTo) continue;
+  for (const original of contracts) {
+    // Without an agreement version in force there are no rules to accrue by:
+    // start when the contract's agreement starts.
+    const versions = input.registry[original.agreementId] ?? [];
+    const firstValid = versions.reduce<string | null>(
+      (m, v) => (m === null || v.valid_from < m ? v.valid_from : m),
+      null,
+    );
+    if (!firstValid) continue;
+    const c = { ...original, validFrom: later(original.validFrom, firstValid) };
+    if (c.validFrom > upTo || (c.validTo !== null && c.validTo < c.validFrom)) continue;
     const employment = { employedFrom: c.validFrom, employedTo: c.validTo };
     const vacation = ctx.rule(c.validFrom, "vacation");
     if (vacation) {
@@ -135,11 +144,13 @@ export function leaveDays(input: EngineInput, from: IsoDate, to: IsoDate): IsoDa
  */
 export function mainHolidayStatus(
   input: EngineInput,
-  holidayYearStart: IsoDate,
+  /** A date in the holiday year (the year is found from the vacation rule). */
+  onDate: IsoDate,
   vacationDates: readonly IsoDate[],
 ): { from: IsoDate; to: IsoDate; required: number; longest: number; ok: boolean } {
   const ctx = new EngineContext(input);
-  const rule = ctx.rule(holidayYearStart, "vacation");
+  const rule = ctx.rule(onDate, "vacation");
+  const holidayYearStart = yearStartContaining(onDate, rule?.params.holiday_year_start ?? "09-01");
   const summer = P(holidayYearStart).add({ years: 1 }).year;
   const mh = rule?.params.main_holiday ?? { min_consecutive_days: 0, from: "05-01", to: "09-30" };
   const from = `${summer}-${mh.from}`;
@@ -159,4 +170,23 @@ export function mainHolidayStatus(
     longest,
     ok: longest >= mh.min_consecutive_days,
   };
+}
+
+/** Leave types an employee can request on a date: vacation, extra days and the agreement's absence types. */
+export function leaveTypes(
+  input: EngineInput,
+  date: IsoDate,
+): { code: string; label: string; hasBalance: boolean }[] {
+  const ctx = new EngineContext(input);
+  if (!ctx.contractOn(date)) return [];
+  const out: { code: string; label: string; hasBalance: boolean }[] = [];
+  const vacation = ctx.rule(date, "vacation");
+  if (vacation) {
+    out.push({ code: "vacation", label: "Ferie", hasBalance: true });
+    if (vacation.params.extra_days)
+      out.push({ code: "extra", label: "Feriefridag", hasBalance: true });
+  }
+  for (const t of ctx.rule(date, "absence")?.params.types ?? [])
+    out.push({ code: t.code, label: t.label, hasBalance: t.entitlement !== null });
+  return out;
 }
