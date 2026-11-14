@@ -1,6 +1,6 @@
 # Plan – dansk vagtplan og tidsregistrering (MVP, fase 1–6)
 
-> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er godkendt 2026-11-13. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
+> Status: **godkendt 2026-11-12**. Fase 1–3 er godkendt (fase 3 den 2026-11-13). Fase 3b (tilføjelser og projektregistrering) er godkendt 2026-11-13. Fase 4 (tidsregistrering) er godkendt 2026-11-13. Fase 5 (fravær, ferie og rådighed/tilkald) er bygget og afventer godkendelse. Planen blev godkendt med tilføjelsen at fravær, ferie og rådighed/tilkald er med i MVP (ny fase 5; løn og eksport er nu fase 6).
 > Domænereglerne følger skillen `dansk-arbejdstid`. Produktnavn: **Turnus**.
 
 ## 0. Beslutninger fra brainstorm
@@ -235,6 +235,14 @@ Opgaver:
 3. Ferie som posteringer: månedlig optjening (job), afholdelse, overførsel og udbetaling. Ferieår og afholdelsesperiode gælder (1/9–31/8 og 1/9–31/12 året efter). Der gives en advarsel, hvis hovedferien (15 sammenhængende dage 1/5–30/9) ikke er planlagt.
 4. Saldi for ferie og feriefridage, omsorgsdage m.v. til medarbejderen og lederen.
 5. Rådighedsvagter i vagtplanen og registrering af tilkald i tidsregistreringen. Både rådighed og tilkald valideres mod hviletid.
+
+Status (bygget 2026-11-14):
+
+- `/fravaer` (medarbejder): saldi pr. konto og periode, ansøgning og egne ansøgninger med annullering, og en advarsel hvis hovedferien ikke er planlagt.
+- `/fravaer/godkend` (leder eller personlig godkender): godkend eller afvis, registrér fravær direkte (fx sygdom), annullér godkendt fravær, holdets saldi og manuelle posteringer.
+- Vagtplanen viser fravær. Vagter i godkendt fravær markeres "Udækket", og oversigten viser ansøgninger, der venter, og udækkede vagter de næste 14 dage.
+- Tilkald registreres som tid af typen "Tilkald under rådighed" og valideres som arbejde mod hviletid. Rådighed regnes som hvile (jura-todo nr. 20).
+- Ikke med: e-mail om fravær, delvise fraværsdage, og fravær, der ændres efter godkendelse (annullér og søg igen).
 
 Acceptkriterier:
 

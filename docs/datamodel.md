@@ -136,3 +136,17 @@ RPC'er:
 `employee.approver_user_id` er en bruger, der ser og godkender netop denne medarbejders tid, uanset rettighedsprofil. Den bruges fx til lederens egen leder. Den kræver `users.manage` for at blive sat og må ikke være medarbejderen selv. Den udvider `time_entry_select`, `approve_time_entries`, `time_overview` og `time_entry_history`. `time_approvees(org)` returnerer de medarbejdere, brugeren godkender personligt.
 
 `private.has_org_permission` returnerer altid `true` eller `false`. Før 2026-11-14 kunne den returnere NULL, så `organization_members()` ikke afviste brugere uden `users.manage`.
+
+## Fravær og ferie (fase 5)
+
+| Tabel / felt      | Bemærkning                                                                                                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `absence`         | `employee_id`, `type_code` (`vacation`, `extra` eller en fraværstype fra overenskomsten), `from_date`/`to_date`, `status` (requested/approved/rejected/cancelled), `note`, `decision_note`, `days_hundredths`. Exclusion-constraint: søgt og godkendt fravær overlapper ikke. Ændres kun via RPC |
+| `leave_posting`   | Kun indsættelse (trigger forbyder ændring og sletning). `account`, `kind` (accrual/usage/reversal/transfer/payout/adjustment), `period_start`/`usable_until`, `hundredths` (dage × 100), `absence_id`                                                                                            |
+| `time_entry.kind` | `time_entry_kind`: work, on_call, call_out (tilkald). Vagter beholder `shift_kind` (work/on_call)                                                                                                                                                                                                |
+
+Saldoen er altid summen af posteringer. Optjening beregnes af regelmotoren (`leaveAccruals`) og bogføres via `post_leave_accruals`, som kun service-rollen kan kalde. Det sker, efter at databasen har bekræftet brugerens adgang. Det er idempotent, fordi en optjening er unik pr. medarbejder, konto, periode og dato.
+
+Ved godkendelse beregner appen feriedagene: mandag–fredag uden helligdage. Dagene trækkes fra de perioder, der udløber først, og `decide_absence` bogfører forbruget. Ved annullering af godkendt fravær modposterer `cancel_absence`. Overførsel, udbetaling og rettelse bogføres med `add_leave_posting` og kræver en begrundelse.
+
+Rettigheder: `absence.view`, `absence.manage` og `absence.approve`. "Godkendes af" på medarbejderen gælder også fravær. Planlæggere (`schedule.view`/`schedule.manage`) ser fravær, men ikke saldi.
