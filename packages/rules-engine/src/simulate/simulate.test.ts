@@ -113,6 +113,8 @@ describe("simulateWeek", () => {
       replace: local,
       assign: "local",
     });
-    expect(r.diff).toEqual([{ payCode: "AFTEN", beforeOre: 10000, afterOre: 12000, deltaOre: 2000 }]);
+    expect(r.diff).toEqual([
+      { payCode: "AFTEN", beforeOre: 10000, afterOre: 12000, deltaOre: 2000 },
+    ]);
   });
 });
