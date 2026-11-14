@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarX,
+  Plane,
   ClipboardCheck,
   Timer,
   FolderKanban,
@@ -72,6 +74,14 @@ const items: Item[] = [
     label: da.nav.approveTime,
     icon: ClipboardCheck,
     anyOf: ["time.view", "time.manage", "time.approve"],
+    forApprovers: true,
+  },
+  { href: "/fravaer", label: da.nav.absence, icon: Plane, anyOf: [], needsEmployee: true },
+  {
+    href: "/fravaer/godkend",
+    label: da.nav.absenceAdmin,
+    icon: CalendarX,
+    anyOf: ["absence.view", "absence.manage", "absence.approve"],
     forApprovers: true,
   },
   {
