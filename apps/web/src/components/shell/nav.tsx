@@ -76,6 +76,7 @@ const items: Item[] = [
     anyOf: ["time.view", "time.manage", "time.approve"],
     forApprovers: true,
   },
+  { href: "/lon", label: da.nav.payroll, icon: Wallet, anyOf: ["payroll.view", "payroll.manage"] },
   { href: "/fravaer", label: da.nav.absence, icon: Plane, anyOf: [], needsEmployee: true },
   {
     href: "/fravaer/godkend",
