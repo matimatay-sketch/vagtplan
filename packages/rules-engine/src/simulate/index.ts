@@ -19,6 +19,11 @@ export type SimulateInput = EngineInput & {
   absences?: AbsenceInput[];
   /** The edited document; replaces the version with the same id and version number (or is added). */
   replace: AgreementDocument;
+  /**
+   * "What if the employee were on it": put the employee's contracts on the
+   * edited document as their agreement or as their local agreement.
+   */
+  assign?: "agreement" | "local";
 };
 
 function side(input: EngineInput, s: SimulateInput): SimulationSide {
@@ -46,7 +51,14 @@ export function simulateWeek(s: SimulateInput): SimulationResult {
   const versions = (registry[s.replace.id] ?? []).filter((d) => d.version !== s.replace.version);
   registry[s.replace.id] = [...versions, s.replace];
   const before = side(s, s);
-  const after = side({ ...s, registry }, s);
+  const contracts = s.assign
+    ? s.contracts.map((c) =>
+        s.assign === "agreement"
+          ? { ...c, agreementId: s.replace.id }
+          : { ...c, localAgreementId: s.replace.id },
+      )
+    : s.contracts;
+  const after = side({ ...s, registry, contracts }, s);
 
   const totals = (r: SimulationSide) => {
     const m = new Map<string, number>();

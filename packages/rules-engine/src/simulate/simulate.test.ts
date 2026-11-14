@@ -78,4 +78,41 @@ describe("simulateWeek", () => {
     expect(r.before.violations.map((v) => v.code)).toEqual([]);
     expect(r.after.violations.map((v) => v.code)).toEqual(["MIN_SHIFT"]);
   });
+
+  it("can simulate the employee on the edited agreement (a copy or a new local agreement)", () => {
+    // The employee is on the base only; the copy has pay rates and an evening supplement.
+    const input = makeInput({ extraDocs: [v1], agreementId: "test-base" });
+    const r = simulateWeek({
+      ...input,
+      weekStart: "2026-01-05",
+      worked: [shift("2026-01-05 16:00", "2026-01-05 22:00")],
+      replace: v1,
+      assign: "agreement",
+    });
+    expect(r.before.totalOre).toBe(0);
+    // 6 hours at 120 kr. + 4 evening hours at 25 kr.
+    expect(r.after.totalOre).toBe(82000);
+  });
+
+  it("assigns a local agreement on top of the employee's agreement", () => {
+    const local = parseAgreementDocument({
+      id: "lokal",
+      name: "Lokal",
+      kind: "local",
+      version: 1,
+      valid_from: "2020-01-01",
+      valid_to: null,
+      inherits_from: "sim",
+      source: "x",
+      rules: [{ id: "aften", params: { amount: { type: "ore_per_hour", ore: 3000 } } }],
+    });
+    const r = simulateWeek({
+      ...makeInput({ extraDocs: [v1], agreementId: "sim" }),
+      weekStart: "2026-01-05",
+      worked: [shift("2026-01-05 16:00", "2026-01-05 22:00")],
+      replace: local,
+      assign: "local",
+    });
+    expect(r.diff).toEqual([{ payCode: "AFTEN", beforeOre: 10000, afterOre: 12000, deltaOre: 2000 }]);
+  });
 });
