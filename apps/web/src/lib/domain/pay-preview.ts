@@ -10,6 +10,7 @@ export type PreviewLine = {
   label: string;
   unit: "hours" | "time_off_minutes" | "fixed";
   quantityMinutes: number;
+  rateOre: number;
   amountOre: number;
   why: Why;
   intervals: { intervalId: string; minutes: number; start?: string; end?: string }[];
@@ -30,8 +31,12 @@ export type PreviewCode = CodeTotal & {
   intervals: { start: string; end: string; minutes: number }[];
 };
 
+/** A row of the summary table: one per pay code and rate. */
+export type SummaryRow = CodeTotal & { rateOre: number };
+
 export type PayPreview = {
   codes: PreviewCode[];
+  rows: SummaryRow[];
   /** Registration id → its pay codes and minutes. */
   byEntry: Record<string, { payCode: string; minutes: number }[]>;
 };
@@ -42,7 +47,9 @@ const byCode = (a: { payCode: string }, b: { payCode: string }) =>
 export function previewFromLines(lines: readonly PreviewLine[]): PayPreview {
   const codes = new Map<string, PreviewCode>();
   const entries = new Map<string, Map<string, number>>();
+  const rows = new Map<string, SummaryRow>();
   for (const l of lines) {
+    addRow(rows, { ...l, minutes: l.quantityMinutes });
     const c = codes.get(l.payCode) ?? {
       payCode: l.payCode,
       label: l.label,
@@ -65,6 +72,7 @@ export function previewFromLines(lines: readonly PreviewLine[]): PayPreview {
   }
   return {
     codes: [...codes.values()].sort(byCode),
+    rows: sortedRows(rows),
     byEntry: Object.fromEntries(
       [...entries].map(([id, m]) => [
         id,
@@ -91,4 +99,29 @@ export function sumPreviews(previews: readonly PayPreview[]): CodeTotal[] {
       out.set(c.payCode, t);
     }
   return [...out.values()].sort(byCode);
+}
+
+function addRow(rows: Map<string, SummaryRow>, x: SummaryRow) {
+  const key = `${x.payCode}|${x.rateOre}`;
+  const row = rows.get(key) ?? {
+    payCode: x.payCode,
+    label: x.label,
+    unit: x.unit,
+    minutes: 0,
+    rateOre: x.rateOre,
+    amountOre: 0,
+  };
+  row.minutes += x.minutes;
+  row.amountOre += x.amountOre;
+  rows.set(key, row);
+}
+
+const sortedRows = (rows: Map<string, SummaryRow>) =>
+  [...rows.values()].sort((a, b) => a.payCode.localeCompare(b.payCode) || a.rateOre - b.rateOre);
+
+/** Summary rows summed over several employees (e.g. a department). */
+export function sumRows(previews: readonly PayPreview[]): SummaryRow[] {
+  const rows = new Map<string, SummaryRow>();
+  for (const p of previews) for (const r of p.rows) addRow(rows, r);
+  return sortedRows(rows);
 }

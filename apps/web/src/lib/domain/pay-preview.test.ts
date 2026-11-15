@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { previewFromLines, sumPreviews, type PreviewLine } from "./pay-preview";
+import { previewFromLines, sumPreviews, sumRows, type PreviewLine } from "./pay-preview";
 
 const line = (over: Partial<PreviewLine>): PreviewLine => ({
   payCode: "NORMAL",
   label: "Timeløn",
   unit: "hours",
   quantityMinutes: 0,
+  rateOre: 15000,
   amountOre: 0,
   why: { ruleId: "loensats", source: "§ 1", layer: "eksempel v1", note: null },
   intervals: [],
@@ -100,6 +101,75 @@ describe("explanations and department totals", () => {
     expect(sumPreviews([a, b])).toEqual([
       { payCode: "AFTEN", label: "Aftentillæg", unit: "hours", minutes: 60, amountOre: 3000 },
       { payCode: "NORMAL", label: "Timeløn", unit: "hours", minutes: 690, amountOre: 172500 },
+    ]);
+  });
+});
+
+describe("summary table rows", () => {
+  it("one row per pay code and rate, sorted by code; departments sum the same way", () => {
+    const a = previewFromLines([
+      line({ quantityMinutes: 450, rateOre: 15000, amountOre: 112500 }),
+      line({ quantityMinutes: 60, rateOre: 10000, amountOre: 10000 }),
+      line({
+        payCode: "SYG",
+        label: "Sygdom med løn",
+        quantityMinutes: 444,
+        rateOre: 15000,
+        amountOre: 111000,
+      }),
+    ]);
+    expect(a.rows).toEqual([
+      {
+        payCode: "NORMAL",
+        label: "Timeløn",
+        unit: "hours",
+        minutes: 60,
+        rateOre: 10000,
+        amountOre: 10000,
+      },
+      {
+        payCode: "NORMAL",
+        label: "Timeløn",
+        unit: "hours",
+        minutes: 450,
+        rateOre: 15000,
+        amountOre: 112500,
+      },
+      {
+        payCode: "SYG",
+        label: "Sygdom med løn",
+        unit: "hours",
+        minutes: 444,
+        rateOre: 15000,
+        amountOre: 111000,
+      },
+    ]);
+    const b = previewFromLines([line({ quantityMinutes: 30, rateOre: 15000, amountOre: 7500 })]);
+    expect(sumRows([a, b])).toEqual([
+      {
+        payCode: "NORMAL",
+        label: "Timeløn",
+        unit: "hours",
+        minutes: 60,
+        rateOre: 10000,
+        amountOre: 10000,
+      },
+      {
+        payCode: "NORMAL",
+        label: "Timeløn",
+        unit: "hours",
+        minutes: 480,
+        rateOre: 15000,
+        amountOre: 120000,
+      },
+      {
+        payCode: "SYG",
+        label: "Sygdom med løn",
+        unit: "hours",
+        minutes: 444,
+        rateOre: 15000,
+        amountOre: 111000,
+      },
     ]);
   });
 });
