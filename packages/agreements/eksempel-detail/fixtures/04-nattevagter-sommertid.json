@@ -1,0 +1,84 @@
+{
+  "description": "To nattevagter, den anden hen over overgangen til sommertid (23 timers døgn). Tillæg i fire tidsvinduer.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-03-23",
+    "to": "2026-03-29"
+  },
+  "worked": [
+    {
+      "id": "n1",
+      "start": "2026-03-27 22:00",
+      "end": "2026-03-28 06:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-03-28 02:00",
+          "end": "2026-03-28 02:30"
+        }
+      ]
+    },
+    {
+      "id": "n2",
+      "start": "2026-03-28 22:00",
+      "end": "2026-03-29 06:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-03-29 03:00",
+          "end": "2026-03-29 03:30"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "AFTEN",
+        "rateOre": 3000,
+        "quantityMinutes": 120,
+        "amountOre": 6000
+      },
+      {
+        "payCode": "LOERDAG",
+        "rateOre": 4000,
+        "quantityMinutes": 120,
+        "amountOre": 8000
+      },
+      {
+        "payCode": "NAT",
+        "rateOre": 4500,
+        "quantityMinutes": 330,
+        "amountOre": 24750
+      },
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 840,
+        "amountOre": 210000
+      },
+      {
+        "payCode": "SOEN_HELLIG",
+        "rateOre": 15000,
+        "quantityMinutes": 270,
+        "amountOre": 67500
+      }
+    ],
+    "dailyMinutes": {
+      "2026-03-27": 120,
+      "2026-03-28": 450,
+      "2026-03-29": 270
+    },
+    "violations": []
+  }
+}

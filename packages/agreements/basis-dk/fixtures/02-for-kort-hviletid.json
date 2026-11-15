@@ -1,0 +1,52 @@
+{
+  "description": "Aftenvagt til 22 og morgenvagt fra 08: kun 10 timers hvile.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-06"
+  },
+  "worked": [
+    {
+      "id": "2026-01-05-14:00",
+      "start": "2026-01-05 14:00",
+      "end": "2026-01-05 22:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-05 18:00",
+          "end": "2026-01-05 18:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-06-08:00",
+      "start": "2026-01-06 08:00",
+      "end": "2026-01-06 16:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-06 12:00",
+          "end": "2026-01-06 12:30"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "lines": [],
+    "dailyMinutes": {
+      "2026-01-05": 450,
+      "2026-01-06": 450
+    },
+    "violations": ["REST_DAILY@2026-01-06:BLOCKING"]
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "description": "Fire dagvagter og en aftenvagt fredag. Under normen, aftentillæg 18–21.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-11"
+  },
+  "worked": [
+    {
+      "id": "2026-01-05-08:00",
+      "start": "2026-01-05 08:00",
+      "end": "2026-01-05 16:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-05 12:00",
+          "end": "2026-01-05 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-06-08:00",
+      "start": "2026-01-06 08:00",
+      "end": "2026-01-06 16:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-06 12:00",
+          "end": "2026-01-06 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-07-08:00",
+      "start": "2026-01-07 08:00",
+      "end": "2026-01-07 16:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-07 12:00",
+          "end": "2026-01-07 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-08-08:00",
+      "start": "2026-01-08 08:00",
+      "end": "2026-01-08 16:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-08 12:00",
+          "end": "2026-01-08 12:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-01-09-14:00",
+      "start": "2026-01-09 14:00",
+      "end": "2026-01-09 21:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-01-09 17:00",
+          "end": "2026-01-09 17:30"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "AFTEN",
+        "rateOre": 3000,
+        "quantityMinutes": 180,
+        "amountOre": 9000
+      },
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 2190,
+        "amountOre": 547500
+      }
+    ],
+    "dailyMinutes": {
+      "2026-01-05": 450,
+      "2026-01-06": 450,
+      "2026-01-07": 450,
+      "2026-01-08": 450,
+      "2026-01-09": 390
+    },
+    "violations": []
+  }
+}

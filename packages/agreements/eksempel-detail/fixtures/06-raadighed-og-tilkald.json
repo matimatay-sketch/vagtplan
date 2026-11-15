@@ -1,0 +1,64 @@
+{
+  "description": "Rådighed 18–06 med et tilkald på 45 minutter: rådighedsbetaling, løn og aftentillæg for tilkaldet samt minimumsbetaling op til 3 timer.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-11"
+  },
+  "worked": [
+    {
+      "id": "r1",
+      "start": "2026-01-06 18:00",
+      "end": "2026-01-07 06:00",
+      "kind": "on_call"
+    },
+    {
+      "id": "t1",
+      "start": "2026-01-06 23:00",
+      "end": "2026-01-06 23:45",
+      "kind": "call_out"
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "AFTEN",
+        "rateOre": 3000,
+        "quantityMinutes": 45,
+        "amountOre": 2250
+      },
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 45,
+        "amountOre": 11250
+      },
+      {
+        "payCode": "RAADIGHED",
+        "rateOre": 2000,
+        "quantityMinutes": 675,
+        "amountOre": 22500
+      },
+      {
+        "payCode": "TILKALD_GARANTI",
+        "rateOre": 15000,
+        "quantityMinutes": 135,
+        "amountOre": 33750
+      }
+    ],
+    "dailyMinutes": {
+      "2026-01-06": 45
+    },
+    "violations": []
+  }
+}

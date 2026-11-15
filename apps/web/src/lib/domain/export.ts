@@ -1,0 +1,184 @@
+/**
+ * Configurable payroll export. The consultant sets the columns, the format and
+ * the mapping from Turnus' pay codes to the payroll system's codes, so the
+ * file fits the system it is imported into. Pure: money in øre, time in minutes.
+ */
+import { z } from "zod";
+
+export const EXPORT_FIELDS = [
+  "employee_number",
+  "employee_name",
+  "pay_code",
+  "pay_code_external",
+  "label",
+  "quantity_hours",
+  "quantity_minutes",
+  "rate",
+  "amount",
+  "period_start",
+  "period_end",
+  "constant",
+] as const;
+export type ExportField = (typeof EXPORT_FIELDS)[number];
+
+const column = z.object({
+  field: z.enum(EXPORT_FIELDS),
+  header: z.string().max(60).default(""),
+  /** Only for "constant". */
+  value: z.string().max(60).optional(),
+});
+
+export const exportSettingsSchema = z.object({
+  separator: z.string().length(1).default(";"),
+  decimal: z.enum([",", "."]).default(","),
+  header: z.boolean().default(true),
+  bom: z.boolean().default(true),
+  lineEnding: z.enum(["crlf", "lf"]).default("crlf"),
+  dateFormat: z.enum(["yyyy-mm-dd", "dd-mm-yyyy", "dd.mm.yyyy", "ddmmyyyy"]).default("yyyy-mm-dd"),
+  /** One row per employee, pay code and rate, or one row per pay line. */
+  grouping: z.enum(["employee_code", "line"]).default("employee_code"),
+  /** Pay codes without a mapping: keep Turnus' code, or leave them out. */
+  unmapped: z.enum(["keep", "skip"]).default("keep"),
+  /** Turnus pay code → the payroll system's code; null leaves the code out. */
+  codeMap: z.record(z.string(), z.string().max(40).nullable()).default({}),
+  columns: z.array(column).min(1).max(30),
+});
+export type ExportSettings = z.output<typeof exportSettingsSchema>;
+
+export const GENERIC_CSV: ExportSettings = exportSettingsSchema.parse({
+  columns: [
+    { field: "employee_number", header: "Medarbejdernr." },
+    { field: "employee_name", header: "Navn" },
+    { field: "pay_code_external", header: "Lønart" },
+    { field: "label", header: "Tekst" },
+    { field: "quantity_hours", header: "Timer" },
+    { field: "rate", header: "Sats" },
+    { field: "amount", header: "Beløb" },
+    { field: "period_start", header: "Fra" },
+    { field: "period_end", header: "Til" },
+  ],
+});
+
+export type ExportRow = {
+  employeeNumber: string;
+  employeeName: string;
+  payCode: string;
+  label: string;
+  unit: "hours" | "time_off_minutes" | "fixed";
+  quantityMinutes: number;
+  rateOre: number;
+  amountOre: number;
+  periodStart: string;
+  periodEnd: string;
+};
+
+/** 450 min → "7,50"; øre 112500 → "1125,00" (two decimals, integer maths). */
+function hundredths(value: number, decimal: string): string {
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  return `${sign}${Math.floor(abs / 100)}${decimal}${String(abs % 100).padStart(2, "0")}`;
+}
+const hours = (minutes: number, decimal: string) =>
+  hundredths(Math.round((minutes * 100) / 60), decimal);
+
+function date(iso: string, format: ExportSettings["dateFormat"]): string {
+  const [y, m, d] = iso.split("-") as [string, string, string];
+  if (format === "dd-mm-yyyy") return `${d}-${m}-${y}`;
+  if (format === "dd.mm.yyyy") return `${d}.${m}.${y}`;
+  if (format === "ddmmyyyy") return `${d}${m}${y}`;
+  return iso;
+}
+
+function quote(value: string, separator: string): string {
+  return /["\r\n]/.test(value) || value.includes(separator)
+    ? `"${value.replaceAll('"', '""')}"`
+    : value;
+}
+
+export function renderExport(
+  settings: ExportSettings,
+  rows: readonly ExportRow[],
+): { text: string; rowCount: number; skippedCodes: string[] } {
+  const skipped = new Set<string>();
+  const mapped = rows.flatMap((r) => {
+    const has = Object.prototype.hasOwnProperty.call(settings.codeMap, r.payCode);
+    const external = has
+      ? settings.codeMap[r.payCode]
+      : settings.unmapped === "keep"
+        ? r.payCode
+        : null;
+    if (external === null || external === undefined) {
+      skipped.add(r.payCode);
+      return [];
+    }
+    return [{ ...r, external }];
+  });
+
+  let out = mapped;
+  if (settings.grouping === "employee_code") {
+    const groups = new Map<string, (typeof mapped)[number]>();
+    for (const r of mapped) {
+      const key = `${r.employeeNumber}|${r.external}|${r.rateOre}`;
+      const g = groups.get(key);
+      if (g) {
+        g.quantityMinutes += r.quantityMinutes;
+        g.amountOre += r.amountOre;
+      } else groups.set(key, { ...r });
+    }
+    out = [...groups.values()].sort(
+      (a, b) =>
+        a.employeeNumber.localeCompare(b.employeeNumber, "da", { numeric: true }) ||
+        a.external.localeCompare(b.external, "da", { numeric: true }) ||
+        a.rateOre - b.rateOre,
+    );
+  } else {
+    out = [...mapped].sort((a, b) =>
+      a.employeeNumber.localeCompare(b.employeeNumber, "da", { numeric: true }),
+    );
+  }
+
+  const value = (r: (typeof out)[number], c: ExportSettings["columns"][number]): string => {
+    switch (c.field) {
+      case "employee_number":
+        return r.employeeNumber;
+      case "employee_name":
+        return r.employeeName;
+      case "pay_code":
+        return r.payCode;
+      case "pay_code_external":
+        return r.external;
+      case "label":
+        return r.label;
+      case "quantity_hours":
+        return hours(r.quantityMinutes, settings.decimal);
+      case "quantity_minutes":
+        return String(r.quantityMinutes);
+      case "rate":
+        return hundredths(r.rateOre, settings.decimal);
+      case "amount":
+        return hundredths(r.amountOre, settings.decimal);
+      case "period_start":
+        return date(r.periodStart, settings.dateFormat);
+      case "period_end":
+        return date(r.periodEnd, settings.dateFormat);
+      case "constant":
+        return c.value ?? "";
+    }
+  };
+
+  const eol = settings.lineEnding === "crlf" ? "\r\n" : "\n";
+  const lines: string[] = [];
+  if (settings.header)
+    lines.push(
+      settings.columns.map((c) => quote(c.header, settings.separator)).join(settings.separator),
+    );
+  for (const r of out)
+    lines.push(
+      settings.columns.map((c) => quote(value(r, c), settings.separator)).join(settings.separator),
+    );
+  return {
+    text: (settings.bom ? "﻿" : "") + lines.map((l) => l + eol).join(""),
+    rowCount: out.length,
+    skippedCodes: [...skipped].sort(),
+  };
+}

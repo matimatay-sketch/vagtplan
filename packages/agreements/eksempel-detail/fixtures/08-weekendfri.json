@@ -1,0 +1,58 @@
+{
+  "description": "Fjerde arbejdsweekend i træk: kun 0 fri weekender på 4 uger giver en advarsel om weekendfri.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-19",
+    "to": "2026-01-25"
+  },
+  "worked": [
+    {
+      "id": "sat03",
+      "start": "2026-01-03 10:00",
+      "end": "2026-01-03 14:00",
+      "kind": "work"
+    },
+    {
+      "id": "sat10",
+      "start": "2026-01-10 10:00",
+      "end": "2026-01-10 14:00",
+      "kind": "work"
+    },
+    {
+      "id": "sat17",
+      "start": "2026-01-17 10:00",
+      "end": "2026-01-17 14:00",
+      "kind": "work"
+    },
+    {
+      "id": "sat24",
+      "start": "2026-01-24 10:00",
+      "end": "2026-01-24 14:00",
+      "kind": "work"
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 240,
+        "amountOre": 60000
+      }
+    ],
+    "dailyMinutes": {
+      "2026-01-24": 240
+    },
+    "violations": ["WEEKEND_OFF@2026-01-19:WARNING"]
+  }
+}

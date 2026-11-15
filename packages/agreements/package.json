@@ -1,0 +1,24 @@
+{
+  "name": "@vagtplan/agreements",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "seed": "node scripts/generate-seed.mjs"
+  },
+  "dependencies": {
+    "@vagtplan/rules-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.9.3",
+    "vitest": "4.1.12"
+  }
+}

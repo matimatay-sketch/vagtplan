@@ -1,0 +1,53 @@
+{
+  "description": "Fylder 18 onsdag: ungesats tirsdag, voksensats onsdag.",
+  "employee": {
+    "birthDate": "2008-01-07",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-01-05",
+    "to": "2026-01-11"
+  },
+  "worked": [
+    {
+      "id": "2026-01-06-08:00",
+      "start": "2026-01-06 08:00",
+      "end": "2026-01-06 12:00",
+      "kind": "work"
+    },
+    {
+      "id": "2026-01-07-08:00",
+      "start": "2026-01-07 08:00",
+      "end": "2026-01-07 12:00",
+      "kind": "work"
+    }
+  ],
+  "expected": {
+    "lines": [
+      {
+        "payCode": "NORMAL",
+        "rateOre": 10000,
+        "quantityMinutes": 240,
+        "amountOre": 40000
+      },
+      {
+        "payCode": "NORMAL",
+        "rateOre": 15000,
+        "quantityMinutes": 240,
+        "amountOre": 60000
+      }
+    ],
+    "dailyMinutes": {
+      "2026-01-06": 240,
+      "2026-01-07": 240
+    },
+    "violations": []
+  }
+}

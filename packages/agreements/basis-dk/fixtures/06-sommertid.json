@@ -1,0 +1,46 @@
+{
+  "description": "Vagt til 22 lørdag og fra 09 søndag ved overgang til sommertid: kun 10 reelle timers hvile.",
+  "employee": {
+    "birthDate": "1995-03-10",
+    "schoolObligated": false,
+    "schoolObligationEndsOn": null
+  },
+  "contract": {
+    "payForm": "hourly",
+    "weeklyNormMinutes": 2220,
+    "staffGroup": "Ekspedient",
+    "payStep": null
+  },
+  "period": {
+    "from": "2026-03-28",
+    "to": "2026-03-29"
+  },
+  "worked": [
+    {
+      "id": "2026-03-28-14:00",
+      "start": "2026-03-28 14:00",
+      "end": "2026-03-28 22:00",
+      "kind": "work",
+      "breaks": [
+        {
+          "start": "2026-03-28 18:00",
+          "end": "2026-03-28 18:30"
+        }
+      ]
+    },
+    {
+      "id": "2026-03-29-09:00",
+      "start": "2026-03-29 09:00",
+      "end": "2026-03-29 15:00",
+      "kind": "work"
+    }
+  ],
+  "expected": {
+    "lines": [],
+    "dailyMinutes": {
+      "2026-03-28": 450,
+      "2026-03-29": 360
+    },
+    "violations": ["REST_DAILY@2026-03-29:BLOCKING"]
+  }
+}
