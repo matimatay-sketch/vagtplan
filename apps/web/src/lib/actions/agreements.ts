@@ -17,6 +17,7 @@ import type { DbBreak } from "@/lib/domain/breaks";
 import {
   copyDocument,
   localDocument,
+  newAgreementDocument,
   nextVersion,
   registryWith,
   validateDocument,
@@ -119,6 +120,56 @@ export async function copyAgreementAction(
   if (tError) return { message: dbErrorMessage(tError) };
   revalidateAgreements();
   return { ok: true, message: da.agreements.copied, id: created.id };
+}
+
+/** A new, empty agreement that inherits from the law (the system base document). */
+export async function createAgreementAction(
+  name: string,
+  validFrom: string,
+): Promise<ActionState & { id?: string }> {
+  const ctx = await requireContext(["agreements.manage"]);
+  const supabase = await createClient();
+  const title = z.string().trim().min(1).max(100).safeParse(name);
+  if (!title.success) return { message: da.validation.required };
+  if (!isValidIsoDate(validFrom)) return { message: da.validation.invalidDate };
+  const { data: base } = await supabase
+    .from("agreement")
+    .select("key, agreement_version (valid_from, status)")
+    .eq("kind", "base")
+    .is("organization_id", null)
+    .order("key")
+    .limit(1)
+    .maybeSingle();
+  if (!base) return { message: da.common.notAllowed };
+  const lawFrom = base.agreement_version
+    .filter((v) => v.status === "published")
+    .map((v) => v.valid_from)
+    .sort()[0];
+  if (lawFrom && validFrom < lawFrom) return { message: da.agreements.beforeLaw(lawFrom) };
+  const slug = title.data
+    .toLowerCase()
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "oe")
+    .replace(/å/g, "aa")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const key = await freeKey(supabase, (slug || "overenskomst").slice(0, 60));
+  const { data: created, error } = await supabase
+    .from("agreement")
+    .insert({ organization_id: ctx.organization.id, key, name: title.data, kind: "agreement" })
+    .select("id")
+    .single();
+  if (error) return { message: dbErrorMessage(error) };
+  const doc = newAgreementDocument({ id: key, name: title.data, parent: base.key, validFrom });
+  const { error: vError } = await supabase.from("agreement_version").insert({
+    agreement_id: created.id,
+    version: 1,
+    valid_from: doc.valid_from,
+    document: asJson(doc),
+  });
+  if (vError) return { message: dbErrorMessage(vError) };
+  revalidateAgreements();
+  return { ok: true, message: da.agreements.created, id: created.id };
 }
 
 /** A local agreement that inherits from `parentId` and starts empty. */

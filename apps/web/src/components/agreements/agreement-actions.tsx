@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { Copy, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { copyAgreementAction, createLocalAction, newVersionAction } from "@/lib/actions/agreements";
+import {
+  copyAgreementAction,
+  createAgreementAction,
+  createLocalAction,
+  newVersionAction,
+} from "@/lib/actions/agreements";
 import { da } from "@/lib/i18n/da";
 
 export function CopyAgreementButton({ agreementId }: { agreementId: string }) {
@@ -26,6 +31,45 @@ export function CopyAgreementButton({ agreementId }: { agreementId: string }) {
     >
       <Copy /> {da.agreements.copy}
     </Button>
+  );
+}
+
+export function NewAgreementForm({ defaultDate }: { defaultDate: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [name, setName] = useState("");
+  const [validFrom, setValidFrom] = useState(defaultDate);
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      data-testid="new-agreement"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await createAgreementAction(name, validFrom);
+          if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+          if (r.id) router.push(`/indstillinger/overenskomster/${r.id}`);
+        });
+      }}
+    >
+      <Input
+        className="h-8 w-64"
+        aria-label={da.agreements.newAgreementName}
+        placeholder={da.agreements.newAgreementName}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Input
+        className="h-8 w-40"
+        type="date"
+        aria-label={da.agreements.validFrom}
+        value={validFrom}
+        onChange={(e) => setValidFrom(e.target.value)}
+      />
+      <Button size="sm" disabled={pending || !name.trim()} title={da.agreements.newAgreementHelp}>
+        <Plus /> {da.agreements.newAgreement}
+      </Button>
+    </form>
   );
 }
 

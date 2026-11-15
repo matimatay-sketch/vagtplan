@@ -52,6 +52,26 @@ export function localDocument(p: {
   });
 }
 
+/** A new, empty agreement that inherits from the law (the base document). */
+export function newAgreementDocument(p: {
+  id: string;
+  name: string;
+  parent: string;
+  validFrom: string;
+}): AgreementDocument {
+  return parseAgreementDocument({
+    id: p.id,
+    name: p.name,
+    kind: "agreement",
+    version: 1,
+    valid_from: p.validFrom,
+    valid_to: null,
+    inherits_from: p.parent,
+    source: p.name,
+    rules: [],
+  });
+}
+
 /** The registry with `doc` added as if published: earlier versions end the day before it starts. */
 export function registryWith(
   registry: AgreementRegistry,

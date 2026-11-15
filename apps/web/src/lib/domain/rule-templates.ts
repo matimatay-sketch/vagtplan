@@ -30,6 +30,7 @@ export const RULE_TYPES: {
   { primitive: "notice", label: "Varsling af vagtplan", group: "time" },
   { primitive: "weekend_off", label: "Fri weekender", group: "time" },
   { primitive: "holiday_calendar", label: "Helligdage", group: "time" },
+  { primitive: "time_off_accrual", label: "Optjening af frihed (afspadsering)", group: "leave" },
   { primitive: "absence", label: "Fraværstyper", group: "leave" },
   { primitive: "vacation", label: "Ferie og feriefridage", group: "leave" },
   { primitive: "remark", label: "Anmærkning", group: "other" },
@@ -144,6 +145,16 @@ function defaultParams(primitive: Primitive, name: string): Record<string, unkno
         vacation_pay_bp: null,
         vacation_supplement_bp: null,
         special_vacation_pay_bp: null,
+      };
+    case "time_off_accrual":
+      return {
+        pay_code: code,
+        basis: {
+          type: "worked_in_windows",
+          windows: [{ days: ["any"], from: "00:00", to: "24:00" }],
+          per_minutes: 60,
+          earn_minutes: 1,
+        },
       };
     case "remark":
       return newRemarkRule(name, [], defaultCondition("shift_longer_than")).params;

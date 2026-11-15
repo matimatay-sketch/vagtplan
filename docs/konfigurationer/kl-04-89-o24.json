@@ -1,0 +1,344 @@
+{
+  "id": "kl-04-89-arbejdstid-forskudt-tid-holddrift-og-raadighedsvagt",
+  "kind": "agreement",
+  "name": "KL 04.89 Arbejdstid, forskudt tid, holddrift og rådighedsvagt",
+  "rules": [
+    {
+      "id": "helligdage",
+      "label": "Helligdage (grundlovsdag fra kl. 12)",
+      "params": {
+        "partial": [
+          {
+            "key": "grundlovsdag",
+            "from": "12:00"
+          }
+        ],
+        "holidays": [
+          "nytaarsdag",
+          "skaertorsdag",
+          "langfredag",
+          "paaskedag",
+          "anden_paaskedag",
+          "kristi_himmelfartsdag",
+          "pinsedag",
+          "anden_pinsedag",
+          "juledag",
+          "anden_juledag",
+          "grundlovsdag"
+        ]
+      },
+      "source": "KL 04.89 § 14 stk. 2",
+      "todo_jura": "Grundlovsdag efter kl. 12 giver kun weekendtillæg, hvis dagen er arbejdsdag for ansatte i almindeligt dagarbejde på arbejdspladsen. Fjern grundlovsdag, hvis det ikke er tilfældet."
+    },
+    {
+      "id": "forskudttidstillaeg",
+      "label": "Forskudttidstillæg man–fre 17–06",
+      "params": {
+        "amount": {
+          "ore": 0,
+          "type": "ore_per_hour"
+        },
+        "windows": [
+          {
+            "to": "24:00",
+            "days": ["mon", "tue", "wed", "thu", "fri"],
+            "from": "17:00"
+          },
+          {
+            "to": "06:00",
+            "days": ["tue", "wed", "thu", "fri", "sat"],
+            "from": "00:00"
+          },
+          {
+            "to": "06:00",
+            "days": ["mon"],
+            "from": "04:00",
+            "started_after": "00:00"
+          }
+        ],
+        "pay_code": "FORSKUDT",
+        "exclude_call_out": true,
+        "exclude_holidays": true,
+        "exclude_overtime": true
+      },
+      "source": "KL 04.89 § 14 stk. 1",
+      "stacking": {
+        "mode": "highest",
+        "group": "ulempe"
+      },
+      "primitive": "time_window_supplement",
+      "todo_jura": "Indtast kundens regulerede sats. Aftalens 31/3-2000-niveau: 20,33 kr. (1/4-2024), 20,53 kr. (1/4-2025). \"Ydes pr. halve time\" (§ 14 stk. 5): afrunding afventer afklaring.",
+      "applies_to": {
+        "staff_groups": ["Forskudt tid", "Holddrift"]
+      }
+    },
+    {
+      "id": "loerdagstillaeg",
+      "label": "Lørdagstillæg lør 11–17",
+      "params": {
+        "amount": {
+          "ore": 0,
+          "type": "ore_per_hour"
+        },
+        "windows": [
+          {
+            "to": "17:00",
+            "days": ["sat"],
+            "from": "11:00"
+          }
+        ],
+        "pay_code": "LOERDAG",
+        "exclude_call_out": true,
+        "exclude_holidays": true,
+        "exclude_overtime": true
+      },
+      "source": "KL 04.89 § 14 stk. 1",
+      "stacking": {
+        "mode": "highest",
+        "group": "ulempe"
+      },
+      "primitive": "time_window_supplement",
+      "todo_jura": "Indtast kundens regulerede sats. Aftalens 31/3-2000-niveau: 24,14 kr. (1/4-2024), 24,38 kr. (1/4-2025).",
+      "applies_to": {
+        "staff_groups": ["Forskudt tid", "Holddrift"]
+      }
+    },
+    {
+      "id": "weekendtillaeg",
+      "label": "Weekendtillæg lør 17 – man 04 (06) og søgnehelligdage",
+      "params": {
+        "amount": {
+          "ore": 0,
+          "type": "ore_per_hour"
+        },
+        "windows": [
+          {
+            "to": "24:00",
+            "days": ["sat"],
+            "from": "17:00"
+          },
+          {
+            "to": "24:00",
+            "days": ["sun", "holiday"],
+            "from": "00:00"
+          },
+          {
+            "to": "04:00",
+            "days": ["mon"],
+            "from": "00:00"
+          },
+          {
+            "to": "06:00",
+            "days": ["mon"],
+            "from": "04:00",
+            "started_at_or_before": "00:00"
+          }
+        ],
+        "pay_code": "WEEKEND",
+        "exclude_call_out": true,
+        "exclude_holidays": false,
+        "exclude_overtime": true
+      },
+      "source": "KL 04.89 § 14 stk. 1–2",
+      "stacking": {
+        "mode": "highest",
+        "group": "ulempe"
+      },
+      "primitive": "time_window_supplement",
+      "todo_jura": "Indtast kundens regulerede sats. Aftalens 31/3-2000-niveau: 44,47 kr. (1/4-2024), 44,92 kr. (1/4-2025). Ingen tillæg om eftermiddagen 1. maj, juleaftensdag og nytårsaftensdag (§ 14 stk. 3) kan endnu ikke udtrykkes.",
+      "applies_to": {
+        "staff_groups": ["Forskudt tid", "Holddrift"]
+      }
+    },
+    {
+      "id": "raadighedsvagt",
+      "label": "Rådighedsvagt",
+      "params": {
+        "amount": {
+          "ore": 0,
+          "type": "ore_per_hour"
+        },
+        "pay_code": "RAADIGHED",
+        "rounding": {
+          "mode": "started",
+          "unit_minutes": 30
+        },
+        "call_out_pay": {
+          "amount": {
+            "bp": 20000,
+            "type": "percent_of_base"
+          },
+          "pay_code": "UDKALD",
+          "max_rate_ore": null,
+          "unit_minutes": 60
+        },
+        "rate_windows": [
+          {
+            "to": "24:00",
+            "days": ["sat", "sun", "holiday"],
+            "from": "00:00",
+            "amount": {
+              "ore": 0,
+              "type": "ore_per_hour"
+            },
+            "pay_code": "RAADIGHED_WE"
+          }
+        ],
+        "monthly_tiers": [
+          {
+            "pay_code": "RAADIGHED_EKSTRA50",
+            "percent_bp": 5000,
+            "to_minutes": 12600,
+            "from_minutes": 8400
+          },
+          {
+            "pay_code": "RAADIGHED_EKSTRA100",
+            "percent_bp": 10000,
+            "to_minutes": null,
+            "from_minutes": 12600
+          }
+        ],
+        "counts_as_rest": true,
+        "exclude_holidays": true,
+        "call_out_min_minutes": 0,
+        "call_out_guarantee_pay_code": "UDKALD_GARANTI"
+      },
+      "source": "KL 04.89 § 10, § 16, § 17",
+      "primitive": "on_call",
+      "todo_jura": "Indtast kundens regulerede sats. Aftalens 31/3-2000-niveau: 24,45 (hverdage) / 29,24 (weekend og søgnehelligdage) kr. (1/4-2024), 24,69 / 29,53 kr. (1/4-2025). Tilføj tidsrummet mandag 00:00 til normal arbejdstids begyndelse (og fredag fra normal ophør ved frilørdagsordning) til weekend-satsen. Udkald: timeløn + 100 %, højst løntrin 43 + 100 % (indtast loftet). Telefonopkald (§ 18) registreres ikke.",
+      "applies_to": {
+        "staff_groups": ["Rådighedsvagt"]
+      }
+    },
+    {
+      "id": "frihed-2-3-skift",
+      "label": "3 timers frihed pr. 37 timer på 2. og 3. skift",
+      "params": {
+        "basis": {
+          "type": "worked_in_windows",
+          "windows": [
+            {
+              "to": "06:00",
+              "days": ["any"],
+              "from": "14:00"
+            }
+          ],
+          "per_minutes": 2220,
+          "earn_minutes": 180,
+          "exclude_holidays": false,
+          "exclude_overtime": false
+        },
+        "pay_code": "FRIHED_SKIFT"
+      },
+      "source": "KL 04.89 § 5, bilag A",
+      "primitive": "time_off_accrual",
+      "todo_jura": "Skifternes tidspunkter aftales lokalt (§ 6 stk. 2: døgnet regnes fra kl. 6). 14–06 er en pladsholder for 2. og 3. skift. Afregning med tillæg på 3/37 i stedet for frihed (§ 5 stk. 1) er ikke sat op.",
+      "applies_to": {
+        "staff_groups": ["Holddrift"]
+      }
+    },
+    {
+      "id": "erstatningsfrihed-helligdag",
+      "label": "Erstatningsfridag for arbejde på søgnehelligdag",
+      "params": {
+        "basis": {
+          "type": "holiday_work",
+          "earn_minutes": 480
+        },
+        "pay_code": "ERSTATNINGSFRI"
+      },
+      "source": "KL 04.89 § 15 stk. 1",
+      "primitive": "time_off_accrual",
+      "todo_jura": "En fridag er sat til 8 timer (normal vagt, bilag A). Vagtlistefridag, der falder på en søgnehelligdag, og eftermiddagene i § 15 stk. 2 kan endnu ikke udtrykkes.",
+      "applies_to": {
+        "staff_groups": ["Holddrift"]
+      }
+    },
+    {
+      "id": "varsling-holddrift",
+      "label": "72 timers varsel ved ændringer i holddrift",
+      "params": {
+        "change_notice_hours": 72
+      },
+      "source": "KL 04.89 § 8 stk. 1",
+      "primitive": "notice",
+      "todo_jura": "Betaling som overarbejde ved for sent varsel (§ 8 stk. 2) beregnes ikke.",
+      "applies_to": {
+        "staff_groups": ["Holddrift"]
+      }
+    },
+    {
+      "id": "anm-frihed-16-timer",
+      "label": "Under 16 timers frihed mellem vagter",
+      "params": {
+        "code": "FRIHED_UNDER_16",
+        "message": "Under 16 timers frihed mellem vagter",
+        "show_in": ["schedule"],
+        "condition": {
+          "type": "rest_below",
+          "min_minutes": 960
+        }
+      },
+      "source": "KL 04.89 § 7 stk. 1–2",
+      "severity": "WARNING",
+      "primitive": "remark",
+      "todo_jura": "Kan nedsættes til 8 timer én gang pr. kalenderuge ved holdskifte (§ 7 stk. 2).",
+      "applies_to": {
+        "staff_groups": ["Holddrift"]
+      }
+    },
+    {
+      "id": "norm",
+      "label": "37 timer i gennemsnit pr. turnusperiode",
+      "params": {
+        "period": {
+          "type": "week"
+        }
+      },
+      "source": "KL 04.89 § 4, § 6 stk. 1",
+      "primitive": "norm",
+      "todo_jura": "Turnusperiodens længde aftales lokalt. Sæt perioden til N uger med startdato."
+    }
+  ],
+  "source": "KL 04.89, O.24 (7/2025)",
+  "example": false,
+  "version": 2,
+  "valid_to": null,
+  "pay_codes": {
+    "UDKALD": {
+      "label": "Udkald, overtid med 100 %"
+    },
+    "LOERDAG": {
+      "label": "Lørdagstillæg"
+    },
+    "WEEKEND": {
+      "label": "Weekendtillæg"
+    },
+    "FORSKUDT": {
+      "label": "Forskudttidstillæg"
+    },
+    "RAADIGHED": {
+      "label": "Rådighedsvagt, hverdage"
+    },
+    "FRIHED_SKIFT": {
+      "label": "Frihed for arbejde på 2. og 3. skift (afspadsering)"
+    },
+    "RAADIGHED_WE": {
+      "label": "Rådighedsvagt, weekend og søgnehelligdage"
+    },
+    "ERSTATNINGSFRI": {
+      "label": "Erstatningsfrihed for søgnehelligdag (afspadsering)"
+    },
+    "UDKALD_GARANTI": {
+      "label": "Udkald, minimumsbetaling (bruges ikke, § 10 stk. 4)"
+    },
+    "RAADIGHED_EKSTRA50": {
+      "label": "Rådighedsvagt, særlig godtgørelse 50 % (141.–210. time)"
+    },
+    "RAADIGHED_EKSTRA100": {
+      "label": "Rådighedsvagt, særlig godtgørelse 100 % (211.+ time)"
+    }
+  },
+  "valid_from": "2025-04-01",
+  "inherits_from": "basis-dk"
+}

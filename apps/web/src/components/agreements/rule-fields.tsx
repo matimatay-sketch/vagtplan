@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,7 +329,7 @@ export function StackingFields({
 }
 
 // ---------------------------------------------------------------------------
-// Tidsvinduestillæg.
+// Time windows (supplements, on-call rates, time-off accrual).
 // ---------------------------------------------------------------------------
 const DAYS = [
   "mon",
@@ -344,13 +344,279 @@ const DAYS = [
   "any",
 ] as const;
 type Day = (typeof DAYS)[number];
-type Window = { days: Day[]; from: string; to: string };
+export type Window = {
+  days: Day[];
+  from: string;
+  to: string;
+  started_at_or_before?: string | null;
+  started_after?: string | null;
+};
+type StartCondition = "none" | "at_or_before" | "after";
+
+function DayButtons({
+  label,
+  days,
+  onChange,
+}: {
+  label: string;
+  days: Day[];
+  onChange: (d: Day[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
+      {DAYS.map((d) => {
+        const on = days.includes(d);
+        return (
+          <button
+            key={d}
+            type="button"
+            aria-pressed={on}
+            className={cn(
+              "rounded-md border px-2 py-1 text-xs",
+              on ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
+            )}
+            onClick={() => onChange(toggle(days, d, !on))}
+          >
+            {t.dayLabels[d]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Days, from–to and (optionally) a condition on when the shift started. */
+export function WindowsEditor<W extends Window>({
+  id,
+  windows,
+  onChange,
+  newWindow,
+  extra,
+}: {
+  id: string;
+  windows: W[];
+  onChange: (w: W[]) => void;
+  newWindow: () => W;
+  /** Extra fields per window (e.g. the rate of an on-call window). */
+  extra?: (w: W, set: (patch: Partial<W>) => void, i: number) => ReactNode;
+}) {
+  const set = (i: number, patch: Partial<W>) =>
+    onChange(windows.map((x, k) => (k === i ? { ...x, ...patch } : x)));
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="mb-1 text-sm font-medium">{t.windows}</legend>
+      {windows.map((w, i) => {
+        const cond: StartCondition = w.started_at_or_before
+          ? "at_or_before"
+          : w.started_after
+            ? "after"
+            : "none";
+        const condTime = w.started_at_or_before ?? w.started_after ?? "00:00";
+        const setCond = (c: StartCondition, time: string) =>
+          set(i, {
+            started_at_or_before: c === "at_or_before" ? time : null,
+            started_after: c === "after" ? time : null,
+          } as Partial<W>);
+        return (
+          <div key={i} className="grid gap-2 rounded-lg border p-2" data-testid="window">
+            <DayButtons
+              label={`${t.days} ${i + 1}`}
+              days={w.days}
+              onChange={(days) => set(i, { days } as Partial<W>)}
+            />
+            <div className="flex flex-wrap items-end gap-2">
+              <Field label={t.from} htmlFor={`${id}-w${i}-from`}>
+                <Input
+                  id={`${id}-w${i}-from`}
+                  type="time"
+                  value={w.from}
+                  onChange={(e) => set(i, { from: e.target.value } as Partial<W>)}
+                />
+              </Field>
+              <Field label={t.to} htmlFor={`${id}-w${i}-to`}>
+                {/* 24:00 is a valid end; a text field keeps it typeable. */}
+                <Input
+                  id={`${id}-w${i}-to`}
+                  className="w-28"
+                  placeholder="24:00"
+                  value={w.to}
+                  onChange={(e) => set(i, { to: e.target.value } as Partial<W>)}
+                />
+              </Field>
+              <Field label={t.startCondition} htmlFor={`${id}-w${i}-cond`}>
+                <NativeSelect
+                  id={`${id}-w${i}-cond`}
+                  value={cond}
+                  onChange={(e) => setCond(e.target.value as StartCondition, condTime)}
+                >
+                  {(["none", "at_or_before", "after"] as const).map((c) => (
+                    <option key={c} value={c}>
+                      {t.startConditions[c]}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+              {cond !== "none" ? (
+                <Field label={t.startTime} htmlFor={`${id}-w${i}-condtime`}>
+                  <Input
+                    id={`${id}-w${i}-condtime`}
+                    type="time"
+                    value={condTime}
+                    onChange={(e) => setCond(cond, e.target.value)}
+                  />
+                </Field>
+              ) : null}
+              {windows.length > 1 ? (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`${t.removeWindow} ${i + 1}`}
+                  onClick={() => onChange(windows.filter((_, k) => k !== i))}
+                >
+                  <Trash2 />
+                </Button>
+              ) : null}
+            </div>
+            {extra ? extra(w, (patch) => set(i, patch), i) : null}
+          </div>
+        );
+      })}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="justify-self-start"
+        onClick={() => onChange([...windows, newWindow()])}
+      >
+        <Plus /> {t.addWindow}
+      </Button>
+    </fieldset>
+  );
+}
+
+type Rounding = { unit_minutes: number; mode: "started" | "completed" | "nearest" } | null;
+
+/** Per minute, or per begun/whole/nearest unit of N minutes. */
+function RoundingFields({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: Rounding | undefined;
+  onChange: (r: Rounding) => void;
+}) {
+  const mode = value?.mode ?? "none";
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <Field label={t.rounding} htmlFor={`${id}-rounding`}>
+        <NativeSelect
+          id={`${id}-rounding`}
+          value={mode}
+          onChange={(e) =>
+            onChange(
+              e.target.value === "none"
+                ? null
+                : {
+                    unit_minutes: value?.unit_minutes ?? 30,
+                    mode: e.target.value as "started" | "completed" | "nearest",
+                  },
+            )
+          }
+        >
+          {(["none", "started", "completed", "nearest"] as const).map((m) => (
+            <option key={m} value={m}>
+              {t.roundingModes[m]}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      {value ? (
+        <Field label={t.roundingUnit} htmlFor={`${id}-rounding-unit`}>
+          <Input
+            id={`${id}-rounding-unit`}
+            type="number"
+            min={1}
+            max={240}
+            className="w-24"
+            value={value.unit_minutes}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                unit_minutes: Math.max(1, Math.trunc(Number(e.target.value) || 1)),
+              })
+            }
+          />
+        </Field>
+      ) : null}
+    </div>
+  );
+}
+
+function Check({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        className="accent-primary"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {label}
+    </label>
+  );
+}
+
+/** Whole minutes typed as Danish decimal hours. */
+function HoursAsMinutes({
+  id,
+  label,
+  minutes,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  minutes: number;
+  onChange: (m: number) => void;
+}) {
+  const [text, setText] = useState(() => String(minutes / 60).replace(".", ","));
+  return (
+    <Field label={label} htmlFor={id}>
+      <Input
+        id={id}
+        inputMode="decimal"
+        className="w-28"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          const v = parseDanishDecimal(e.target.value);
+          if (v !== null && v >= 0) onChange(Math.round(v * 60));
+        }}
+      />
+    </Field>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tidsvinduestillæg.
+// ---------------------------------------------------------------------------
 export type SupplementParams = {
   windows: Window[];
   exclude_holidays?: boolean;
   amount: Amount;
   pay_code: string;
   exclude_overtime?: boolean;
+  exclude_call_out?: boolean;
+  rounding?: Rounding;
 };
 
 export function SupplementFields({
@@ -364,8 +630,6 @@ export function SupplementFields({
   payCodes: readonly string[];
   onChange: (p: SupplementParams) => void;
 }) {
-  const setWindow = (i: number, w: Partial<Window>) =>
-    onChange({ ...value, windows: value.windows.map((x, k) => (k === i ? { ...x, ...w } : x)) });
   return (
     <div className="grid gap-3" data-testid="supplement-fields">
       <div className="grid gap-3 sm:grid-cols-[18rem_1fr]">
@@ -381,64 +645,194 @@ export function SupplementFields({
           onChange={(amount) => onChange({ ...value, amount })}
         />
       </div>
-      <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">{t.windows}</legend>
-        {value.windows.map((w, i) => (
-          <div key={i} className="grid gap-2 rounded-lg border p-2" data-testid="supplement-window">
-            <div className="flex flex-wrap gap-1" role="group" aria-label={`${t.days} ${i + 1}`}>
-              {DAYS.map((d) => {
-                const on = w.days.includes(d);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    aria-pressed={on}
-                    className={cn(
-                      "rounded-md border px-2 py-1 text-xs",
-                      on
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "bg-card hover:bg-muted",
-                    )}
-                    onClick={() => setWindow(i, { days: toggle(w.days, d, !on) })}
-                  >
-                    {t.dayLabels[d]}
-                  </button>
-                );
-              })}
+      <WindowsEditor
+        id={id}
+        windows={value.windows}
+        onChange={(windows) => onChange({ ...value, windows })}
+        newWindow={() => ({ days: ["weekday"], from: "00:00", to: "24:00" })}
+      />
+      <RoundingFields
+        id={id}
+        value={value.rounding}
+        onChange={(rounding) => onChange({ ...value, rounding })}
+      />
+      <div className="flex flex-wrap gap-4">
+        <Check
+          label={t.excludeHolidays}
+          checked={value.exclude_holidays ?? true}
+          onChange={(v) => onChange({ ...value, exclude_holidays: v })}
+        />
+        <Check
+          label={t.excludeOvertime}
+          checked={value.exclude_overtime ?? false}
+          onChange={(v) => onChange({ ...value, exclude_overtime: v })}
+        />
+        <Check
+          label={t.excludeCallOut}
+          checked={value.exclude_call_out ?? false}
+          onChange={(v) => onChange({ ...value, exclude_call_out: v })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Rådighed og tilkald.
+// ---------------------------------------------------------------------------
+type RateWindow = Window & { amount: Amount; pay_code: string };
+type Tier = {
+  from_minutes: number;
+  to_minutes: number | null;
+  percent_bp: number;
+  pay_code: string;
+};
+export type OnCallParams = {
+  amount: Amount;
+  pay_code: string;
+  call_out_min_minutes: number;
+  call_out_guarantee_pay_code: string;
+  counts_as_rest?: boolean;
+  rate_windows?: RateWindow[];
+  exclude_holidays?: boolean;
+  rounding?: Rounding;
+  monthly_tiers?: Tier[];
+  call_out_pay?: {
+    amount: Amount;
+    pay_code: string;
+    unit_minutes?: number;
+    max_rate_ore?: number | null;
+  } | null;
+};
+
+export function OnCallFields({
+  id,
+  value,
+  payCodes,
+  onChange,
+}: {
+  id: string;
+  value: OnCallParams;
+  payCodes: readonly string[];
+  onChange: (p: OnCallParams) => void;
+}) {
+  const tiers = value.monthly_tiers ?? [];
+  const setTier = (i: number, patch: Partial<Tier>) =>
+    onChange({ ...value, monthly_tiers: tiers.map((x, k) => (k === i ? { ...x, ...patch } : x)) });
+  const cp = value.call_out_pay ?? null;
+  return (
+    <div className="grid gap-4" data-testid="on-call-fields">
+      <div className="grid gap-1">
+        <span className="text-sm font-medium">{t.onCallDefault}</span>
+        <div className="grid gap-3 sm:grid-cols-[18rem_1fr]">
+          <PayCodeField
+            id={id}
+            value={value.pay_code}
+            payCodes={payCodes}
+            onChange={(pay_code) => onChange({ ...value, pay_code })}
+          />
+          <AmountFields
+            id={`${id}-amount`}
+            value={value.amount}
+            onChange={(amount) => onChange({ ...value, amount })}
+          />
+        </div>
+      </div>
+      <div className="grid gap-1">
+        <span className="text-sm font-medium">{t.onCallWindows}</span>
+        <p className="text-xs text-muted-foreground">{t.onCallWindowsHelp}</p>
+        <WindowsEditor
+          id={`${id}-rates`}
+          windows={value.rate_windows ?? []}
+          onChange={(rate_windows) => onChange({ ...value, rate_windows })}
+          newWindow={(): RateWindow => ({
+            days: ["sat", "sun", "holiday"],
+            from: "00:00",
+            to: "24:00",
+            amount: { type: "ore_per_hour", ore: 0 },
+            pay_code: value.pay_code,
+          })}
+          extra={(w, set, i) => (
+            <div className="grid gap-3 sm:grid-cols-[18rem_1fr]">
+              <PayCodeField
+                id={`${id}-rate${i}`}
+                value={w.pay_code}
+                payCodes={payCodes}
+                onChange={(pay_code) => set({ pay_code })}
+              />
+              <AmountFields
+                id={`${id}-rate${i}-amount`}
+                value={w.amount}
+                onChange={(amount) => set({ amount })}
+              />
             </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label={t.from} htmlFor={`${id}-w${i}-from`}>
-                <Input
-                  id={`${id}-w${i}-from`}
-                  type="time"
-                  value={w.from}
-                  onChange={(e) => setWindow(i, { from: e.target.value })}
-                />
-              </Field>
-              <Field label={t.to} htmlFor={`${id}-w${i}-to`}>
-                {/* 24:00 is a valid end; a text field keeps it typeable. */}
-                <Input
-                  id={`${id}-w${i}-to`}
-                  className="w-28"
-                  placeholder="24:00"
-                  value={w.to}
-                  onChange={(e) => setWindow(i, { to: e.target.value })}
-                />
-              </Field>
-              {value.windows.length > 1 ? (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t.removeWindow}
-                  onClick={() =>
-                    onChange({ ...value, windows: value.windows.filter((_, k) => k !== i) })
-                  }
-                >
-                  <Trash2 />
-                </Button>
-              ) : null}
-            </div>
+          )}
+        />
+        <Check
+          label={t.excludeHolidays}
+          checked={value.exclude_holidays ?? true}
+          onChange={(v) => onChange({ ...value, exclude_holidays: v })}
+        />
+      </div>
+      <RoundingFields
+        id={id}
+        value={value.rounding}
+        onChange={(rounding) => onChange({ ...value, rounding })}
+      />
+      <fieldset className="grid gap-2 rounded-lg border p-3">
+        <legend className="px-1 text-sm font-medium">{t.monthlyTiers}</legend>
+        <p className="text-xs text-muted-foreground">{t.monthlyTiersHelp}</p>
+        {tiers.map((tier, i) => (
+          <div key={i} className="flex flex-wrap items-end gap-2" data-testid="tier">
+            <HoursAsMinutes
+              id={`${id}-tier${i}-from`}
+              label={t.tierFrom}
+              minutes={tier.from_minutes}
+              onChange={(from_minutes) => setTier(i, { from_minutes })}
+            />
+            <Field label={t.tierTo} htmlFor={`${id}-tier${i}-to`}>
+              <Input
+                id={`${id}-tier${i}-to`}
+                inputMode="decimal"
+                className="w-28"
+                placeholder={t.noLimit}
+                defaultValue={
+                  tier.to_minutes === null ? "" : String(tier.to_minutes / 60).replace(".", ",")
+                }
+                onChange={(e) => {
+                  const v = parseDanishDecimal(e.target.value);
+                  setTier(i, {
+                    to_minutes:
+                      e.target.value.trim() === ""
+                        ? null
+                        : v === null
+                          ? tier.to_minutes
+                          : Math.round(v * 60),
+                  });
+                }}
+              />
+            </Field>
+            <PercentField
+              id={`${id}-tier${i}-pct`}
+              label={t.tierPercent}
+              bp={tier.percent_bp}
+              onChange={(percent_bp) => setTier(i, { percent_bp })}
+            />
+            <PayCodeField
+              id={`${id}-tier${i}`}
+              value={tier.pay_code}
+              payCodes={payCodes}
+              onChange={(pay_code) => setTier(i, { pay_code })}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={`${t.removeTier} ${i + 1}`}
+              onClick={() => onChange({ ...value, monthly_tiers: tiers.filter((_, k) => k !== i) })}
+            >
+              <Trash2 />
+            </Button>
           </div>
         ))}
         <Button
@@ -449,33 +843,223 @@ export function SupplementFields({
           onClick={() =>
             onChange({
               ...value,
-              windows: [...value.windows, { days: ["weekday"], from: "00:00", to: "24:00" }],
+              monthly_tiers: [
+                ...tiers,
+                { from_minutes: 0, to_minutes: null, percent_bp: 0, pay_code: value.pay_code },
+              ],
             })
           }
         >
-          <Plus /> {t.addWindow}
+          <Plus /> {t.addTier}
         </Button>
       </fieldset>
-      <div className="flex flex-wrap gap-4 text-sm">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="accent-primary"
-            checked={value.exclude_holidays ?? true}
-            onChange={(e) => onChange({ ...value, exclude_holidays: e.target.checked })}
+      <fieldset className="grid gap-2 rounded-lg border p-3">
+        <legend className="px-1 text-sm font-medium">{t.callOut}</legend>
+        <Check
+          label={t.callOutPay}
+          checked={cp !== null}
+          onChange={(on) =>
+            onChange({
+              ...value,
+              call_out_pay: on
+                ? {
+                    amount: { type: "ore_per_hour", ore: 0 },
+                    pay_code: "UDKALD",
+                    unit_minutes: 60,
+                    max_rate_ore: null,
+                  }
+                : null,
+            })
+          }
+        />
+        {cp ? (
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-[18rem_1fr]">
+              <PayCodeField
+                id={`${id}-callout`}
+                value={cp.pay_code}
+                payCodes={payCodes}
+                onChange={(pay_code) => onChange({ ...value, call_out_pay: { ...cp, pay_code } })}
+              />
+              <AmountFields
+                id={`${id}-callout-amount`}
+                value={cp.amount}
+                onChange={(amount) => onChange({ ...value, call_out_pay: { ...cp, amount } })}
+              />
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label={t.callOutUnit} htmlFor={`${id}-callout-unit`}>
+                <Input
+                  id={`${id}-callout-unit`}
+                  type="number"
+                  min={1}
+                  className="w-24"
+                  value={cp.unit_minutes ?? 60}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      call_out_pay: {
+                        ...cp,
+                        unit_minutes: Math.max(1, Math.trunc(Number(e.target.value) || 1)),
+                      },
+                    })
+                  }
+                />
+              </Field>
+              <KronerField
+                id={`${id}-callout-cap`}
+                label={t.callOutCap}
+                ore={cp.max_rate_ore ?? 0}
+                onChange={(ore) =>
+                  onChange({
+                    ...value,
+                    call_out_pay: { ...cp, max_rate_ore: ore > 0 ? ore : null },
+                  })
+                }
+              />
+            </div>
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-end gap-3">
+          <HoursAsMinutes
+            id={`${id}-callout-min`}
+            label={t.callOutMin}
+            minutes={value.call_out_min_minutes}
+            onChange={(call_out_min_minutes) => onChange({ ...value, call_out_min_minutes })}
           />
-          {t.excludeHolidays}
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="accent-primary"
-            checked={value.exclude_overtime ?? false}
-            onChange={(e) => onChange({ ...value, exclude_overtime: e.target.checked })}
+          <PayCodeField
+            id={`${id}-guarantee`}
+            value={value.call_out_guarantee_pay_code}
+            payCodes={payCodes}
+            onChange={(call_out_guarantee_pay_code) =>
+              onChange({ ...value, call_out_guarantee_pay_code })
+            }
           />
-          {t.excludeOvertime}
-        </label>
+        </div>
+      </fieldset>
+      <Check
+        label={t.countsAsRest}
+        checked={value.counts_as_rest ?? true}
+        onChange={(v) => onChange({ ...value, counts_as_rest: v })}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Optjening af frihed.
+// ---------------------------------------------------------------------------
+export type AccrualParams = {
+  pay_code: string;
+  basis:
+    | {
+        type: "worked_in_windows";
+        windows: Window[];
+        exclude_holidays?: boolean;
+        per_minutes: number;
+        earn_minutes: number;
+        exclude_overtime?: boolean;
+      }
+    | { type: "holiday_work"; earn_minutes: number };
+};
+
+export function AccrualFields({
+  id,
+  value,
+  payCodes,
+  onChange,
+}: {
+  id: string;
+  value: AccrualParams;
+  payCodes: readonly string[];
+  onChange: (p: AccrualParams) => void;
+}) {
+  const b = value.basis;
+  return (
+    <div className="grid gap-3" data-testid="accrual-fields">
+      <div className="grid gap-3 sm:grid-cols-[18rem_1fr]">
+        <PayCodeField
+          id={id}
+          value={value.pay_code}
+          payCodes={payCodes}
+          onChange={(pay_code) => onChange({ ...value, pay_code })}
+        />
+        <Field label={t.accrualBasis} htmlFor={`${id}-basis`}>
+          <NativeSelect
+            id={`${id}-basis`}
+            value={b.type}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                basis:
+                  e.target.value === "holiday_work"
+                    ? { type: "holiday_work", earn_minutes: 60 }
+                    : {
+                        type: "worked_in_windows",
+                        windows: [{ days: ["any"], from: "00:00", to: "24:00" }],
+                        per_minutes: 60,
+                        earn_minutes: 1,
+                      },
+              })
+            }
+          >
+            <option value="worked_in_windows">{t.accrualTypes.worked_in_windows}</option>
+            <option value="holiday_work">{t.accrualTypes.holiday_work}</option>
+          </NativeSelect>
+        </Field>
       </div>
+      {b.type === "worked_in_windows" ? (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <HoursAsMinutes
+              key={`${b.type}-earn`}
+              id={`${id}-earn`}
+              label={t.accrualEarn}
+              minutes={b.earn_minutes}
+              onChange={(earn_minutes) =>
+                onChange({ ...value, basis: { ...b, earn_minutes: Math.max(1, earn_minutes) } })
+              }
+            />
+            <HoursAsMinutes
+              key={`${b.type}-per`}
+              id={`${id}-per`}
+              label={t.accrualPer}
+              minutes={b.per_minutes}
+              onChange={(per_minutes) =>
+                onChange({ ...value, basis: { ...b, per_minutes: Math.max(1, per_minutes) } })
+              }
+            />
+          </div>
+          <WindowsEditor
+            id={id}
+            windows={b.windows}
+            onChange={(windows) => onChange({ ...value, basis: { ...b, windows } })}
+            newWindow={() => ({ days: ["any"], from: "00:00", to: "24:00" })}
+          />
+          <div className="flex flex-wrap gap-4">
+            <Check
+              label={t.excludeHolidays}
+              checked={b.exclude_holidays ?? false}
+              onChange={(v) => onChange({ ...value, basis: { ...b, exclude_holidays: v } })}
+            />
+            <Check
+              label={t.excludeOvertime}
+              checked={b.exclude_overtime ?? false}
+              onChange={(v) => onChange({ ...value, basis: { ...b, exclude_overtime: v } })}
+            />
+          </div>
+        </>
+      ) : (
+        <HoursAsMinutes
+          key={`${b.type}-earn`}
+          id={`${id}-holiday-earn`}
+          label={t.accrualHolidayEarn}
+          minutes={b.earn_minutes}
+          onChange={(earn_minutes) =>
+            onChange({ ...value, basis: { ...b, earn_minutes: Math.max(1, earn_minutes) } })
+          }
+        />
+      )}
     </div>
   );
 }

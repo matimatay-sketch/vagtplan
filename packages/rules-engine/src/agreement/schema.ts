@@ -47,6 +47,27 @@ export type Severity = (typeof SEVERITIES)[number];
 // ---------------------------------------------------------------------------
 // Primitive parameter schemas
 // ---------------------------------------------------------------------------
+/**
+ * A time window on given days. Optionally only for shifts that started at or
+ * before / after a local time on the window's day (e.g. Monday 04–06 for a
+ * shift begun no later than 00:00 Monday, i.e. on Sunday).
+ */
+export const windowSchema = z.object({
+  days: z.array(z.enum(DAY_SELECTORS)).min(1),
+  from: hhmm,
+  to: hhmm,
+  started_at_or_before: hhmmDay.nullable().default(null),
+  started_after: hhmmDay.nullable().default(null),
+});
+export type TimeWindow = z.output<typeof windowSchema>;
+
+/** started: per begun unit; completed: per whole unit; nearest: to the nearest unit. */
+export const roundingSchema = z.object({
+  unit_minutes: z.number().int().min(1).max(240),
+  mode: z.enum(["started", "completed", "nearest"]),
+});
+export type QuantityRounding = z.output<typeof roundingSchema>;
+
 export const ruleSchemas = {
   /** Lønsats: base hourly rate by staff group / pay step / age, date-dependent. */
   pay_rate: z.object({
@@ -103,15 +124,17 @@ export const ruleSchemas = {
 
   /** Tidsvinduestillæg, e.g. evening/night/weekend/holiday supplements. */
   time_window_supplement: z.object({
-    windows: z
-      .array(z.object({ days: z.array(z.enum(DAY_SELECTORS)).min(1), from: hhmm, to: hhmm }))
-      .min(1),
+    windows: z.array(windowSchema).min(1),
     /** Weekday selectors do not match holiday time (holiday has its own selector). */
     exclude_holidays: z.boolean().default(true),
     amount: amountSchema,
     pay_code: payCode,
     /** Not paid for overtime minutes (when the agreement says so). */
     exclude_overtime: z.boolean().default(false),
+    /** Not paid for call-out time (paid as overtime under on-call in some agreements). */
+    exclude_call_out: z.boolean().default(false),
+    /** Supplement time is rounded per shift (e.g. paid per half hour). null = per minute. */
+    rounding: roundingSchema.nullable().default(null),
   }),
 
   /** Helligdagskalender: which days are holidays, and half days. */
@@ -205,6 +228,39 @@ export const ruleSchemas = {
     call_out_guarantee_pay_code: payCode,
     /** On-call time without a call-out counts as rest (true) or as work (false) for the rest rules. */
     counts_as_rest: z.boolean().default(true),
+    /** Other rates in time windows (first match wins); other on-call time uses amount/pay_code. */
+    rate_windows: z
+      .array(windowSchema.extend({ amount: amountSchema, pay_code: payCode }))
+      .default([]),
+    /** Weekday/day windows do not match holiday time (the holiday selector does). */
+    exclude_holidays: z.boolean().default(true),
+    /** On-call time rounded per on-call shift and rate (e.g. per begun half hour). */
+    rounding: roundingSchema.nullable().default(null),
+    /**
+     * Extra pay for on-call hours above limits in a calendar month, in % of the
+     * on-call rate. On-call and call-out minutes both count towards the limits;
+     * only on-call minutes get the extra. Include the whole month in the input.
+     */
+    monthly_tiers: z
+      .array(
+        z.object({
+          from_minutes: minutes,
+          to_minutes: minutes.nullable(),
+          percent_bp: bp,
+          pay_code: payCode,
+        }),
+      )
+      .default([]),
+    /** Pay for call-out time, rounded per call-out (e.g. per begun hour), optionally capped. */
+    call_out_pay: z
+      .object({
+        amount: amountSchema,
+        pay_code: payCode,
+        unit_minutes: z.number().int().min(1).max(240).default(60),
+        max_rate_ore: ore.nullable().default(null),
+      })
+      .nullable()
+      .default(null),
   }),
 
   /** Fravær. */
@@ -284,6 +340,31 @@ export const ruleSchemas = {
   weekend_off: z.object({
     weekends_off: z.number().int().min(0),
     per_weeks: z.number().int().min(1).max(52),
+  }),
+
+  /**
+   * Optjening af frihed: time off earned as lines of time-off minutes (no
+   * money), e.g. 3 hours per 37 hours worked on 2nd/3rd shift, or a
+   * replacement day for work on a public holiday.
+   */
+  time_off_accrual: z.object({
+    pay_code: payCode,
+    basis: z.discriminatedUnion("type", [
+      z.object({
+        type: z.literal("worked_in_windows"),
+        windows: z.array(windowSchema).min(1),
+        exclude_holidays: z.boolean().default(false),
+        /** Earn earn_minutes per per_minutes worked inside the windows (exact ratio). */
+        per_minutes: z.number().int().min(1),
+        earn_minutes: z.number().int().min(1),
+        exclude_overtime: z.boolean().default(false),
+      }),
+      z.object({
+        type: z.literal("holiday_work"),
+        /** Time off per public holiday with work. */
+        earn_minutes: z.number().int().min(1),
+      }),
+    ]),
   }),
 
   /**

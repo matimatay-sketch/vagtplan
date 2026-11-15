@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseAgreementDocument, type AgreementRegistry } from "@vagtplan/rules-engine";
-import { copyDocument, localDocument, nextVersion, validateDocument } from "./agreement-edit";
+import {
+  copyDocument,
+  localDocument,
+  newAgreementDocument,
+  nextVersion,
+  validateDocument,
+} from "./agreement-edit";
 
 const base = parseAgreementDocument({
   id: "base",
@@ -80,6 +86,24 @@ describe("agreement documents", () => {
     ).toMatchObject({
       kind: "local",
       inherits_from: "detail",
+      rules: [],
+      version: 1,
+    });
+  });
+
+  it("a new agreement inherits from the law and starts empty, with its name as source", () => {
+    expect(
+      newAgreementDocument({
+        id: "kl-04-89",
+        name: "KL 04.89",
+        parent: "basis-dk",
+        validFrom: "2024-04-01",
+      }),
+    ).toMatchObject({
+      kind: "agreement",
+      inherits_from: "basis-dk",
+      source: "KL 04.89",
+      valid_from: "2024-04-01",
       rules: [],
       version: 1,
     });
