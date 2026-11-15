@@ -12,6 +12,7 @@ import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { localParts, zonedTime } from "@/lib/domain/schedule-time";
 import type { DbBreak } from "@/lib/domain/breaks";
 import type { ProjectAllocation } from "@/lib/domain/projects";
+import type { PostingAllocation } from "@/lib/domain/posting";
 import {
   EMPLOYEE_ENGINE_SELECT,
   engineInputFor,
@@ -41,6 +42,7 @@ export type TimeRow = {
   end: string | null;
   breaks: DbBreak[];
   projectAllocations: ProjectAllocation[];
+  postingAllocations: PostingAllocation[];
   status: "open" | "pending" | "approved" | null;
   source: "stamp" | "planned" | "manual" | null;
   deviationReason: string | null;
@@ -79,6 +81,7 @@ type RpcRow = {
   end_at: string | null;
   breaks: unknown;
   project_allocations: unknown;
+  posting_allocations: unknown;
   status: TimeRow["status"];
   source: TimeRow["source"];
   deviation_reason: string | null;
@@ -130,6 +133,7 @@ export async function loadTimeOverview(
       end: r.end_at,
       breaks: (r.breaks ?? []) as DbBreak[],
       projectAllocations: (r.project_allocations ?? []) as ProjectAllocation[],
+      postingAllocations: (r.posting_allocations ?? []) as PostingAllocation[],
       status: r.status,
       source: r.source,
       deviationReason: r.deviation_reason,

@@ -27,13 +27,27 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/lon/[
     supabase
       .from("pay_run")
       .select(
-        "employee:employee!pay_run_organization_id_employee_id_fkey (employee_number, first_name, last_name), pay_line (position, pay_code, label, unit, quantity_minutes, rate_ore, amount_ore)",
+        "employee:employee!pay_run_organization_id_employee_id_fkey (employee_number, first_name, last_name), pay_line (position, pay_code, label, unit, quantity_minutes, rate_ore, amount_ore, posting)",
       )
       .eq("pay_period_id", id)
       .is("superseded_at", null),
   ]);
   if (!period || !template) return new Response(null, { status: 404 });
   const settings = exportSettingsSchema.parse(template.settings);
+  // Posting is stored as ids; the file gets dimension key → value code (including archived values).
+  const { data: dims } = await supabase
+    .from("posting_dimension")
+    .select("id, key, posting_value (id, code)");
+  const dimKey = new Map((dims ?? []).map((d) => [d.id, d.key]));
+  const valueCode = new Map(
+    (dims ?? []).flatMap((d) => d.posting_value.map((v) => [v.id, v.code])),
+  );
+  const posting = (p: unknown) =>
+    Object.fromEntries(
+      Object.entries((p ?? {}) as Record<string, string>).flatMap(([d, v]) =>
+        dimKey.has(d) ? [[dimKey.get(d)!, valueCode.get(v) ?? ""]] : [],
+      ),
+    );
   const rows: ExportRow[] = (runs ?? []).flatMap((r) =>
     [...r.pay_line]
       .sort((a, b) => a.position - b.position)
@@ -48,6 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/lon/[
         amountOre: Number(l.amount_ore),
         periodStart: period.start_date,
         periodEnd: period.end_date,
+        posting: posting(l.posting),
       })),
   );
   const { text, rowCount } = renderExport(settings, rows);

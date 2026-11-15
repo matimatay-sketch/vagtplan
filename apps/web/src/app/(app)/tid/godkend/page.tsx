@@ -13,6 +13,7 @@ import { addDays, isValidIsoDate, todayIn } from "@/lib/domain/civil-date";
 import { isoWeekNumber, weekDates, weekStartOf } from "@/lib/domain/schedule-time";
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadProjectOptions } from "@/lib/time/projects";
+import { loadPostingDimensions } from "@/lib/posting/load";
 import { loadPayPreviews } from "@/lib/payroll/preview";
 import { da } from "@/lib/i18n/da";
 
@@ -61,9 +62,10 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   const dates = weekDates(weekStart);
   const status = ["pending", "approved", "all"].includes(str(sp.status)) ? str(sp.status) : "all";
 
-  const [overview, projects] = await Promise.all([
+  const [overview, projects, posting] = await Promise.all([
     loadTimeOverview(supabase, ctx, { from: weekStart, to: dates[6]!, departmentId }),
     loadProjectOptions(supabase, ctx.organization.id),
+    loadPostingDimensions(supabase),
   ]);
   const rows = overview.rows.filter(
     (r) =>
@@ -141,6 +143,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           previews={previews}
           amountsFor={previewEmployees.filter((e) => e.showAmounts).map((e) => e.id)}
           projects={projects}
+          posting={posting}
           dates={dates}
         />
       )}

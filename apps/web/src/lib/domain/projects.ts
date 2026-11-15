@@ -26,7 +26,14 @@ function paidMinutes(s: ShiftLike): number {
   return Math.round((ms(s.end) - ms(s.start)) / MIN) - unpaid;
 }
 
-function spanMinutes(s: ShiftLike, a: ProjectAllocation): number {
+/** Any allocation row: a time span, a number of minutes, or the rest. */
+export type AllocationSpan = {
+  start_at: string | null;
+  end_at: string | null;
+  minutes: number | null;
+};
+
+function spanMinutes(s: ShiftLike, a: AllocationSpan): number {
   const from = ms(a.start_at!);
   const to = ms(a.end_at!);
   const unpaidInside = s.breaks
@@ -73,9 +80,9 @@ export function projectMinutes(
 
 export type AllocationProblem = "outside" | "overlap" | "two_remainders" | "too_many_minutes";
 
-export function allocationProblems(
+export function allocationProblems<T extends AllocationSpan>(
   s: ShiftLike,
-  allocations: readonly ProjectAllocation[],
+  allocations: readonly T[],
 ): AllocationProblem[] {
   const problems = new Set<AllocationProblem>();
   const spans = allocations

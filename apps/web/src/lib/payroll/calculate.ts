@@ -1,3 +1,4 @@
+import { resolvePostings, type PostingAllocation, type PostingValues } from "@/lib/domain/posting";
 import "server-only";
 import {
   ENGINE_VERSION,
@@ -65,7 +66,9 @@ export async function calculateEmployee(
   const [{ data: entries }, { data: absences }, { data: supplementTypes }] = await Promise.all([
     supabase
       .from("time_entry")
-      .select("id, shift_id, start_at, end_at, breaks, kind, status")
+      .select(
+        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations",
+      )
       .eq("employee_id", employeeId)
       .is("superseded_at", null)
       .is("archived_at", null)
@@ -99,6 +102,18 @@ export async function calculateEmployee(
     ? await supabase.from("shift").select("id, published").in("id", shiftIds)
     : { data: [] };
   const supplementById = new Map((supplementTypes ?? []).map((t) => [t.id, supplementInput(t)]));
+  // Posting defaults: the department, then the employee (most specific wins).
+  const departmentIds = [...new Set(approved.map((e) => e.department_id))];
+  const [{ data: employeeRow }, { data: departments }] = await Promise.all([
+    supabase.from("employee").select("posting_defaults").eq("id", employeeId).maybeSingle(),
+    departmentIds.length
+      ? supabase.from("department").select("id, posting_defaults").in("id", departmentIds)
+      : Promise.resolve({ data: [] as { id: string; posting_defaults: unknown }[] }),
+  ]);
+  const employeeDefaults = (employeeRow?.posting_defaults ?? {}) as PostingValues;
+  const departmentDefaults = new Map(
+    (departments ?? []).map((d) => [d.id, (d.posting_defaults ?? {}) as PostingValues]),
+  );
   type Snapshot = {
     start_at: string;
     end_at: string;
@@ -126,6 +141,11 @@ export async function calculateEmployee(
       ...i,
       kind: e.kind,
       plannedShiftId: p ? e.shift_id : null,
+      postings: resolvePostings(
+        departmentDefaults.get(e.department_id) ?? {},
+        employeeDefaults,
+        (e.posting_allocations ?? []) as unknown as PostingAllocation[],
+      ),
       supplements: (p?.supplement_type_ids ?? []).flatMap((id) => {
         const s = supplementById.get(id);
         return s ? [s] : [];
@@ -181,6 +201,7 @@ export async function calculateAndSave(
       rate_ore: l.rateOre,
       amount_ore: l.amountOre,
       explanation: l.explanation,
+      posting: l.posting,
     })),
   });
   return error ? error.message : null;

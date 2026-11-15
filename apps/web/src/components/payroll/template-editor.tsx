@@ -196,6 +196,15 @@ export function TemplateEditor({
                 )
               }
             />
+            {c.field === "posting" ? (
+              <Input
+                aria-label={`${t.dimensionKey} ${i + 1}`}
+                placeholder={t.dimensionKey}
+                className="w-48 font-mono"
+                value={c.dimension ?? ""}
+                onChange={(e) => updateColumn(i, { dimension: e.target.value.trim() })}
+              />
+            ) : null}
             <Button
               type="button"
               variant="ghost"

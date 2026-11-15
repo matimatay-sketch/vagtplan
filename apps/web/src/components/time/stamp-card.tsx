@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useRouter } from "next/navigation";
 import { CloudOff, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import type { PostingDimension } from "@/lib/domain/posting";
 import { syncStampsAction } from "@/lib/actions/time";
 import {
   QUEUE_KEY,
@@ -58,13 +60,17 @@ export function StampCard({
   organizationId,
   openSince,
   disabled,
+  posting = [],
 }: {
   organizationId: string;
   /** Start of the open registration on the server, if stamped in. */
   openSince: string | null;
   disabled?: boolean;
+  /** Posting the employee may choose when stamping in (values available to them). */
+  posting?: PostingDimension[];
 }) {
   const t = da.time;
+  const [choice, setChoice] = useState<Record<string, string>>({});
   const router = useRouter();
   const queue = useSyncExternalStore(subscribe, readQueue, () => EMPTY);
   const state = stampState({ openSince }, queue, organizationId);
@@ -110,6 +116,7 @@ export function StampCard({
         action,
         at: new Date().toISOString(),
         organizationId,
+        ...(action === "in" && Object.keys(choice).length ? { posting: choice } : {}),
       }),
     );
     setMessage(null);
@@ -141,6 +148,33 @@ export function StampCard({
             </p>
           ) : null}
         </div>
+        {!state.in && posting.length ? (
+          <div className="flex flex-wrap gap-2" data-testid="stamp-posting">
+            {posting.map((d) => (
+              <NativeSelect
+                key={d.id}
+                aria-label={`${da.posting.stampChoice}: ${d.name}`}
+                className="w-48"
+                value={choice[d.id] ?? ""}
+                onChange={(e) => {
+                  const next = { ...choice };
+                  if (e.target.value) next[d.id] = e.target.value;
+                  else delete next[d.id];
+                  setChoice(next);
+                }}
+              >
+                <option value="">
+                  {d.name}: {da.posting.asPlanned}
+                </option>
+                {d.values.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.code} · {v.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            ))}
+          </div>
+        ) : null}
         {state.in ? (
           <Button size="lg" variant="outline" disabled={disabled} onClick={() => stamp("out")}>
             <LogOut /> {t.stampOut}

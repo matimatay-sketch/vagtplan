@@ -117,3 +117,42 @@ describe("renderExport – configured", () => {
     expect(exportSettingsSchema.safeParse({ ...GENERIC_CSV, separator: ";;" }).success).toBe(false);
   });
 });
+
+describe("renderExport – posting columns", () => {
+  const settings = exportSettingsSchema.parse({
+    separator: ";",
+    decimal: ",",
+    header: true,
+    bom: false,
+    lineEnding: "lf",
+    dateFormat: "yyyy-mm-dd",
+    grouping: "employee_code",
+    unmapped: "keep",
+    codeMap: {},
+    columns: [
+      { field: "employee_number", header: "Nr" },
+      { field: "pay_code_external", header: "Lønart" },
+      { field: "posting", dimension: "omkostningssted", header: "Omk.sted" },
+      { field: "quantity_hours", header: "Timer" },
+    ],
+  });
+
+  it("writes the value code per dimension and keeps postings apart when grouping", () => {
+    const r = renderExport(settings, [
+      row({ quantityMinutes: 300, posting: { omkostningssted: "1100" } }),
+      row({ quantityMinutes: 180, posting: { omkostningssted: "1200" } }),
+      row({ quantityMinutes: 60, posting: { omkostningssted: "1100" } }),
+      row({ quantityMinutes: 30 }),
+    ]);
+    expect(r.text).toBe(
+      "Nr;Lønart;Omk.sted;Timer\n1002;NORMAL;;0,50\n1002;NORMAL;1100;6,00\n1002;NORMAL;1200;3,00\n",
+    );
+  });
+
+  it("a posting column needs a dimension key", () => {
+    expect(
+      exportSettingsSchema.safeParse({ ...settings, columns: [{ field: "posting", header: "X" }] })
+        .success,
+    ).toBe(false);
+  });
+});

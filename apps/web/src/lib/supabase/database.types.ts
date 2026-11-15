@@ -183,14 +183,14 @@ isOneToOne: false
                   ]
                 },"department": {
                   Row: {
-                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string
+                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"posting_defaults": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"posting_defaults"?: NonNullable<Json>
                   }
                   Update: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"posting_defaults"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -223,14 +223,14 @@ isOneToOne: false
                   ]
                 },"employee": {
                   Row: {
-                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"organization_id": string,"phone": string | null,"school_obligated": boolean,"school_obligation_ends_on": string | null,"terminated_on": string | null,"user_id": string | null
+                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"organization_id": string,"phone": string | null,"posting_defaults": NonNullable<Json>,"school_obligated": boolean,"school_obligation_ends_on": string | null,"terminated_on": string | null,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"organization_id": string,"phone"?: string | null,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"organization_id": string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Update: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"organization_id"?: string,"phone"?: string | null,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"organization_id"?: string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -419,14 +419,14 @@ isOneToOne: true
                   ]
                 },"pay_line": {
                   Row: {
-                    "amount_ore": number,"employee_id": string,"explanation": NonNullable<Json>,"id": string,"label": string,"organization_id": string,"pay_code": string,"pay_run_id": string,"position": number,"quantity_minutes": number,"rate_ore": number,"unit": string
+                    "amount_ore": number,"employee_id": string,"explanation": NonNullable<Json>,"id": string,"label": string,"organization_id": string,"pay_code": string,"pay_run_id": string,"position": number,"posting": NonNullable<Json>,"quantity_minutes": number,"rate_ore": number,"unit": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_ore": number,"employee_id": string,"explanation": NonNullable<Json>,"id"?: string,"label": string,"organization_id": string,"pay_code": string,"pay_run_id": string,"position": number,"quantity_minutes": number,"rate_ore": number,"unit": string
+                    "amount_ore": number,"employee_id": string,"explanation": NonNullable<Json>,"id"?: string,"label": string,"organization_id": string,"pay_code": string,"pay_run_id": string,"position": number,"posting"?: NonNullable<Json>,"quantity_minutes": number,"rate_ore": number,"unit": string
                   }
                   Update: {
-                    "amount_ore"?: number,"employee_id"?: string,"explanation"?: NonNullable<Json>,"id"?: string,"label"?: string,"organization_id"?: string,"pay_code"?: string,"pay_run_id"?: string,"position"?: number,"quantity_minutes"?: number,"rate_ore"?: number,"unit"?: string
+                    "amount_ore"?: number,"employee_id"?: string,"explanation"?: NonNullable<Json>,"id"?: string,"label"?: string,"organization_id"?: string,"pay_code"?: string,"pay_run_id"?: string,"position"?: number,"posting"?: NonNullable<Json>,"quantity_minutes"?: number,"rate_ore"?: number,"unit"?: string
                   }
                   Relationships: [
                     {
@@ -600,6 +600,72 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"posting_dimension": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"key": string,"name": string,"organization_id": string,"required": boolean,"sort_order": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"key": string,"name": string,"organization_id": string,"required"?: boolean,"sort_order"?: number
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"key"?: string,"name"?: string,"organization_id"?: string,"required"?: boolean,"sort_order"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "posting_dimension_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"posting_value": {
+                  Row: {
+                    "archived_at": string | null,"code": string,"created_at": string,"dimension_id": string,"id": string,"name": string,"organization_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"code": string,"created_at"?: string,"dimension_id": string,"id"?: string,"name": string,"organization_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"code"?: string,"created_at"?: string,"dimension_id"?: string,"id"?: string,"name"?: string,"organization_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "posting_value_organization_id_dimension_id_fkey"
+      columns: ["organization_id","dimension_id"]
+isOneToOne: false
+      referencedRelation: "posting_dimension"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"posting_value_department": {
+                  Row: {
+                    "department_id": string,"organization_id": string,"value_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "department_id": string,"organization_id": string,"value_id": string
+                  }
+                  Update: {
+                    "department_id"?: string,"organization_id"?: string,"value_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "posting_value_department_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "posting_value_department_organization_id_value_id_fkey"
+      columns: ["organization_id","value_id"]
+isOneToOne: false
+      referencedRelation: "posting_value"
+      referencedColumns: ["organization_id","id"]
+    }
                   ]
                 },"project": {
                   Row: {
@@ -805,14 +871,14 @@ isOneToOne: false
                   ]
                 },"shift": {
                   Row: {
-                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"note": string | null,"organization_id": string,"project_allocations": NonNullable<Json>,"published": Json | null,"published_at": string | null,"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
+                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"note": string | null,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"published": Json | null,"published_at": string | null,"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id": string,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id"?: string,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -901,14 +967,14 @@ isOneToOne: false
                   ]
                 },"time_entry": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"updated_at": string
+                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -971,7 +1037,7 @@ isOneToOne: false
 { Args: { "p_shift_ids": (string)[] }; Returns: number
                            },
 "correct_time_entry":
-{ Args: { "p_breaks": Json,"p_end_at": string,"p_id": string,"p_project_allocations": Json,"p_reason": string,"p_start_at": string }; Returns: string
+{ Args: { "p_breaks": Json,"p_end_at": string,"p_id": string,"p_posting_allocations"?: Json,"p_project_allocations": Json,"p_reason": string,"p_start_at": string }; Returns: string
                            },
 "create_employee":
 { Args: { "p_birth_date": string,"p_department_id": string,"p_email"?: string,"p_employee_number": string,"p_first_name": string,"p_hired_on"?: string,"p_last_name": string,"p_phone"?: string,"p_school_obligated"?: boolean,"p_school_obligation_ends_on"?: string }; Returns: string
@@ -1048,7 +1114,7 @@ isOneToOne: false
             }[]
                            },
 "stamp":
-{ Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_organization_id": string }; Returns: string
+{ Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_organization_id": string,"p_posting_allocations"?: Json }; Returns: string
                            },
 "time_approvees":
 { Args: { "p_org": string }; Returns: string[]
@@ -1060,7 +1126,7 @@ isOneToOne: false
                            },
 "time_overview":
 { Args: { "p_from": string,"p_to": string }; Returns: {
-              "approved_at": string,"approved_by_email": string,"breaks": Json,"department_id": string,"department_name": string,"deviation_reason": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"entry_id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string,"offline": boolean,"plan_breaks": Json,"plan_end": string,"plan_start": string,"project_allocations": Json,"row_kind": string,"shift_id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"version": number
+              "approved_at": string,"approved_by_email": string,"breaks": Json,"department_id": string,"department_name": string,"deviation_reason": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"entry_id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string,"offline": boolean,"plan_breaks": Json,"plan_end": string,"plan_start": string,"posting_allocations": Json,"project_allocations": Json,"row_kind": string,"shift_id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"version": number
             }[]
                            }
           }

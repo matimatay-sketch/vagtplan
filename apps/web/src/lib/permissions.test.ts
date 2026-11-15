@@ -20,6 +20,7 @@ describe("permission catalog", () => {
       "schedule.override",
       "projects.view",
       "projects.manage",
+      "posting.manage",
       "time.view",
       "time.manage",
       "time.approve",

@@ -31,6 +31,12 @@ import {
 } from "@/lib/domain/projects";
 import { BreaksEditor, SupplementPicker } from "./breaks-editor";
 import { ProjectsEditor } from "./projects-editor";
+import { PostingEditor } from "@/components/posting/posting-editor";
+import {
+  postingToForm,
+  type EditablePostingRow,
+  type PostingDimension,
+} from "@/lib/domain/posting";
 
 export type ShiftDraft = { shift?: BoardShift; employeeId: string | null; date: string };
 
@@ -40,6 +46,7 @@ type Props = {
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
   projects: BoardProject[];
+  posting: PostingDimension[];
 };
 
 export function ShiftDialog({
@@ -71,6 +78,7 @@ function ShiftForm({
   templates,
   supplementTypes,
   projects,
+  posting,
 }: Props & { draft: ShiftDraft; onDone: () => void }) {
   const t = da.schedule;
   const [state, action] = useActionState(saveShiftAction, initialActionState);
@@ -102,6 +110,9 @@ function ShiftForm({
       : defaultProjectRows(
           projects.some((p) => p.id === first?.projectId) ? first?.projectId : null,
         ),
+  );
+  const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
+    s ? postingToForm(s.postingAllocations) : [],
   );
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
@@ -224,6 +235,16 @@ function ShiftForm({
           error={
             Object.entries(state.errors ?? {}).find(([k]) =>
               k.startsWith("project_allocations"),
+            )?.[1]
+          }
+        />
+        <PostingEditor
+          dimensions={posting}
+          value={postingRows}
+          onChange={setPostingRows}
+          error={
+            Object.entries(state.errors ?? {}).find(([k]) =>
+              k.startsWith("posting_allocations"),
             )?.[1]
           }
         />

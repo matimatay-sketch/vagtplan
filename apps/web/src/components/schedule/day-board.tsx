@@ -252,6 +252,7 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
         templates={board.templates}
         supplementTypes={board.supplementTypes}
         projects={board.projects}
+        posting={board.posting}
       />
     </>
   );

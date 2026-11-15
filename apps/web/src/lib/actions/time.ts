@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fieldErrors } from "@/lib/forms/schemas";
 import { timeEntryFormSchema } from "@/lib/forms/time";
 import { allocationProblems } from "@/lib/domain/projects";
+import { formPostingToDb } from "@/lib/domain/posting";
 import { needsReason } from "@/lib/domain/time-entries";
 import type { StampResult } from "@/lib/domain/stamp-queue";
 import { formBreaksToDb, formProjectsToDb, localInstants } from "@/lib/schedule/breaks";
@@ -27,6 +28,7 @@ const stampSchema = z
       action: z.enum(["in", "out"]),
       at: z.iso.datetime({ offset: true }),
       organizationId: z.guid(),
+      posting: z.record(z.guid(), z.guid()).optional(),
     }),
   )
   .max(50);
@@ -46,6 +48,13 @@ export async function syncStampsAction(input: unknown): Promise<StampResult[]> {
       p_client_id: e.clientId,
       p_action: e.action,
       p_at: e.at,
+      ...(e.posting && Object.keys(e.posting).length
+        ? {
+            p_posting_allocations: asJson([
+              { values: e.posting, start_at: null, end_at: null, minutes: null },
+            ]),
+          }
+        : {}),
     });
     if (!error) out.push({ clientId: e.clientId, status: "ok" });
     // The server answered, so the stamp leaves the queue either way; only a
@@ -99,6 +108,18 @@ export async function saveTimeEntryAction(
       errors: { project_allocations: problems.map((x) => da.projects.problems[x]).join(". ") },
       values,
     };
+  const posting = formPostingToDb(f.posting_allocations, f.date);
+  const postingProblems = allocationProblems(
+    { start: times.start_at, end: times.end_at, breaks },
+    posting,
+  );
+  if (postingProblems.length)
+    return {
+      errors: {
+        posting_allocations: postingProblems.map((x) => da.projects.problems[x]).join(". "),
+      },
+      values,
+    };
 
   // The plan behind the registration (published snapshot), if any.
   let existing: { employee_id: string; department_id: string; shift_id: string | null } | null =
@@ -133,6 +154,7 @@ export async function saveTimeEntryAction(
     ...times,
     breaks: asJson(breaks),
     project_allocations: asJson(allocations),
+    posting_allocations: asJson(posting),
     deviation_reason: f.deviation_reason,
     note: f.note,
     kind: f.kind,
@@ -227,6 +249,18 @@ export async function correctTimeEntryAction(
       errors: { project_allocations: problems.map((x) => da.projects.problems[x]).join(". ") },
       values,
     };
+  const posting = formPostingToDb(f.posting_allocations, f.date);
+  const postingProblems = allocationProblems(
+    { start: times.start_at, end: times.end_at, breaks },
+    posting,
+  );
+  if (postingProblems.length)
+    return {
+      errors: {
+        posting_allocations: postingProblems.map((x) => da.projects.problems[x]).join(". "),
+      },
+      values,
+    };
   const supabase = await createClient();
   const { error } = await supabase.rpc("correct_time_entry", {
     p_id: f.id,
@@ -234,6 +268,7 @@ export async function correctTimeEntryAction(
     p_end_at: times.end_at,
     p_breaks: asJson(breaks),
     p_project_allocations: asJson(allocations),
+    p_posting_allocations: asJson(posting),
     p_reason: f.deviation_reason!,
   });
   if (error) return { message: dbErrorMessage(error), values };

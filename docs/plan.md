@@ -266,6 +266,7 @@ Opgaver:
 8. Egne anmærkninger på overenskomsten (betingelse, grænse, virkning Info/Advarsel/Blokerende, vises i vagtplanen og/eller Godkend tid).
 9. Konfigurerbare regler i editoren: "Gælder for" (personalegrupper, lønform) på alle regler, formularer til tillæg og lønsatser, sammenfald og prioritet, lønarter med betegnelser og "Tilføj regel" for alle regeltyper. Den mest specifikke regel vinder.
 10. Ny overenskomst fra bunden (arver lovgrundlaget), tillæg betinget af vagtstart og afrundet pr. vagt, rådighed med satser pr. dagtype, månedstrin og udkald, optjening af frihed. KL 04.89 sat op som data med testuger (`docs/konfigurationer/kl-04-89-o24.md`).
+11. Konteringsdimensioner (fx omkostningssted): opsætning under Indstillinger → Kontering, standard på afdeling og medarbejder, kontering på vagt, registrering og stempling, lønlinjer delt pr. kontering og en kolonne pr. dimension i eksportfilen.
 
 Beslutning 2026-11-14: Eksportfilen konfigureres af konsulenten, så den passer til lønsystemet. Kolonner, format og lønarter vælges selv, og beløb er en valgfri kolonne. Skabeloner til ProLøn og Lessor kommer, når importspecifikationen foreligger.
 

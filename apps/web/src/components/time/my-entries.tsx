@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
-import { AlertTriangle, CheckCheck, CloudOff, FolderKanban, Info, Plus } from "lucide-react";
+import { AlertTriangle, CheckCheck, CloudOff, FolderKanban, Info, Plus, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { completeAsPlannedAction } from "@/lib/actions/time";
@@ -10,6 +10,7 @@ import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
+import type { PostingDimension } from "@/lib/domain/posting";
 import { cn } from "@/lib/utils";
 import { EntryDialog, type EntryDraft } from "./entry-dialog";
 
@@ -81,6 +82,15 @@ export function RowDetails({ row }: { row: TimeRow }) {
           <FolderKanban className="size-3" /> {row.projectAllocations.length}
         </span>
       ) : null}
+      {row.postingAllocations.length ? (
+        <span
+          className="inline-flex items-center gap-1"
+          title={da.posting.onShift}
+          data-testid="row-posting"
+        >
+          <Tags className="size-3" /> {row.postingAllocations.length}
+        </span>
+      ) : null}
       {row.offline ? (
         <span className="inline-flex items-center gap-1">
           <CloudOff className="size-3" /> {t.offline}
@@ -148,12 +158,14 @@ export function MyEntries({
   rows,
   daily,
   projects,
+  posting,
   employeeId,
   dates,
 }: {
   rows: TimeRow[];
   daily: Record<string, number>;
   projects: (BoardProject & { departmentIds: string[] })[];
+  posting: PostingDimension[];
   employeeId: string;
   /** Newest first. */
   dates: string[];
@@ -258,7 +270,7 @@ export function MyEntries({
           })}
         </ol>
       </section>
-      <EntryDialog draft={draft} projects={projects} onClose={close} />
+      <EntryDialog draft={draft} projects={projects} posting={posting} onClose={close} />
     </div>
   );
 }

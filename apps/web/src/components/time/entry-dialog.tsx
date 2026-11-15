@@ -28,6 +28,13 @@ import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
+import { PostingEditor } from "@/components/posting/posting-editor";
+import {
+  availablePosting,
+  postingToForm,
+  type EditablePostingRow,
+  type PostingDimension,
+} from "@/lib/domain/posting";
 
 export type EntryDraft =
   | { mode: "edit" | "correct"; row: TimeRow }
@@ -38,10 +45,12 @@ type Projects = (BoardProject & { departmentIds: string[] })[];
 export function EntryDialog({
   draft,
   projects,
+  posting,
   onClose,
 }: {
   draft: EntryDraft | null;
   projects: Projects;
+  posting: PostingDimension[];
   onClose: () => void;
 }) {
   return (
@@ -52,6 +61,7 @@ export function EntryDialog({
             key={draft.mode === "create" ? `new-${draft.date}` : draft.row.entryId}
             draft={draft}
             projects={projects}
+            posting={posting}
             onDone={onClose}
           />
         ) : null}
@@ -63,10 +73,12 @@ export function EntryDialog({
 function EntryForm({
   draft,
   projects,
+  posting,
   onDone,
 }: {
   draft: EntryDraft;
   projects: Projects;
+  posting: PostingDimension[];
   onDone: () => void;
 }) {
   const t = da.time;
@@ -89,6 +101,9 @@ function EntryForm({
   );
   const [projectRows, setProjectRows] = useState<EditableProjectRow[]>(() =>
     row ? allocationsToForm(row.projectAllocations) : [],
+  );
+  const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
+    row ? postingToForm(row.postingAllocations) : [],
   );
   const [history, setHistory] = useState<Awaited<ReturnType<typeof timeEntryHistoryAction>> | null>(
     null,
@@ -168,6 +183,16 @@ function EntryForm({
           value={projectRows}
           onChange={setProjectRows}
           error={projectError}
+        />
+        <PostingEditor
+          dimensions={availablePosting(posting, departmentId)}
+          value={postingRows}
+          onChange={setPostingRows}
+          error={
+            Object.entries(state.errors ?? {}).find(([k]) =>
+              k.startsWith("posting_allocations"),
+            )?.[1]
+          }
         />
         <Field
           label={draft.mode === "correct" ? t.correctionReason : t.reason}

@@ -70,11 +70,11 @@ export function formProjectsToDb(
 }
 
 /** Keeps time spans at the same local time relative to the shift's start date. */
-export function moveAllocations(
-  rows: readonly ProjectAllocation[],
+export function moveAllocations<T extends { start_at: string | null; end_at: string | null }>(
+  rows: readonly T[],
   fromDate: string,
   toDate: string,
-): ProjectAllocation[] {
+): T[] {
   const move = (iso: string | null) => {
     if (!iso) return null;
     const local = toLocal(parseInstant(iso), TZ);

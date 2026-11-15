@@ -97,6 +97,12 @@ export const PERMISSIONS = [
     scopes: ["organization"],
   },
   {
+    key: "posting.manage",
+    group: "Kontering",
+    label: "Oprette og rette konteringsdimensioner (fx omkostningssteder)",
+    scopes: ["organization"],
+  },
+  {
     key: "time.view",
     group: "Tidsregistrering",
     label: "Se registreret tid",

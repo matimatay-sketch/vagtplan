@@ -10,6 +10,7 @@ import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
+import type { PostingDimension } from "@/lib/domain/posting";
 import { EntryDialog, type EntryDraft } from "./entry-dialog";
 import { sumRows, type PayPreview } from "@/lib/domain/pay-preview";
 import { PaySummary } from "./pay-summary";
@@ -28,6 +29,7 @@ export function ApprovalTable({
   previews,
   amountsFor,
   projects,
+  posting,
   dates,
 }: {
   rows: TimeRow[];
@@ -43,6 +45,7 @@ export function ApprovalTable({
   /** Employees whose amounts the user may see. */
   amountsFor: string[];
   projects: (BoardProject & { departmentIds: string[] })[];
+  posting: PostingDimension[];
   dates: string[];
 }) {
   const t = da.time;
@@ -274,7 +277,7 @@ export function ApprovalTable({
             : [],
         )}
       />
-      <EntryDialog draft={draft} projects={projects} onClose={close} />
+      <EntryDialog draft={draft} projects={projects} posting={posting} onClose={close} />
     </div>
   );
 }

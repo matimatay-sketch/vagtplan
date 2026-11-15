@@ -18,6 +18,7 @@ import {
   UserRound,
   Users,
   Wallet,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
@@ -108,6 +109,12 @@ const items: Item[] = [
     label: da.nav.agreements,
     icon: FileText,
     anyOf: ["agreements.manage"],
+  },
+  {
+    href: "/indstillinger/kontering",
+    label: da.nav.posting,
+    icon: Tags,
+    anyOf: ["posting.manage"],
   },
   { href: "/profil", label: da.nav.myProfile, icon: UserRound, anyOf: [], needsEmployee: true },
 ];
