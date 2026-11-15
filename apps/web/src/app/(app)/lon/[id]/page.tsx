@@ -14,11 +14,11 @@ import { decimalHours } from "@/lib/domain/project-report";
 import { formatDate } from "@/lib/format";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
+import { formatKroner } from "@/lib/domain/numbers";
 
 export const metadata: Metadata = { title: "Lønperiode" };
 
-const kr = (ore: number) =>
-  `${ore < 0 ? "−" : ""}${Math.floor(Math.abs(ore) / 100).toLocaleString("da-DK")},${String(Math.abs(ore) % 100).padStart(2, "0")}`;
+const kr = formatKroner;
 
 type Explanation = {
   ruleId: string;

@@ -13,6 +13,7 @@ import { addDays, isValidIsoDate, todayIn } from "@/lib/domain/civil-date";
 import { isoWeekNumber, weekDates, weekStartOf } from "@/lib/domain/schedule-time";
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadProjectOptions } from "@/lib/time/projects";
+import { loadPayPreviews } from "@/lib/payroll/preview";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Godkend tid" };
@@ -69,6 +70,19 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
       (rights[r.departmentId] || approverOf.has(r.employeeId)) &&
       (status === "all" || r.kind === "missing" || r.status === status),
   );
+  // Which pay codes the week activates, per employee (amounts only with payroll rights).
+  const previewEmployees = [
+    ...new Map(rows.map((r) => [r.employeeId, r.departmentId])).entries(),
+  ].map(([id, dept]) => ({
+    id,
+    showAmounts:
+      canInDepartment(ctx.permissions, "payroll.view", dept, ctx.responsibleDepartmentIds) ||
+      canInDepartment(ctx.permissions, "payroll.manage", dept, ctx.responsibleDepartmentIds),
+  }));
+  const previews = await loadPayPreviews(supabase, ctx, previewEmployees, {
+    start: weekStart,
+    end: dates[6]!,
+  });
   const href = (p: Record<string, string>) =>
     `/tid/godkend?${new URLSearchParams({ uge: weekStart, status, ...(departmentId ? { afdeling: departmentId } : {}), ...p })}`;
 
@@ -124,6 +138,8 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           rights={rights}
           approveOwn={ctx.permissions["time.approve"] === "organization"}
           approverOf={[...approverOf]}
+          previews={previews}
+          amountsFor={previewEmployees.filter((e) => e.showAmounts).map((e) => e.id)}
           projects={projects}
           dates={dates}
         />

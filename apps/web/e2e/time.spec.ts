@@ -110,6 +110,12 @@ test("completed as planned, deviation with reason, approval and correction as a 
   const madsSection = page.locator(`section[data-employee="${MADS}"]`);
   const row = madsSection.getByTestId("approval-row").filter({ hasText: "08:00–16:30" });
   await expect(row).toContainText("Vareopfyldning efter lukketid");
+  // The pay codes the time activates, before it is approved: 8 hours (16:30 minus a 30-minute
+  // unpaid break) at 150 kr. The manager may see pay lines, so amounts are shown.
+  await expect(row.getByTestId("entry-pay-codes")).toContainText("NORMAL 8,00 t");
+  await expect(
+    madsSection.getByTestId("pay-preview").locator('[data-pay-code="NORMAL"]'),
+  ).toContainText("1.200,00 kr.");
   await row.getByRole("checkbox").check();
   await page.getByTestId("approve-selected").click();
   await expect(page.getByText("1 registrering godkendt.")).toBeVisible();

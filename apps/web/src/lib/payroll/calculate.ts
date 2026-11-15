@@ -54,6 +54,8 @@ export async function calculateEmployee(
   ctx: AppContext,
   period: { start: IsoDate; end: IsoDate },
   employeeId: string,
+  /** Preview: also count registrations waiting for approval (never for pay runs). */
+  opts: { includePending?: boolean } = {},
 ): Promise<{ result: PayResult; pending: number } | null> {
   const input = (await engineInputs(supabase, ctx, [employeeId])).get(employeeId);
   if (!input || input.contracts.length === 0) return null;
@@ -81,7 +83,9 @@ export async function calculateEmployee(
       .select("id, name, pay_code, amount_type, amount")
       .eq("organization_id", ctx.organization.id),
   ]);
-  const approved = (entries ?? []).filter((e) => e.status === "approved" && e.end_at);
+  const approved = (entries ?? []).filter(
+    (e) => e.end_at && (e.status === "approved" || (opts.includePending && e.status === "pending")),
+  );
   const pending = (entries ?? []).filter(
     (e) =>
       e.status !== "approved" &&

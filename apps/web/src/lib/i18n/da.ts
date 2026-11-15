@@ -587,6 +587,10 @@ export const da = {
     kind: "Type",
     kinds: { work: "Arbejde", call_out: "Tilkald under rådighed" },
     callOut: "Tilkald",
+    payPreview: "Lønarter i ugen (foreløbig)",
+    payPreviewHelp:
+      "Beregnet efter overenskomsten, også med tid der afventer godkendelse. Den endelige løn beregnes under Løn.",
+    fixed: "fast",
     by: "af",
   },
   absence: {

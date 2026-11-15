@@ -11,6 +11,9 @@ import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
 import { EntryDialog, type EntryDraft } from "./entry-dialog";
+import type { PayPreview } from "@/lib/domain/pay-preview";
+import { decimalHours } from "@/lib/domain/project-report";
+import { formatKroner } from "@/lib/domain/numbers";
 import { CompleteButton, RowDetails, StatusBadge, ViolationList, formatDay } from "./my-entries";
 
 export type DepartmentRights = Record<string, { approve: boolean; manage: boolean }>;
@@ -22,6 +25,8 @@ export function ApprovalTable({
   rights,
   approveOwn,
   approverOf,
+  previews,
+  amountsFor,
   projects,
   dates,
 }: {
@@ -33,6 +38,10 @@ export function ApprovalTable({
   approveOwn: boolean;
   /** Employees the user approves personally ("Godkendes af"). */
   approverOf: string[];
+  /** Pay codes the week activates, per employee. */
+  previews: Record<string, PayPreview>;
+  /** Employees whose amounts the user may see. */
+  amountsFor: string[];
   projects: (BoardProject & { departmentIds: string[] })[];
   dates: string[];
 }) {
@@ -146,6 +155,27 @@ export function ApprovalTable({
                 ) : null}
               </span>
             </header>
+            {previews[e.id]?.codes.length ? (
+              <div className="border-b px-4 py-2 text-sm" data-testid="pay-preview">
+                <span className="mr-2 font-medium" title={t.payPreviewHelp}>
+                  {t.payPreview}:
+                </span>
+                <span className="inline-flex flex-wrap gap-1.5">
+                  {previews[e.id]!.codes.map((c) => (
+                    <span
+                      key={c.payCode}
+                      className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground tabular"
+                      title={c.label}
+                      data-pay-code={c.payCode}
+                    >
+                      <span className="font-mono">{c.payCode}</span> {c.label}{" "}
+                      {c.unit === "fixed" ? t.fixed : `${decimalHours(c.minutes)} t`}
+                      {amountsFor.includes(e.id) ? ` · ${formatKroner(c.amountOre)} kr.` : ""}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            ) : null}
             <ul className="divide-y">
               {own.map((r) => (
                 <li
@@ -184,6 +214,15 @@ export function ApprovalTable({
                       ) : null}
                     </span>
                     {r.kind === "entry" ? <RowDetails row={r} /> : null}
+                    {r.entryId && previews[e.id]?.byEntry[r.entryId]?.length ? (
+                      <span className="flex flex-wrap gap-1 text-xs" data-testid="entry-pay-codes">
+                        {previews[e.id]!.byEntry[r.entryId]!.map((c) => (
+                          <span key={c.payCode} className="rounded border px-1 font-mono tabular">
+                            {c.payCode} {c.minutes ? `${decimalHours(c.minutes)} t` : t.fixed}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
                     <ViolationList row={r} />
                     {r.approvedBy ? (
                       <span className="text-xs text-muted-foreground">

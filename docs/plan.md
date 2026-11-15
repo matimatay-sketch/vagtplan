@@ -216,6 +216,7 @@ Status (bygget 2026-11-13):
 
 - `/tid` (medarbejder): stempling med offline-kø, "Gennemført som planlagt" pr. vagt eller samlet, egne registreringer pr. dag med dagens arbejdstid, rettelse med begrundelse og historik.
 - `/tid/godkend` (leder): uge, afdeling og status, massegodkendelse, rettelse af godkendt tid som ny version, afrunding ("afregnes"), regelbrud i den faktiske tid, undtagne medarbejdere markeret.
+- Tilføjet 2026-11-15: En foreløbig beregning viser, hvilke lønarter ugens tid aktiverer, både pr. medarbejder og pr. registrering, og også før tiden godkendes. Beløb vises kun med ret til at se lønlinjer.
 - Appen kan installeres som PWA (manifest, ikoner og service worker i produktion).
 - Ikke med endnu: slettejob efter 5 år (opbevaringsreglen) og tilkald (kommer i fase 5). Validering af faktisk tid ser 14 dage tilbage, så 48-timers-gennemsnittet er kun fuldt på vagtplanen.
 

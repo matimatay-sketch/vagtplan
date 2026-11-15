@@ -18,6 +18,7 @@ import {
 } from "@/lib/actions/agreements";
 import { decimalHours } from "@/lib/domain/project-report";
 import { da } from "@/lib/i18n/da";
+import { formatKroner } from "@/lib/domain/numbers";
 import { cn } from "@/lib/utils";
 import { ParamsForm, type Json } from "./params-form";
 
@@ -33,8 +34,7 @@ type Rule = {
 };
 type Doc = { rules: Rule[]; valid_from: string; [k: string]: unknown };
 
-const kr = (ore: number) =>
-  `${ore < 0 ? "−" : ""}${Math.floor(Math.abs(ore) / 100).toLocaleString("da-DK")},${String(Math.abs(ore) % 100).padStart(2, "0")}`;
+const kr = formatKroner;
 
 function warningText(w: CheckResult["warnings"][number]): string {
   const t = da.agreements.warnings;
