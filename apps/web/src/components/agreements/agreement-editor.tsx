@@ -23,12 +23,16 @@ import { cn } from "@/lib/utils";
 import { ParamsForm, type Json } from "./params-form";
 import { ConditionSelect, RemarkFields } from "./remark-fields";
 import {
+  AccrualFields,
+  OnCallFields,
   AppliesToFields,
   PayCodesTable,
   PayRateFields,
   StackingFields,
   SupplementFields,
   appliesToText,
+  type AccrualParams,
+  type OnCallParams,
   type AppliesTo,
   type PayRateParams,
   type Stacking,
@@ -321,6 +325,20 @@ export function AgreementEditor({
                   <SupplementFields
                     id={r.id}
                     value={r.params as unknown as SupplementParams}
+                    payCodes={knownPayCodes}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
+                ) : r.primitive === "on_call" ? (
+                  <OnCallFields
+                    id={r.id}
+                    value={r.params as unknown as OnCallParams}
+                    payCodes={knownPayCodes}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
+                ) : r.primitive === "time_off_accrual" ? (
+                  <AccrualFields
+                    id={r.id}
+                    value={r.params as unknown as AccrualParams}
                     payCodes={knownPayCodes}
                     onChange={(p) => setRule(i, { params: p as unknown as Json })}
                   />

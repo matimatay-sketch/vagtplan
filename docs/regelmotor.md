@@ -51,6 +51,13 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 
 `notice` (varsling) og `weekend_off` (weekendfri) kom i fase 3.
 
+### Tidsrum, afrunding, rådighed og optjening af frihed
+
+- **Tidsrum** (`windowSchema`, bruges af tillæg, rådighedssatser og optjening): `days`, `from`, `to` og valgfrit `started_at_or_before` / `started_after` (lokalt klokkeslæt på tidsrummets dag). Eksempel: mandag 04–06 med `started_at_or_before: "00:00"` gælder kun en vagt, der startede søndag eller kl. 00:00.
+- **`time_window_supplement`**: `rounding` (`unit_minutes`, `mode`: `started`/`completed`/`nearest`) runder tillæggets tid pr. vagt. `exclude_call_out` udelader udkald. Tillæg i kr. udbetales også uden lønsats. Tillæg i % kræver en lønsats (ellers noten `NO_PAY_RATE`).
+- **`on_call`**: `rate_windows` (andre satser i tidsrum, første match), `exclude_holidays`, `rounding` pr. rådighedsvagt og sats, `monthly_tiers` (ekstra i % af satsen over N minutter i kalendermåneden – rådigheds- og udkaldsminutter tæller, kun rådighed får ekstra; tag hele måneden med i input), `call_out_pay` (beløb, lønart, pr. påbegyndt `unit_minutes`, loft `max_rate_ore`).
+- **`time_off_accrual`** (ny): frihed som linjer med enheden `time_off_minutes` (beløb 0). `worked_in_windows` giver `earn_minutes` pr. `per_minutes` arbejde i tidsrummene (eksakt brøk, fx 3/37). `holiday_work` giver `earn_minutes` pr. søgnehelligdag med arbejde.
+
 ### Anmærkninger (`remark`)
 
 Konsulentens egne anmærkninger på overenskomsten. Hver regel har `code` (UPPER_SNAKE, bruges også i testuger), `message` (vises med den målte værdi, fx "Vagt over 10 timer (11 t 30 min)"), `show_in` (`schedule` og/eller `time`) og en `condition`:

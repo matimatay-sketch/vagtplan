@@ -1,6 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import type { LayerRef, ResolvedRule } from "../agreement/resolve";
-import type { Amount, Primitive, Rule } from "../agreement/schema";
+import type { Amount, Primitive, QuantityRounding, Rule, TimeWindow } from "../agreement/schema";
 import { EngineContext } from "../context";
 import type {
   AbsenceInput,
@@ -27,7 +27,6 @@ import {
   cutSpan,
   minutesOf,
   normalizeIntervals,
-  overlap,
   payPieces,
   type Span,
   type WorkInterval,
@@ -92,6 +91,8 @@ export type PayResult = {
 // ---------------------------------------------------------------------------
 type Segment = Span & {
   intervalId: string;
+  /** Start of the shift the segment belongs to (for windows that depend on it). */
+  shiftStart: Instant;
   kind: "work" | "call_out";
   date: IsoDate;
   holiday: boolean;
@@ -106,6 +107,10 @@ type Candidate = {
   /** Minutes credited per minute worked (time off), in bp. */
   factorBp: number;
   note: string | null;
+  /** Quantity rounded per shift (interval). */
+  rounding?: QuantityRounding | null;
+  /** Time off: exact share of the minutes (numerator, denominator) instead of factorBp. */
+  ratio?: [number, number];
 };
 
 function roundTo(ms: Instant, unit: number, mode: "nearest" | "up" | "down"): Instant {
@@ -154,12 +159,18 @@ function boundaryCuts(span: Span, ctx: EngineContext, plannedSpans: Span[]): Ins
   const cuts = new Set<Instant>(dayCuts(span, ctx));
   const first = localDate(span.start, ctx.tz);
   for (const d of [addDays(first, -1), first, addDays(first, 1), addDays(first, 2)]) {
-    for (const rule of ctx.rules(d, "time_window_supplement")) {
-      for (const w of rule.params.windows) {
-        const inst = windowInstance(d, w.from, w.to, ctx.tz);
-        cuts.add(inst.start);
-        cuts.add(inst.end);
-      }
+    const windows = [
+      ...ctx.rules(d, "time_window_supplement").flatMap((r) => r.params.windows),
+      ...ctx
+        .rules(d, "time_off_accrual")
+        .flatMap((r) =>
+          r.params.basis.type === "worked_in_windows" ? r.params.basis.windows : [],
+        ),
+    ];
+    for (const w of windows) {
+      const inst = windowInstance(d, w.from, w.to, ctx.tz);
+      cuts.add(inst.start);
+      cuts.add(inst.end);
     }
     const h = ctx.holiday(d);
     if (h?.from) cuts.add(wallTime(d, h.from, ctx.tz));
@@ -179,18 +190,27 @@ function isHolidayTime(ctx: EngineContext, date: IsoDate, at: Instant): boolean 
 
 const WEEKDAY_KEYS = ["", "mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
-function windowMatches(
-  rule: ResolvedRule & Rule<"time_window_supplement">,
-  seg: Segment,
+/** Does a segment fall inside one of the windows (anchored on its date or the day before)? */
+function inWindows(
+  windows: readonly TimeWindow[],
+  excludeHolidays: boolean,
+  seg: { start: Instant; end: Instant; holiday: boolean; shiftStart: Instant },
   ctx: EngineContext,
 ): boolean {
   const first = localDate(seg.start, ctx.tz);
   for (const d of [addDays(first, -1), first]) {
-    for (const w of rule.params.windows) {
+    for (const w of windows) {
       const inst = windowInstance(d, w.from, w.to, ctx.tz);
       if (!(inst.start <= seg.start && seg.end <= inst.end)) continue;
+      if (
+        w.started_at_or_before !== null &&
+        seg.shiftStart > wallTime(d, w.started_at_or_before, ctx.tz)
+      )
+        continue;
+      if (w.started_after !== null && seg.shiftStart <= wallTime(d, w.started_after, ctx.tz))
+        continue;
       const dow = WEEKDAY_KEYS[isoWeekday(d)]!;
-      const holidayExcluded = rule.params.exclude_holidays && seg.holiday;
+      const holidayExcluded = excludeHolidays && seg.holiday;
       const ok = w.days.some((sel) => {
         if (sel === "holiday") return seg.holiday;
         if (sel === "any") return !holidayExcluded;
@@ -201,6 +221,14 @@ function windowMatches(
     }
   }
   return false;
+}
+
+function windowMatches(
+  rule: ResolvedRule & Rule<"time_window_supplement">,
+  seg: Segment,
+  ctx: EngineContext,
+): boolean {
+  return inWindows(rule.params.windows, rule.params.exclude_holidays, seg, ctx);
 }
 
 function baseRate(
@@ -229,6 +257,14 @@ function baseRate(
 
 function amountRate(amount: Amount, base: number): number {
   return amount.type === "ore_per_hour" ? amount.ore : Math.round((base * amount.bp) / 10000);
+}
+
+function subtractSpan(a: Span, b: Span): Span[] {
+  if (b.end <= a.start || b.start >= a.end) return [a];
+  const out: Span[] = [];
+  if (b.start > a.start) out.push({ start: a.start, end: b.start });
+  if (b.end < a.end) out.push({ start: b.end, end: a.end });
+  return out;
 }
 
 function datesBetween(from: IsoDate, to: IsoDate): IsoDate[] {
@@ -397,17 +433,23 @@ function markOvertime(
   return current;
 }
 
+/** base null = no pay rate: amounts in % of the base rate are left out. */
 function candidatesFor(
   seg: Segment,
   ctx: EngineContext,
   contract: ContractFacts,
-  base: number,
+  base: number | null,
 ): Candidate[] {
   const out: Candidate[] = [];
-  if (seg.overtime) {
+  const known = (a: Amount) => base !== null || a.type === "ore_per_hour";
+  if (
+    seg.overtime &&
+    (known(seg.overtime.rule.params.tiers[seg.overtime.tier]!.amount) ||
+      seg.overtime.rule.params.compensation === "time_off")
+  ) {
     const { rule, tier } = seg.overtime;
     const t = rule.params.tiers[tier]!;
-    const supplement = amountRate(t.amount, base);
+    const supplement = known(t.amount) ? amountRate(t.amount, base ?? 0) : 0;
     const includeBase = contract.payForm === "monthly" && rule.params.monthly_paid_includes_base;
     out.push(
       rule.params.compensation === "time_off"
@@ -422,7 +464,7 @@ function candidatesFor(
         : {
             rule,
             payCode: t.pay_code,
-            rateOre: supplement + (includeBase ? base : 0),
+            rateOre: supplement + (includeBase ? (base ?? 0) : 0),
             unit: "hours",
             factorBp: 10000,
             note: null,
@@ -431,14 +473,17 @@ function candidatesFor(
   }
   for (const rule of ctx.rules(seg.date, "time_window_supplement")) {
     if (seg.overtime && rule.params.exclude_overtime) continue;
+    if (seg.kind === "call_out" && rule.params.exclude_call_out) continue;
     if (!windowMatches(rule, seg, ctx)) continue;
+    if (!known(rule.params.amount)) continue;
     out.push({
       rule,
       payCode: rule.params.pay_code,
-      rateOre: amountRate(rule.params.amount, base),
+      rateOre: amountRate(rule.params.amount, base ?? 0),
       unit: "hours",
       factorBp: 10000,
       note: null,
+      rounding: rule.params.rounding,
     });
   }
   return out;
@@ -464,7 +509,19 @@ export function stack<C extends { rule: ResolvedRule; rateOre: number }>(
   return [...kept, ...highest.values()];
 }
 
-type Acc = { line: PayLine; minutes: number };
+type Acc = {
+  line: PayLine;
+  minutes: number;
+  rounding: QuantityRounding | null;
+  ratio: [number, number] | null;
+  /** Minutes per interval, for rounding per shift. */
+  byInterval: Map<string, number>;
+};
+
+export function roundQuantity(minutes: number, r: QuantityRounding): number {
+  const f = r.mode === "started" ? Math.ceil : r.mode === "completed" ? Math.floor : Math.round;
+  return f(minutes / r.unit_minutes) * r.unit_minutes;
+}
 
 class LineBook {
   private readonly map = new Map<string, Acc>();
@@ -476,6 +533,9 @@ class LineBook {
     if (!acc) {
       acc = {
         minutes: 0,
+        rounding: c.rounding ?? null,
+        ratio: c.ratio ?? null,
+        byInterval: new Map(),
         line: {
           payCode: c.payCode,
           label: this.labels(c.payCode),
@@ -497,6 +557,11 @@ class LineBook {
       this.map.set(key, acc);
     }
     acc.minutes += minutes;
+    if (interval)
+      acc.byInterval.set(
+        interval.intervalId,
+        (acc.byInterval.get(interval.intervalId) ?? 0) + minutes,
+      );
     if (interval) {
       const last = acc.line.explanation.intervals.at(-1);
       if (
@@ -511,10 +576,17 @@ class LineBook {
     }
     acc.line.quantityMinutes =
       c.unit === "time_off_minutes"
-        ? Math.round((acc.minutes * c.factorBp) / 10000)
+        ? acc.ratio
+          ? Math.round((acc.minutes * acc.ratio[0]) / acc.ratio[1])
+          : Math.round((acc.minutes * c.factorBp) / 10000)
         : c.unit === "fixed"
           ? 0
-          : acc.minutes;
+          : acc.rounding
+            ? [...acc.byInterval.values()].reduce(
+                (sum, m) => sum + roundQuantity(m, acc.rounding!),
+                0,
+              )
+            : acc.minutes;
   }
 
   lines(): PayLine[] {
@@ -566,6 +638,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
         segments.push({
           ...s,
           intervalId: i.id,
+          shiftStart: i.start,
           kind: i.kind,
           date: d,
           holiday: isHolidayTime(ctx, d, s.start),
@@ -589,6 +662,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
   const book = new LineBook(labels);
   const dailyMinutes: Record<IsoDate, number> = {};
   const missingRate = new Set<IsoDate>();
+  const holidayEarned = new Set<string>();
 
   for (const seg of segments.sort((a, b) => a.start - b.start)) {
     if (seg.date < from || seg.date > to) continue;
@@ -604,11 +678,8 @@ export function calculatePay(input: CalcPayInput): PayResult {
     const minutes = minutesOf(seg);
     dailyMinutes[seg.date] = (dailyMinutes[seg.date] ?? 0) + minutes;
     const rate = baseRate(ctx, seg.date, contract);
-    if (!rate) {
-      missingRate.add(seg.date);
-      continue;
-    }
-    if (contract.payForm === "hourly") {
+    if (!rate) missingRate.add(seg.date);
+    if (rate && contract.payForm === "hourly") {
       book.add(
         {
           rule: rate.rule,
@@ -622,54 +693,90 @@ export function calculatePay(input: CalcPayInput): PayResult {
         explained(seg),
       );
     }
-    for (const c of stack(candidatesFor(seg, ctx, contract, rate.ore)))
+    for (const c of stack(candidatesFor(seg, ctx, contract, rate?.ore ?? null)))
       book.add(c, minutes, explained(seg));
-  }
-  for (const d of missingRate)
-    notes.push({
-      code: "NO_PAY_RATE",
-      message: "Ingen lønsats fundet – tillæg i procent kan ikke beregnes.",
-      date: d,
-    });
-
-  // 4. On-call (rådighed), call-out and minimum-shift guarantees.
-  const callOuts = worked.filter((i) => i.kind === "call_out");
-  for (const i of worked) {
-    const date = localDate(i.start, ctx.tz);
-    if (date < from || date > to) continue;
-    const contract = ctx.contractOn(date);
-    const rate = contract ? baseRate(ctx, date, contract) : null;
-    if (!contract || !rate) continue;
-    const onCall = ctx.rule(date, "on_call");
-    const interval = {
-      intervalId: i.id,
-      date,
-      start: formatInstant(i.start),
-      end: formatInstant(i.end),
-      minutes: minutesOf(i),
-    };
-
-    if (i.kind === "on_call" && onCall) {
-      const busy = callOuts.reduce((s, c) => s + overlap(i, c), 0) / MINUTE;
-      const minutes = minutesOf(i) - Math.round(busy);
-      const c: Candidate = {
-        rule: onCall,
-        payCode: onCall.params.pay_code,
-        rateOre: amountRate(onCall.params.amount, rate.ore),
-        unit: "hours",
-        factorBp: 10000,
-        note: null,
-      };
-      book.add(c, minutes, interval);
+    for (const rule of ctx.rules(seg.date, "time_off_accrual")) {
+      const b = rule.params.basis;
+      if (b.type === "holiday_work") {
+        if (seg.holiday && !holidayEarned.has(`${rule.id}|${seg.date}`)) {
+          holidayEarned.add(`${rule.id}|${seg.date}`);
+          book.add(
+            {
+              rule,
+              payCode: rule.params.pay_code,
+              rateOre: 0,
+              unit: "time_off_minutes",
+              factorBp: 10000,
+              ratio: [1, 1],
+              note: "Arbejde på helligdag",
+            },
+            b.earn_minutes,
+            explained(seg),
+          );
+        }
+        continue;
+      }
+      if (seg.overtime && b.exclude_overtime) continue;
+      if (!inWindows(b.windows, b.exclude_holidays, seg, ctx)) continue;
+      book.add(
+        {
+          rule,
+          payCode: rule.params.pay_code,
+          rateOre: 0,
+          unit: "time_off_minutes",
+          factorBp: 10000,
+          ratio: [b.earn_minutes, b.per_minutes],
+          note: null,
+        },
+        minutes,
+        explained(seg),
+      );
     }
-    const paidMinutes = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false).reduce(
-      (s, p) => s + minutesOf(p),
-      0,
-    );
-    if (i.kind === "call_out" && onCall) {
-      const paid = paidMinutes;
-      const missing = onCall.params.call_out_min_minutes - paid;
-      if (missing > 0) {
+  }
+  // 4. On-call (rådighed) and call-out, in time order so monthly limits are counted right.
+  const callOuts = worked.filter((i) => i.kind === "call_out");
+  type Piece = Span & { interval: WorkInterval; kind: "on_call" | "call_out" };
+  const pieces: Piece[] = [];
+  for (const i of worked) {
+    if (i.kind === "call_out")
+      pieces.push({ start: i.start, end: i.end, interval: i, kind: "call_out" });
+    if (i.kind !== "on_call") continue;
+    let rest: Span[] = [{ start: i.start, end: i.end }];
+    for (const c of callOuts) rest = rest.flatMap((p) => subtractSpan(p, c));
+    for (const p of rest) pieces.push({ ...p, interval: i, kind: "on_call" });
+  }
+  pieces.sort((a, b) => a.start - b.start);
+  const monthCount = new Map<string, number>();
+  const counted = (d: IsoDate, m: number) => {
+    const before = monthCount.get(d.slice(0, 7)) ?? 0;
+    monthCount.set(d.slice(0, 7), before + m);
+    return before;
+  };
+  const explainedInterval = (i: WorkInterval, date: IsoDate): ExplainedInterval => ({
+    intervalId: i.id,
+    date,
+    start: formatInstant(i.start),
+    end: formatInstant(i.end),
+    minutes: minutesOf(i),
+  });
+  for (const piece of pieces) {
+    const i = piece.interval;
+    const date = localDate(i.start, ctx.tz);
+    const contract = ctx.contractOn(date);
+    const onCall = ctx.rule(date, "on_call");
+    if (!contract || !onCall) continue;
+    const rate = baseRate(ctx, date, contract);
+    const interval = explainedInterval(i, date);
+
+    if (piece.kind === "call_out") {
+      const paidMinutes = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false).reduce(
+        (s, p) => s + minutesOf(p),
+        0,
+      );
+      counted(date, paidMinutes);
+      if (date < from || date > to) continue;
+      const missing = onCall.params.call_out_min_minutes - paidMinutes;
+      if (missing > 0 && rate) {
         book.add(
           {
             rule: onCall,
@@ -683,29 +790,116 @@ export function calculatePay(input: CalcPayInput): PayResult {
           interval,
         );
       }
+      const cp = onCall.params.call_out_pay;
+      if (!cp) continue;
+      if (cp.amount.type === "percent_of_base" && !rate) {
+        missingRate.add(date);
+        continue;
+      }
+      const r = amountRate(cp.amount, rate?.ore ?? 0);
+      book.add(
+        {
+          rule: onCall,
+          payCode: cp.pay_code,
+          rateOre: cp.max_rate_ore === null ? r : Math.min(r, cp.max_rate_ore),
+          unit: "hours",
+          factorBp: 10000,
+          note: `Udkald afregnes pr. påbegyndt ${cp.unit_minutes} min.`,
+          rounding: { unit_minutes: cp.unit_minutes, mode: "started" },
+        },
+        paidMinutes,
+        interval,
+      );
+      continue;
     }
-    const minShift = ctx.rule(date, "min_shift");
-    if (
-      i.kind === "work" &&
-      i.plannedShiftId &&
-      minShift?.params.guarantee_pay &&
-      contract.payForm === "hourly"
-    ) {
-      const missing = minShift.params.min_minutes - paidMinutes;
-      if (missing > 0) {
+
+    // On-call: split by day, holiday and rate windows.
+    const cuts = new Set<Instant>(dayCuts(piece, ctx));
+    const last = localDate(piece.end, ctx.tz);
+    for (let d = addDays(localDate(piece.start, ctx.tz), -1); d <= last; d = addDays(d, 1)) {
+      for (const w of onCall.params.rate_windows) {
+        const inst = windowInstance(d, w.from, w.to, ctx.tz);
+        cuts.add(inst.start);
+        cuts.add(inst.end);
+      }
+      const h = ctx.holiday(d);
+      if (h?.from) cuts.add(wallTime(d, h.from, ctx.tz));
+    }
+    for (const sub of cutSpan(piece, [...cuts])) {
+      const d = localDate(sub.start, ctx.tz);
+      const seg = { ...sub, holiday: isHolidayTime(ctx, d, sub.start), shiftStart: i.start };
+      const w = onCall.params.rate_windows.find((x) =>
+        inWindows([x], onCall.params.exclude_holidays, seg, ctx),
+      );
+      const amount = w?.amount ?? onCall.params.amount;
+      const m = minutesOf(sub);
+      const before = counted(d, m);
+      if (d < from || d > to) continue;
+      if (amount.type === "percent_of_base" && !rate) {
+        missingRate.add(d);
+        continue;
+      }
+      const rateOre = amountRate(amount, rate?.ore ?? 0);
+      book.add(
+        {
+          rule: onCall,
+          payCode: w?.pay_code ?? onCall.params.pay_code,
+          rateOre,
+          unit: "hours",
+          factorBp: 10000,
+          note: null,
+          rounding: onCall.params.rounding,
+        },
+        m,
+        interval,
+      );
+      for (const t of onCall.params.monthly_tiers) {
+        const lo = Math.max(before, t.from_minutes);
+        const hi = Math.min(before + m, t.to_minutes ?? Infinity);
+        if (hi <= lo) continue;
         book.add(
           {
-            rule: minShift,
-            payCode: minShift.params.pay_code,
-            rateOre: rate.ore,
+            rule: onCall,
+            payCode: t.pay_code,
+            rateOre: Math.round((rateOre * t.percent_bp) / 10000),
             unit: "hours",
             factorBp: 10000,
-            note: `Garanti for minimum vagtlængde: ${minShift.params.min_minutes} min.`,
+            note: "Ekstra for rådighedstimer over grænsen i måneden",
           },
-          missing,
+          hi - lo,
           interval,
         );
       }
+    }
+  }
+
+  // Minimum-shift guarantees.
+  for (const i of worked) {
+    const date = localDate(i.start, ctx.tz);
+    if (date < from || date > to || i.kind !== "work" || !i.plannedShiftId) continue;
+    const contract = ctx.contractOn(date);
+    const rate = contract ? baseRate(ctx, date, contract) : null;
+    const minShift = ctx.rule(date, "min_shift");
+    if (!contract || !rate || !minShift?.params.guarantee_pay || contract.payForm !== "hourly")
+      continue;
+    const paidMinutes = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false).reduce(
+      (s, p) => s + minutesOf(p),
+      0,
+    );
+    const missing = minShift.params.min_minutes - paidMinutes;
+    if (missing > 0) {
+      book.add(
+        {
+          rule: minShift,
+          payCode: minShift.params.pay_code,
+          rateOre: rate.ore,
+          unit: "hours",
+          factorBp: 10000,
+          note: `Garanti for minimum vagtlængde: ${minShift.params.min_minutes} min.`,
+        },
+        missing,
+        explainedInterval(i, date),
+      );
     }
   }
 
@@ -770,6 +964,14 @@ export function calculatePay(input: CalcPayInput): PayResult {
       );
     }
   }
+
+  for (const d of missingRate)
+    notes.push({
+      code: "NO_PAY_RATE",
+      message:
+        "Ingen lønsats fundet – grundløn og tillæg i procent af timelønnen er ikke beregnet.",
+      date: d,
+    });
 
   // 5. Absence.
   for (const a of absences) {

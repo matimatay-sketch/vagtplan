@@ -15,11 +15,13 @@ import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
+import { NewAgreementForm } from "@/components/agreements/agreement-actions";
+import { todayIn } from "@/lib/domain/civil-date";
 
 export const metadata: Metadata = { title: "Overenskomster" };
 
 export default async function AgreementsPage() {
-  await requireContext(["agreements.manage"]);
+  const ctx = await requireContext(["agreements.manage"]);
   const supabase = await createClient();
   const t = da.agreements;
   const { data: agreements } = await supabase
@@ -32,7 +34,11 @@ export default async function AgreementsPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader
+        title={t.title}
+        lead={t.lead}
+        actions={<NewAgreementForm defaultDate={todayIn(ctx.organization.timezone)} />}
+      />
       <Card className="py-0">
         <Table>
           <TableHeader>
