@@ -593,6 +593,13 @@ export const da = {
     fixed: "fast",
     why: "Hvorfor?",
     whyRule: "Regel",
+    summary: {
+      code: "Lønart / fravær",
+      label: "Betegnelse",
+      quantity: "Antal",
+      rate: "Sats",
+      amount: "Beløb",
+    },
     departmentTotal: (name: string) => `${name} i alt (foreløbig)`,
     by: "af",
   },

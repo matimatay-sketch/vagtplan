@@ -113,17 +113,21 @@ test("completed as planned, deviation with reason, approval and correction as a 
   // The pay codes the time activates, before it is approved: 8 hours (16:30 minus a 30-minute
   // unpaid break) at 150 kr. The manager may see pay lines, so amounts are shown.
   await expect(row.getByTestId("entry-pay-codes")).toContainText("NORMAL 8,00 t");
-  await expect(
-    madsSection.getByTestId("pay-preview").locator('[data-pay-code="NORMAL"]'),
-  ).toContainText("1.200,00 kr.");
+  // The summary to the right: pay code, label, quantity, rate and amount per employee.
+  const summary = page.locator('[data-testid="pay-preview"][data-employee="Mads Medarbejder"]');
+  const normalRow = summary.locator('tr[data-pay-code="NORMAL"]');
+  await expect(normalRow).toContainText("Timeløn");
+  await expect(normalRow).toContainText("8,00 t");
+  await expect(normalRow).toContainText("150,00");
+  await expect(normalRow).toContainText("1.200,00");
   // Why: the rule, its source and the agreement version, so the calculation can be checked.
-  await madsSection.getByTestId("pay-why").getByText("Hvorfor?").click();
-  await expect(madsSection.getByTestId("pay-why")).toContainText("Regel loensats · Eksempel § 1");
+  await summary.getByTestId("pay-why").getByText("Hvorfor?").click();
+  await expect(summary.getByTestId("pay-why")).toContainText("Regel loensats · Eksempel § 1");
   // The department's total for the week (other employees may add to it).
   const butik = page.locator('[data-testid="department-total"][data-department="Butik"]');
   await expect(butik).toContainText("Butik i alt (foreløbig)");
-  await expect(butik.locator('[data-pay-code="NORMAL"]')).toBeVisible();
-  await expect(butik.getByTestId("department-total-amount")).toContainText("kr.");
+  await expect(butik.locator('tr[data-pay-code="NORMAL"]')).toBeVisible();
+  await expect(butik.getByTestId("summary-total")).not.toBeEmpty();
   await row.getByRole("checkbox").check();
   await page.getByTestId("approve-selected").click();
   await expect(page.getByText("1 registrering godkendt.")).toBeVisible();

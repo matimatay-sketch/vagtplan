@@ -29,6 +29,7 @@ export async function loadPayPreviews(
           label: l.label,
           unit: l.unit,
           quantityMinutes: l.quantityMinutes,
+          rateOre: l.rateOre,
           amountOre: l.amountOre,
           why: {
             ruleId: l.explanation.ruleId,
@@ -46,7 +47,11 @@ export async function loadPayPreviews(
       );
       out[e.id] = e.showAmounts
         ? preview
-        : { ...preview, codes: preview.codes.map((c) => ({ ...c, amountOre: 0 })) };
+        : {
+            ...preview,
+            codes: preview.codes.map((c) => ({ ...c, amountOre: 0 })),
+            rows: preview.rows.map((r) => ({ ...r, rateOre: 0, amountOre: 0 })),
+          };
     } catch {
       // No agreement in force for the week, or data the user cannot read: no preview.
     }
