@@ -422,7 +422,12 @@ export async function publishAction(input: {
       employee_id: v.employeeId,
       rule_id: v.ruleId,
       code: v.code,
-      severity: v.handling === "block" || v.severity === "BLOCKING" ? "BLOCKING" : "WARNING",
+      severity:
+        v.handling === "block" || v.severity === "BLOCKING"
+          ? "BLOCKING"
+          : v.severity === "INFO"
+            ? "INFO"
+            : "WARNING",
       message: v.message,
       date: v.date,
       details: { ...v.details, intervalIds: v.intervalIds, engineSeverity: v.severity },

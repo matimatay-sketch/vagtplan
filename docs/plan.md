@@ -263,6 +263,7 @@ Opgaver:
 5. Admin-UI til overenskomster: versioner, arv, formular pr. primitiv (plus JSON-visning), validering, publicering af en ny version.
 6. Simulator: vælg en testuge, og se lønlinjer og overtrædelser **før og efter** ændringen side om side.
 7. Gemte testuger pr. overenskomst med forventet resultat regnet i hånden. De køres mod den publicerede version og kladden, og publicering advarer, hvis en testuge fejler mod kladden.
+8. Egne anmærkninger på overenskomsten (betingelse, grænse, virkning Info/Advarsel/Blokerende, vises i vagtplanen og/eller Godkend tid).
 
 Beslutning 2026-11-14: Eksportfilen konfigureres af konsulenten, så den passer til lønsystemet. Kolonner, format og lønarter vælges selv, og beløb er en valgfri kolonne. Skabeloner til ProLøn og Lessor kommer, når importspecifikationen foreligger.
 

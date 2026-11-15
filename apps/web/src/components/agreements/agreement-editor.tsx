@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, Play, Send, Trash2 } from "lucide-react";
+import { CheckCircle2, Play, Plus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -21,6 +21,13 @@ import { da } from "@/lib/i18n/da";
 import { formatKroner } from "@/lib/domain/numbers";
 import { cn } from "@/lib/utils";
 import { ParamsForm, type Json } from "./params-form";
+import { ConditionSelect, RemarkFields } from "./remark-fields";
+import {
+  defaultCondition,
+  newRemarkRule,
+  type ConditionType,
+  type RemarkParams,
+} from "@/lib/domain/remarks";
 
 type Rule = {
   id: string;
@@ -64,6 +71,25 @@ export function AgreementEditor({
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? "");
   const [date, setDate] = useState(defaultDate);
   const [sim, setSim] = useState<SimResult | null>(null);
+  const [remarkName, setRemarkName] = useState("");
+  const [remarkType, setRemarkType] = useState<ConditionType>("shift_longer_than");
+  const addRemark = () => {
+    const name = remarkName.trim();
+    if (!name) return toast.error(t.remarks.nameRequired);
+    const rule = newRemarkRule(
+      name,
+      doc.rules.map((r) => r.id),
+      defaultCondition(remarkType),
+    );
+    setDoc((d) => ({ ...d, rules: [...d.rules, rule as unknown as Rule] }));
+    setRemarkName("");
+    // Open the new rule so the limit can be set at once.
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLDetailsElement>(`details[data-rule="${rule.id}"]`)
+        ?.setAttribute("open", ""),
+    );
+  };
 
   const current = (): Doc | null => {
     if (tab === "rules") return doc;
@@ -222,8 +248,11 @@ export function AgreementEditor({
                       onChange={(e) => setRule(i, { severity: e.target.value || undefined })}
                     >
                       <option value="">–</option>
-                      <option value="BLOCKING">BLOCKING</option>
-                      <option value="WARNING">WARNING</option>
+                      {(["BLOCKING", "WARNING", "INFO"] as const).map((k) => (
+                        <option key={k} value={k}>
+                          {t.severities[k]}
+                        </option>
+                      ))}
                     </NativeSelect>
                   </Field>
                   <Field label={t.todoJura} htmlFor={`${i}-todo`}>
@@ -234,14 +263,25 @@ export function AgreementEditor({
                     />
                   </Field>
                 </div>
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">{t.params}</div>
-                  <ParamsForm
-                    value={r.params ?? {}}
-                    path={r.id}
-                    onChange={(p) => setRule(i, { params: p })}
-                  />
-                </div>
+                {r.primitive === "remark" ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">{t.remarks.severityHelp}</p>
+                    <RemarkFields
+                      path={r.id}
+                      value={r.params as unknown as RemarkParams}
+                      onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                    />
+                  </>
+                ) : (
+                  <div className="grid gap-1">
+                    <div className="text-sm font-medium">{t.params}</div>
+                    <ParamsForm
+                      value={r.params ?? {}}
+                      path={r.id}
+                      onChange={(p) => setRule(i, { params: p })}
+                    />
+                  </div>
+                )}
                 <div>
                   <Button
                     variant="ghost"
@@ -257,6 +297,28 @@ export function AgreementEditor({
               </div>
             </details>
           ))}
+          <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-remark">
+            <div>
+              <div className="font-medium">{t.remarks.title}</div>
+              <p className="text-sm text-muted-foreground">{t.remarks.lead}</p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label={t.remarks.name} htmlFor="remark-name">
+                <Input
+                  id="remark-name"
+                  value={remarkName}
+                  onChange={(e) => setRemarkName(e.target.value)}
+                  placeholder="Vagt over 10 timer"
+                />
+              </Field>
+              <Field label={t.remarks.condition} htmlFor="remark-type">
+                <ConditionSelect id="remark-type" value={remarkType} onChange={setRemarkType} />
+              </Field>
+              <Button variant="outline" onClick={addRemark}>
+                <Plus /> {t.remarks.add}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : (
         <Textarea

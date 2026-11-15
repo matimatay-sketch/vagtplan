@@ -233,10 +233,19 @@ function ShiftForm({
               <li
                 key={i}
                 className={
-                  v.severity === "BLOCKING" ? "text-destructive" : "text-warning-foreground"
+                  v.severity === "BLOCKING"
+                    ? "text-destructive"
+                    : v.severity === "INFO"
+                      ? "text-muted-foreground"
+                      : "text-warning-foreground"
                 }
               >
-                {v.severity === "BLOCKING" ? t.blocking : t.warning}: {v.message}
+                {v.severity === "BLOCKING"
+                  ? t.blocking
+                  : v.severity === "INFO"
+                    ? t.info
+                    : t.warning}
+                : {v.message}
                 {v.handling === "allow" && v.severity === "BLOCKING"
                   ? ` (${t.permanentlyOverridden})`
                   : ""}

@@ -47,7 +47,22 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 | `absence`                | Fravær (typer, betaling, tæller med i normen, ret til dage)                                                                              | løn             |
 | `vacation`               | Ferie og feriefridage                                                                                                                    | optjening       |
 
-Planlagt til fase 3: `notice` (varsling) og `weekend_off` (weekendfri).
+`notice` (varsling) og `weekend_off` (weekendfri) kom i fase 3.
+
+### Anmærkninger (`remark`)
+
+Konsulentens egne anmærkninger på overenskomsten. Hver regel har `code` (UPPER_SNAKE, bruges også i testuger), `message` (vises med den målte værdi, fx "Vagt over 10 timer (11 t 30 min)"), `show_in` (`schedule` og/eller `time`) og en `condition`:
+
+| `condition.type`                           | Parametre                                 | Måling                                                                             |
+| ------------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `shift_longer_than` / `shift_shorter_than` | `minutes`                                 | Vagtens længde fra start til slut, inkl. pauser (reel tid ved sommertid)           |
+| `starts_before` / `ends_after`             | `time` (HH:MM)                            | Lokal tid på vagtens startdag                                                      |
+| `consecutive_days`                         | `max_days`                                | Arbejdsdage i træk (historik før perioden tæller), markeres fra dag `max_days + 1` |
+| `weekly_hours`                             | `max_minutes`                             | Arbejdstid mandag–søndag uden ubetalte pauser                                      |
+| `break_below`                              | `shift_over_minutes`, `min_break_minutes` | Pauser på en vagt, der er længere end grænsen                                      |
+| `rest_below`                               | `min_minutes`                             | Hvile før vagten (efter forrige vagtblok)                                          |
+
+Virkningen er reglens `severity`: `INFO` (vises kun), `WARNING` (standard) eller `BLOCKING` (kræver begrundelse ved offentliggørelse). `validateSchedule` tager `context: "schedule" | "time"`. Uden `context` medtages alle anmærkninger (simulator og testuger). `applies_to` begrænser som ved andre regler. Medarbejderens egen side "Min tid" viser ikke anmærkninger.
 
 ## Beregningspipeline (`calculatePay`)
 

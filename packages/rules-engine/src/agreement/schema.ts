@@ -13,6 +13,7 @@ import { z } from "zod";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$|^24:00$/, "expected HH:MM");
+const hhmmDay = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "expected HH:MM");
 const monthDay = z.string().regex(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "expected MM-DD");
 const minutes = z.number().int().min(0);
 const ore = z.number().int().min(0);
@@ -39,7 +40,8 @@ export const DAY_SELECTORS = [
 ] as const;
 export type DaySelector = (typeof DAY_SELECTORS)[number];
 
-export const SEVERITIES = ["BLOCKING", "WARNING"] as const;
+/** INFO is only shown (used by remarks); WARNING is shown clearly; BLOCKING needs an override. */
+export const SEVERITIES = ["BLOCKING", "WARNING", "INFO"] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
 // ---------------------------------------------------------------------------
@@ -282,6 +284,41 @@ export const ruleSchemas = {
   weekend_off: z.object({
     weekends_off: z.number().int().min(0),
     per_weeks: z.number().int().min(1).max(52),
+  }),
+
+  /**
+   * Anmærkning: a remark the consultant defines (name, text, limit, severity),
+   * shown on the schedule and/or on registered time. Severity comes from the
+   * rule (default WARNING); several remark rules may exist side by side.
+   */
+  remark: z.object({
+    /** Violation code, unique per agreement. */
+    code: z.string().regex(/^[A-Z][A-Z0-9_]{1,31}$/, "codes are UPPER_SNAKE"),
+    message: z.string().trim().min(1),
+    show_in: z
+      .array(z.enum(["schedule", "time"]))
+      .min(1)
+      .default(["schedule", "time"]),
+    condition: z.discriminatedUnion("type", [
+      /** Start to end, breaks included. */
+      z.object({ type: z.literal("shift_longer_than"), minutes }),
+      z.object({ type: z.literal("shift_shorter_than"), minutes }),
+      /** Local time on the shift's start day. */
+      z.object({ type: z.literal("starts_before"), time: hhmmDay }),
+      z.object({ type: z.literal("ends_after"), time: hhmmDay }),
+      /** Working days in a row; flagged from day max_days + 1. */
+      z.object({ type: z.literal("consecutive_days"), max_days: z.number().int().min(1) }),
+      /** Working time (Mon–Sun) over the limit. */
+      z.object({ type: z.literal("weekly_hours"), max_minutes: minutes }),
+      /** A shift longer than shift_over_minutes with less break than min_break_minutes. */
+      z.object({
+        type: z.literal("break_below"),
+        shift_over_minutes: minutes,
+        min_break_minutes: minutes,
+      }),
+      /** Less rest than min_minutes between two shifts. */
+      z.object({ type: z.literal("rest_below"), min_minutes: minutes }),
+    ]),
   }),
 } as const;
 

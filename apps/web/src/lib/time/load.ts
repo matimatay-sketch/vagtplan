@@ -212,6 +212,7 @@ export async function loadTimeOverview(
         intervals,
         from: opts.from,
         to: opts.to,
+        context: "time",
       });
       for (const v of violations)
         for (const id of v.intervalIds)
@@ -226,7 +227,12 @@ export async function loadTimeOverview(
     .map((r) => ({
       ...r,
       settled: r.entryId ? (settledById.get(r.entryId) ?? null) : null,
-      violations: r.entryId ? (violationsById.get(r.entryId) ?? []) : [],
+      // Remarks are for the approver; the employee's own view shows only rule breaches.
+      violations: r.entryId
+        ? (violationsById.get(r.entryId) ?? []).filter(
+            (v) => !opts.onlyMine || v.primitive !== "remark",
+          )
+        : [],
     }));
   return { rows, daily, exempt };
 }

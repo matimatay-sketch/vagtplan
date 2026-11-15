@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Loader2, OctagonAlert, AlertTriangle, Send } from "lucide-react";
+import { Info, Loader2, OctagonAlert, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -46,6 +46,8 @@ export function PublishButton({
     preview?.violations.filter((v) => v.handling === "allow" && v.severity === "BLOCKING") ?? [];
   const warnings =
     preview?.violations.filter((v) => v.handling === "allow" && v.severity === "WARNING") ?? [];
+  const infos =
+    preview?.violations.filter((v) => v.handling === "allow" && v.severity === "INFO") ?? [];
   const ready =
     preview &&
     preview.shiftCount > 0 &&
@@ -162,6 +164,27 @@ export function PublishButton({
                       data-testid="warning-violation"
                     >
                       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
+                      <span>
+                        <span className="font-medium">
+                          {v.employeeName} · {formatDate(v.date)}:
+                        </span>{" "}
+                        {v.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {infos.length ? (
+                <ul
+                  className="grid gap-1.5 rounded-lg border bg-muted/40 p-3 text-sm"
+                  data-testid="info-violations"
+                >
+                  <li className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    {t.infoTitle}
+                  </li>
+                  {infos.map((v) => (
+                    <li key={v.key} className="flex items-start gap-2">
+                      <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                       <span>
                         <span className="font-medium">
                           {v.employeeName} · {formatDate(v.date)}:

@@ -1,6 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import type { ResolutionWarning, ResolvedRule } from "../agreement/resolve";
-import type { Primitive, Severity } from "../agreement/schema";
+import type { Primitive, Rule, Severity } from "../agreement/schema";
 import { EngineContext } from "../context";
 import type { AbsenceInput, EngineInput, WorkIntervalInput } from "../model";
 import {
@@ -11,6 +11,7 @@ import {
   localDate,
   MINUTE,
   startOfLocalDay,
+  toLocal,
   wallTime,
   type IsoDate,
 } from "../time/local-time";
@@ -50,6 +51,8 @@ export type ValidateInput = EngineInput & {
   /** Local dates to report violations for (inclusive). */
   from: IsoDate;
   to: IsoDate;
+  /** Where the result is shown: remarks only appear where configured. Omitted = all. */
+  context?: "schedule" | "time";
 };
 
 export type ValidationResult = {
@@ -563,6 +566,7 @@ export function validateSchedule(input: ValidateInput): ValidationResult {
     ...checkDaily(ctx, work, byDate, input.from, input.to),
     ...checkNight(ctx, work, byDate, input.from, input.to),
     ...checkWeekendOff(ctx, work, input.from, input.to),
+    ...checkRemarks(ctx, work, byDate, input.from, input.to, input.context),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code));
   return { violations, resolutionWarnings: ctx.resolutionWarnings };
 }
@@ -665,4 +669,134 @@ export function validateNotice(input: NoticeInput): ValidationResult {
     );
   }
   return { violations, resolutionWarnings: ctx.resolutionWarnings };
+}
+
+// ---------------------------------------------------------------------------
+// Anmærkninger: remarks the consultant defines on the agreement.
+// ---------------------------------------------------------------------------
+const clock = (ms: number, tz: string) => {
+  const m = toLocal(ms, tz).minuteOfDay;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+
+function checkRemarks(
+  ctx: EngineContext,
+  work: WorkInterval[],
+  byDate: Map<IsoDate, number>,
+  from: IsoDate,
+  to: IsoDate,
+  context: "schedule" | "time" | undefined,
+): Violation[] {
+  const out: Violation[] = [];
+  const rulesOn = (date: IsoDate) =>
+    ctx.rules(date, "remark").filter((r) => !context || r.params.show_in.includes(context));
+  const flag = (
+    rule: ResolvedRule & Rule<"remark">,
+    date: IsoDate,
+    intervalIds: string[],
+    measured: string,
+    details: Violation["details"],
+  ) =>
+    out.push(
+      violation(rule, "WARNING", {
+        code: rule.params.code,
+        date,
+        intervalIds,
+        message: `${rule.params.message} (${measured})`,
+        details,
+      }),
+    );
+
+  const shifts = work.filter((i) => i.kind !== "on_call");
+  const blocks = mergeSpans(shifts);
+  const startDate = (i: WorkInterval) => localDate(i.start, ctx.tz);
+
+  // Per shift.
+  for (const i of shifts) {
+    const date = startDate(i);
+    if (date < from || date > to) continue;
+    const length = minutesOf(i);
+    for (const rule of rulesOn(date)) {
+      const c = rule.params.condition;
+      if (c.type === "shift_longer_than" && length > c.minutes) {
+        flag(rule, date, [i.id], formatMinutes(length), {
+          measuredMinutes: length,
+          limitMinutes: c.minutes,
+        });
+      } else if (c.type === "shift_shorter_than" && length < c.minutes) {
+        flag(rule, date, [i.id], formatMinutes(length), {
+          measuredMinutes: length,
+          limitMinutes: c.minutes,
+        });
+      } else if (c.type === "starts_before" && i.start < wallTime(date, c.time, ctx.tz)) {
+        flag(rule, date, [i.id], `start ${clock(i.start, ctx.tz)}`, { limit: c.time });
+      } else if (c.type === "ends_after" && i.end > wallTime(date, c.time, ctx.tz)) {
+        flag(rule, date, [i.id], `slut ${clock(i.end, ctx.tz)}`, { limit: c.time });
+      } else if (c.type === "break_below" && length > c.shift_over_minutes) {
+        const taken = breakMinutes(i);
+        if (taken < c.min_break_minutes) {
+          flag(rule, date, [i.id], `pause ${formatMinutes(taken)}`, {
+            measuredMinutes: taken,
+            limitMinutes: c.min_break_minutes,
+          });
+        }
+      } else if (c.type === "rest_below") {
+        // Only the first shift of a block has rest before it.
+        const idx = blocks.findIndex((b) => b.members[0] === i);
+        if (idx <= 0) continue;
+        const gap = Math.round((blocks[idx]!.start - blocks[idx - 1]!.end) / MINUTE);
+        if (gap < c.min_minutes) {
+          flag(rule, date, [i.id], `hvile ${formatMinutes(gap)}`, {
+            measuredMinutes: gap,
+            limitMinutes: c.min_minutes,
+          });
+        }
+      }
+    }
+  }
+
+  // Working days in a row (history before `from` counts).
+  const worked = (d: IsoDate) => (byDate.get(d) ?? 0) > 0;
+  for (const date of datesBetween(from, to)) {
+    if (!worked(date)) continue;
+    const rules = rulesOn(date).filter((r) => r.params.condition.type === "consecutive_days");
+    if (!rules.length) continue;
+    let run = 1;
+    while (worked(addDays(date, -run))) run++;
+    for (const rule of rules) {
+      const c = rule.params.condition as { max_days: number };
+      if (run > c.max_days) {
+        flag(
+          rule,
+          date,
+          shifts.filter((i) => startDate(i) === date).map((i) => i.id),
+          `${run} dage i træk`,
+          { measuredDays: run, limitDays: c.max_days },
+        );
+      }
+    }
+  }
+
+  // Working time per week (Mon–Sun).
+  for (const ws of [...new Set(datesBetween(from, to).map(isoWeekStart))]) {
+    const date = ws < from ? from : ws;
+    const rules = rulesOn(date).filter((r) => r.params.condition.type === "weekly_hours");
+    if (!rules.length) continue;
+    const end = addDays(ws, 6);
+    let total = 0;
+    for (const [d, m] of byDate) if (d >= ws && d <= end) total += m;
+    for (const rule of rules) {
+      const c = rule.params.condition as { max_minutes: number };
+      if (total > c.max_minutes) {
+        flag(
+          rule,
+          date,
+          shifts.filter((i) => startDate(i) >= ws && startDate(i) <= end).map((i) => i.id),
+          formatMinutes(total),
+          { measuredMinutes: total, limitMinutes: c.max_minutes },
+        );
+      }
+    }
+  }
+  return out;
 }

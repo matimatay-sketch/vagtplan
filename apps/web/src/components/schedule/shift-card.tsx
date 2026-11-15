@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { AlertTriangle, FolderKanban, OctagonAlert, PhoneCall } from "lucide-react";
+import { AlertTriangle, FolderKanban, Info, OctagonAlert, PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeRange } from "@/lib/domain/schedule-time";
 import type { BoardShift } from "@/lib/schedule/load-week";
@@ -16,25 +16,35 @@ export function ViolationIcon({ violations }: { violations: BoardShift["violatio
   if (!violations.length) return null;
   // Red when the organization blocks it; amber when it is a warning or permanently overridden.
   const blocking = violations.some((v) => v.handling === "block");
+  const infoOnly = !blocking && violations.every((v) => v.severity === "INFO");
   const title = violations
     .map(
       (v) =>
-        `${v.handling === "block" ? da.schedule.blocking : da.schedule.warning}: ${v.message}${
+        `${v.handling === "block" ? da.schedule.blocking : v.severity === "INFO" ? da.schedule.info : da.schedule.warning}: ${v.message}${
           v.handling === "allow" && v.severity === "BLOCKING"
             ? ` (${da.schedule.permanentlyOverridden})`
             : ""
         }`,
     )
     .join("\n");
-  const Icon = blocking ? OctagonAlert : AlertTriangle;
+  const Icon = blocking ? OctagonAlert : infoOnly ? Info : AlertTriangle;
   return (
     <span
       title={title}
       className="inline-flex"
-      data-testid={blocking ? "violation-blocking" : "violation-warning"}
+      data-testid={
+        blocking ? "violation-blocking" : infoOnly ? "violation-info" : "violation-warning"
+      }
     >
       <Icon
-        className={cn("size-3.5", blocking ? "text-destructive" : "text-warning-foreground")}
+        className={cn(
+          "size-3.5",
+          blocking
+            ? "text-destructive"
+            : infoOnly
+              ? "text-muted-foreground"
+              : "text-warning-foreground",
+        )}
         aria-label={title}
       />
     </span>

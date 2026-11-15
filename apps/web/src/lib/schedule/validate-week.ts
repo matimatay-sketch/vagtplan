@@ -135,6 +135,7 @@ export async function validateWeek(
         .map((a) => ({ id: a.id, type: a.type_code, from: a.from_date, to: a.to_date })),
       from: opts.weekStart,
       to: weekEnd,
+      context: "schedule",
     });
     out.push(...violations.map(tag));
 

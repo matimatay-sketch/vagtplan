@@ -26,7 +26,7 @@ export const RULE_CATALOG = [
 /** "block" = needs an override with reason at publishing; "allow" = always flagged, overridden permanently. */
 export function effectiveHandling(
   code: string,
-  severity: "BLOCKING" | "WARNING",
+  severity: "BLOCKING" | "WARNING" | "INFO",
   map: RuleHandlingMap,
 ): Handling {
   return map[code] ?? (severity === "BLOCKING" ? "block" : "allow");

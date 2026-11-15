@@ -16,7 +16,7 @@ type Client = Awaited<ReturnType<typeof createClient>>;
 
 export type BoardViolation = {
   code: string;
-  severity: "BLOCKING" | "WARNING";
+  severity: "BLOCKING" | "WARNING" | "INFO";
   message: string;
   date: IsoDate;
   handling: "block" | "allow";

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
-import { AlertTriangle, CheckCheck, CloudOff, FolderKanban, Plus } from "lucide-react";
+import { AlertTriangle, CheckCheck, CloudOff, FolderKanban, Info, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { completeAsPlannedAction } from "@/lib/actions/time";
@@ -101,10 +101,20 @@ export function ViolationList({ row }: { row: TimeRow }) {
           key={i}
           className={cn(
             "flex items-start gap-1",
-            v.severity === "BLOCKING" ? "text-destructive" : "text-warning-foreground",
+            v.severity === "BLOCKING"
+              ? "text-destructive"
+              : v.severity === "INFO"
+                ? "text-muted-foreground"
+                : "text-warning-foreground",
           )}
+          data-severity={v.severity}
         >
-          <AlertTriangle className="mt-0.5 size-3 shrink-0" /> {v.message}
+          {v.severity === "INFO" ? (
+            <Info className="mt-0.5 size-3 shrink-0" />
+          ) : (
+            <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+          )}{" "}
+          {v.message}
         </li>
       ))}
     </ul>
