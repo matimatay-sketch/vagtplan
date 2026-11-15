@@ -115,6 +115,61 @@ export type Database = {
           },
         ];
       };
+      agreement_test_case: {
+        Row: {
+          agreement_id: string;
+          archived_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          test: NonNullable<Json>;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          agreement_id: string;
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          test: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          agreement_id?: string;
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          test?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agreement_test_case_agreement_id_fkey";
+            columns: ["agreement_id"];
+            isOneToOne: false;
+            referencedRelation: "agreement";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agreement_test_case_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organization";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agreement_version: {
         Row: {
           agreement_id: string;

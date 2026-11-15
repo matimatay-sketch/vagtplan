@@ -24,3 +24,11 @@ export function formatKroner(ore: number): string {
   const kr = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${ore < 0 ? "−" : ""}${kr},${String(abs % 100).padStart(2, "0")}`;
 }
+
+/** "1.200,50" → 120050 øre ("." as thousands separator, "," as decimal; max two decimals). */
+export function parseKroner(input: string): number | null {
+  const m = /^\s*([-−]?)(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?\s*$/.exec(input);
+  if (!m) return null;
+  const ore = Number(m[2]!.replaceAll(".", "")) * 100 + Number((m[3] ?? "").padEnd(2, "0") || "0");
+  return m[1] ? -ore : ore;
+}

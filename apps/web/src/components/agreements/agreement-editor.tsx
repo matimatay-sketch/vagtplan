@@ -130,7 +130,11 @@ export function AgreementEditor({
             onClick={() => {
               if (!window.confirm(t.publishConfirm)) return;
               start(async () => {
-                const r = await publishVersionAction(versionId);
+                let r = await publishVersionAction(versionId);
+                if (r.needsConfirm) {
+                  if (!window.confirm(r.message ?? "")) return;
+                  r = await publishVersionAction(versionId, true);
+                }
                 if (r.message) (r.ok ? toast.success : toast.error)(r.message);
                 if (r.ok) router.refresh();
               });

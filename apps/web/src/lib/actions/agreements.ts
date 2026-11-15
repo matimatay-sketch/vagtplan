@@ -26,6 +26,7 @@ import { engineInputs } from "@/lib/absence/load";
 import { da } from "@/lib/i18n/da";
 import type { Json } from "@/lib/supabase/database.types";
 import { dbErrorMessage, type ActionState } from "./state";
+import { runTestWeeks } from "@/lib/agreements/test-weeks";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 const asJson = (v: unknown) => v as NonNullable<Json>;
@@ -51,6 +52,27 @@ async function freeKey(supabase: Client, wanted: string): Promise<string> {
   const taken = new Set((data ?? []).map((a) => a.key));
   if (!taken.has(wanted)) return wanted;
   for (let i = 2; ; i++) if (!taken.has(`${wanted}-${i}`)) return `${wanted}-${i}`;
+}
+
+/** The organization's test weeks follow a copy or a local agreement (they still apply to the same pay codes). */
+async function copyTestCases(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organizationId: string,
+  fromAgreementId: string,
+  toAgreementId: string,
+) {
+  const { data } = await supabase
+    .from("agreement_test_case")
+    .select("name, description, test")
+    .eq("agreement_id", fromAgreementId)
+    .is("archived_at", null);
+  if (!data?.length) return null;
+  const { error } = await supabase
+    .from("agreement_test_case")
+    .insert(
+      data.map((r) => ({ ...r, organization_id: organizationId, agreement_id: toAgreementId })),
+    );
+  return error;
 }
 
 /** Copies an agreement (typically a system template) into the organization as a draft. */
@@ -93,6 +115,8 @@ export async function copyAgreementAction(
     document: asJson(doc),
   });
   if (vError) return { message: dbErrorMessage(vError) };
+  const tError = await copyTestCases(supabase, ctx.organization.id, src.id, created.id);
+  if (tError) return { message: dbErrorMessage(tError) };
   revalidateAgreements();
   return { ok: true, message: da.agreements.copied, id: created.id };
 }
@@ -108,7 +132,7 @@ export async function createLocalAction(
   if (!title.success) return { message: da.validation.required };
   const { data: parent } = await supabase
     .from("agreement")
-    .select("key")
+    .select("id, key")
     .eq("id", z.guid().parse(parentId))
     .maybeSingle();
   if (!parent) return { message: da.common.notAllowed };
@@ -132,6 +156,8 @@ export async function createLocalAction(
     document: asJson(doc),
   });
   if (vError) return { message: dbErrorMessage(vError) };
+  const tError = await copyTestCases(supabase, ctx.organization.id, parent.id, created.id);
+  if (tError) return { message: dbErrorMessage(tError) };
   revalidateAgreements();
   return { ok: true, message: da.agreements.localCreated, id: created.id };
 }
@@ -205,18 +231,32 @@ export async function saveDraftAction(
   return { ...r.check, ok: true, message: da.agreements.saved };
 }
 
-export async function publishVersionAction(versionId: string): Promise<ActionState> {
-  await requireContext(["agreements.manage"]);
+/**
+ * Publishes a draft. If saved test weeks fail against the draft, the user is
+ * asked first (`force` publishes anyway).
+ */
+export async function publishVersionAction(
+  versionId: string,
+  force = false,
+): Promise<ActionState & { needsConfirm?: boolean }> {
+  const ctx = await requireContext(["agreements.manage"]);
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("agreement_version")
-    .select("document")
+    .select("document, agreement_id")
     .eq("id", z.guid().parse(versionId))
     .maybeSingle();
   if (!row) return { message: da.common.notAllowed };
   const r = await checkDraft(supabase, versionId, row.document);
   if (!r?.check.ok)
     return { message: `${da.agreements.invalid} ${r?.check.errors.join(" ") ?? ""}` };
+  if (!force) {
+    const { results } = await runTestWeeks(supabase, ctx.organization.timezone, row.agreement_id);
+    const failing = results.filter(
+      (t) => t.draft && ("error" in t.draft || !t.draft.comparison.ok),
+    ).length;
+    if (failing > 0) return { needsConfirm: true, message: da.testWeeks.publishWarning(failing) };
+  }
   const { error } = await supabase.rpc("publish_agreement_version", { p_id: versionId });
   if (error) return { message: dbErrorMessage(error) };
   revalidateAgreements();

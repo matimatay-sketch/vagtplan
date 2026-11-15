@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatHours, hoursToMinutes, parseDanishDecimal, formatKroner } from "./numbers";
+import {
+  formatHours,
+  hoursToMinutes,
+  parseDanishDecimal,
+  formatKroner,
+  parseKroner,
+} from "./numbers";
 
 describe("parseDanishDecimal", () => {
   it.each([
@@ -43,5 +49,18 @@ describe("formatKroner", () => {
     expect(formatKroner(5)).toBe("0,05");
     expect(formatKroner(-1250)).toBe("−12,50");
     expect(formatKroner(123456789)).toBe("1.234.567,89");
+  });
+});
+
+describe("parseKroner", () => {
+  it("reads Danish kroner into øre without floats", () => {
+    expect(parseKroner("1.200,50")).toBe(120050);
+    expect(parseKroner("1200")).toBe(120000);
+    expect(parseKroner("12,5")).toBe(1250);
+    expect(parseKroner("-12,50")).toBe(-1250);
+    expect(parseKroner("0,05")).toBe(5);
+    expect(parseKroner("1,234")).toBeNull();
+    expect(parseKroner("abc")).toBeNull();
+    expect(parseKroner("")).toBeNull();
   });
 });

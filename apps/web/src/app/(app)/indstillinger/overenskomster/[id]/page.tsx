@@ -6,6 +6,9 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgreementEditor } from "@/components/agreements/agreement-editor";
+import { TestWeeks } from "@/components/agreements/test-weeks";
+import { runTestWeeks } from "@/lib/agreements/test-weeks";
+import { weekStartOf } from "@/lib/domain/schedule-time";
 import {
   CopyAgreementButton,
   NewLocalForm,
@@ -47,6 +50,7 @@ export default async function AgreementPage({
         .is("archived_at", null)
         .order("first_name")
     : { data: [] };
+  const tests = await runTestWeeks(supabase, ctx.organization.timezone, a.id);
   const inherits = (latest?.document as { inherits_from?: string | null } | undefined)
     ?.inherits_from;
 
@@ -148,6 +152,12 @@ export default async function AgreementPage({
         ) : (
           <NewVersionForm agreementId={a.id} defaultDate={addDays(today, 1)} />
         )}
+        <TestWeeks
+          agreementId={a.id}
+          initial={tests.results}
+          hasDraft={tests.hasDraft}
+          defaultWeek={weekStartOf(today)}
+        />
       </div>
     </>
   );

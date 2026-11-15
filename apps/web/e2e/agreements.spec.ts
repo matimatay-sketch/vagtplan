@@ -70,9 +70,74 @@ test("admin copies an agreement, raises the evening supplement, sees it in the s
 
   await editor.getByRole("button", { name: "Validér" }).click();
   await expect(page.getByTestId("agreement-check")).toContainText("Dokumentet er gyldigt.");
-  page.once("dialog", (d) => d.accept());
+  // The raise is deliberate: also confirm if saved test weeks (copied along) now fail.
+  page.on("dialog", (d) => void d.accept());
   await editor.getByRole("button", { name: "Publicér" }).click();
   await expect(page.getByText("Versionen er publiceret.")).toBeVisible();
   await expect(page.getByTestId("agreement-versions")).toContainText("Publiceret");
   await expect(page.getByTestId("agreement-editor")).toHaveCount(0);
+});
+
+test("admin saves a hand-calculated test week, which follows a copy and catches a changed supplement", async ({
+  page,
+}) => {
+  const name = `Aftenvagt ${Date.now()}`;
+  const monday = mondayIn(30);
+  await login(page, users.admin);
+  await page.goto("/indstillinger/overenskomster");
+  await page.getByRole("link", { name: "EKSEMPEL – Detail (fiktiv)", exact: true }).click();
+
+  const weeks = page.getByTestId("test-weeks");
+  await weeks.getByRole("button", { name: "Ny testuge" }).click();
+  const form = weeks.getByTestId("test-week-form");
+  await form.getByLabel("Navn").fill(name);
+  await form.getByLabel("Uge (mandag)").fill(monday);
+  const shift = form.getByTestId("tw-shift");
+  await shift.getByLabel("Dato 1").fill(plus(monday, 1));
+  await shift.getByLabel("Start 1").fill("14:00");
+  await shift.getByLabel("Slut 1").fill("22:00");
+  await shift.getByLabel("Ubetalt pause (min) 1").fill("0");
+  // By hand: 8 h × 150 kr. and 18–22 = 4 h × 30 kr.
+  await form.getByLabel("Lønart 1").fill("NORMAL");
+  await form.getByLabel("Timer 1").fill("8");
+  await form.getByLabel("Beløb (kr.) 1").fill("1.200,00");
+  await form.getByRole("button", { name: "Tilføj lønart" }).click();
+  await form.getByLabel("Lønart 2").fill("AFTEN");
+  await form.getByLabel("Timer 2").fill("4");
+  await form.getByLabel("Beløb (kr.) 2").fill("120");
+  // 8 hours without a break must be flagged.
+  await form.getByLabel(/Forventede regelbrud/).fill("break_missing");
+  await form.getByRole("button", { name: "Nuværende beregning (kun til hjælp)" }).click();
+  await expect(form.getByTestId("tw-current")).toContainText("AFTEN 4,00 t / 120,00 kr.");
+  await form.getByRole("button", { name: "Gem testuge" }).click();
+  await expect(page.getByText("Testugen er gemt.")).toBeVisible();
+  const item = weeks.locator(`[data-test-week="${name}"]`);
+  await expect(item).toContainText("Publiceret version: Bestået");
+
+  // The copy brings the test week; 30 kr. → 40 kr. an evening hour makes it fail against the draft.
+  await page.getByRole("button", { name: "Lav egen kopi" }).click();
+  await expect(page.getByText("Kopien er oprettet som kladde.")).toBeVisible();
+  const editor = page.getByTestId("agreement-editor");
+  await expect(item).toContainText("Kladden: Bestået");
+  await editor.locator('details[data-rule="aftentillaeg"] > summary').click();
+  await editor.locator('[id="aftentillaeg.amount.ore"]').fill("4000");
+  await editor.getByRole("button", { name: "Gem kladde" }).click();
+  await expect(page.getByText("Kladden er gemt.")).toBeVisible();
+  await weeks.getByRole("button", { name: "Kør testuger" }).click();
+  await expect(item).toContainText("Kladden: Fejler");
+  await expect(item.getByTestId("test-diff")).toContainText(
+    "AFTEN: forventet 4,00 t / 120,00 kr., beregnet 4,00 t / 160,00 kr.",
+  );
+
+  // Publishing warns about the failing test week; declining keeps the draft.
+  const dialogs: string[] = [];
+  page.on("dialog", (d) => {
+    dialogs.push(d.message());
+    void (dialogs.length === 1 ? d.accept() : d.dismiss());
+  });
+  await editor.getByRole("button", { name: "Publicér" }).click();
+  await expect.poll(() => dialogs.length).toBe(2);
+  expect(dialogs[1]).toContain("testuge");
+  await expect(page.getByTestId("agreement-versions")).toContainText("Kladde");
+  await expect(editor).toBeVisible();
 });
