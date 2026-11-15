@@ -51,6 +51,16 @@ export default async function AgreementPage({
         .order("first_name")
     : { data: [] };
   const tests = await runTestWeeks(supabase, ctx.organization.timezone, a.id);
+  const { data: groupRows } = draft
+    ? await supabase
+        .from("contract")
+        .select("staff_group")
+        .eq("organization_id", ctx.organization.id)
+        .not("staff_group", "is", null)
+    : { data: [] };
+  const staffGroups = [
+    ...new Set((groupRows ?? []).map((g) => g.staff_group).filter((g): g is string => Boolean(g))),
+  ];
   const inherits = (latest?.document as { inherits_from?: string | null } | undefined)
     ?.inherits_from;
 
@@ -146,6 +156,7 @@ export default async function AgreementPage({
                   name: `${e.first_name} ${e.last_name}`,
                 }))}
                 defaultDate={today}
+                staffGroups={staffGroups}
               />
             </CardContent>
           </Card>

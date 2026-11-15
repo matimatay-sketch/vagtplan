@@ -21,7 +21,9 @@ Et dokument er et **lag**: `basis-dk` → overenskomst → lokalaftale → kontr
 - Regler matches på `id`. Et lag kan tilføje en hel regel, ændre enkelte felter (objekter merges dybt, lister erstattes) eller fjerne en regel med `remove: true`.
 - Den færdige regel valideres med primitivens Zod-skema. Fejl nævner regel-id og felt.
 - Versionen vælges pr. dato (`valid_from` ≤ dato ≤ `valid_to`). Historik beregnes altid med den version, der gjaldt den dag.
-- Hvis en værdi er ringere end `basis-dk` (fx kortere hviletid) eller en lovregel fjernes uden `legal_basis`, gives advarslerne `BELOW_LAW_MINIMUM` eller `LAW_RULE_REMOVED`.
+- Hvis en værdi er ringere end `basis-dk` (fx kortere hviletid) eller en lovregel fjernes uden `legal_basis`, gives advarslerne `BELOW_LAW_MINIMUM` eller `LAW_RULE_REMOVED`. Alle regler med samme primitiv som en lovregel sammenlignes, også en ny regel for én personalegruppe.
+- **`applies_to`** (`staff_groups`, `pay_forms`) begrænser en regel til kontraktens personalegruppe og/eller lønform. Den **mest specifikke** regel vinder: `ctx.rules()` sorterer regler med flest begrænsninger først (dokumentets rækkefølge bevares blandt lige specifikke), så `ctx.rule()` vælger fx en pause-regel for "Lager" frem for den generelle. Regler, der alle tælles med (tillæg, overarbejde), påvirkes kun i rækkefølge.
+- I `pay_rate` vælges den satsrække, der passer og har flest udfyldte felter (personalegruppe, løntrin, alder, gyldighed).
 - Ved `example: true` gives advarslen `EXAMPLE_AGREEMENT`. Eksempel-dokumenter må aldrig bruges til løn.
 - `todo_jura` på en regel markerer, at værdien ikke er juridisk verificeret.
 
