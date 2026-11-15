@@ -17,3 +17,10 @@ const hoursFormat = new Intl.NumberFormat("da-DK", {
 export function formatHours(minutes: number): string {
   return hoursFormat.format(minutes / 60);
 }
+
+/** øre → "1.125,00" (Danish thousands separator and decimal comma; integer maths). */
+export function formatKroner(ore: number): string {
+  const abs = Math.abs(ore);
+  const kr = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${ore < 0 ? "−" : ""}${kr},${String(abs % 100).padStart(2, "0")}`;
+}
