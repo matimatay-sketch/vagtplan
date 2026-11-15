@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { barPosition, localParts, timeRange } from "@/lib/domain/schedule-time";
 import { resizeShiftAction } from "@/lib/actions/schedule";
+import { trackSaving } from "@/lib/schedule/saving";
 import type { BoardShift, WeekBoard as Board } from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
 import { ViolationIcon } from "./shift-card";
@@ -14,6 +15,12 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const toMinutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const fmt = (m: number) =>
   `${String(Math.floor((m % 1440) / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+/** Pauses live refreshes while a bar is being resized (see RealtimeRefresh). */
+function setScheduleBusy(busy: boolean) {
+  if (busy) document.body.dataset.scheduleBusy = "1";
+  else delete document.body.dataset.scheduleBusy;
+}
 
 type Drag = {
   shiftId: string;
@@ -111,7 +118,6 @@ function Bar({
 
 export function DayBoard({ board, date }: { board: Board; date: string }) {
   const [draft, setDraft] = React.useState<ShiftDraft | null>(null);
-  const [drag, setDrag] = React.useState<Drag | null>(null);
   const [preview, setPreview] = React.useState<{ id: string; start: number; end: number } | null>(
     null,
   );
@@ -128,8 +134,9 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
     setPreview(null);
   }
 
-  React.useEffect(() => {
-    if (!drag) return;
+  // Listeners are attached in the pointerdown handler itself (not in an effect after a
+  // re-render), so a fast drag cannot move or release before they exist.
+  const beginResize = (drag: Drag) => {
     const move = (e: PointerEvent) => {
       const delta = Math.round((((e.clientX - drag.originX) / drag.rowWidth) * 1440) / SNAP) * SNAP;
       const start =
@@ -142,31 +149,27 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
           : drag.endMinute;
       showPreview({ id: drag.shiftId, start, end });
     };
-    document.body.dataset.scheduleBusy = "1";
     const up = () => {
-      delete document.body.dataset.scheduleBusy;
-      setDrag(null);
+      window.removeEventListener("pointermove", move);
+      setScheduleBusy(false);
       const p = previewRef.current;
       if (!p || (p.start === drag.startMinute && p.end === drag.endMinute)) {
         showPreview(null);
         return;
       }
-      void resizeShiftAction({ id: p.id, date, startMinute: p.start, endMinute: p.end }).then(
-        (r) => {
-          if (!r.ok) {
-            toast.error(r.message ?? da.common.unknownError);
-            showPreview(null);
-          }
-        },
-      );
+      void trackSaving(
+        resizeShiftAction({ id: p.id, date, startMinute: p.start, endMinute: p.end }),
+      ).then((r) => {
+        if (!r.ok) {
+          toast.error(r.message ?? da.common.unknownError);
+          showPreview(null);
+        }
+      });
     };
+    setScheduleBusy(true);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up, { once: true });
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-  }, [drag, date]);
+  };
 
   const rows: { id: string; name: string; employeeId: string | null }[] = [
     { id: "open", name: da.schedule.openShifts, employeeId: null },
@@ -223,7 +226,7 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
                           ?.lastElementChild as HTMLElement;
                         const { start, end } = wallMinutes(s, date);
                         previewRef.current = null;
-                        setDrag({
+                        beginResize({
                           shiftId: s.id,
                           edge,
                           startMinute: start,

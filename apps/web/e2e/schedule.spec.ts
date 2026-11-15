@@ -43,6 +43,9 @@ async function createShift(
 
 const MADS = "Mads Medarbejder";
 
+/** The board updates at once; wait until the move/resize is actually stored. */
+const saved = (page: Page) => expect(page.locator("body[data-schedule-saving]")).toHaveCount(0);
+
 test("manager plans a week, overrides a blocking rule with a reason and publishes; the employee sees it", async ({
   page,
 }) => {
@@ -107,8 +110,9 @@ test("young worker rules apply automatically", async ({ page }) => {
 
 test("drag and drop moves a shift, Alt copies it, and the day view resizes it", async ({
   page,
-}) => {
-  const week = mondayIn(8);
+}, testInfo) => {
+  // A retry gets its own week: the first attempt's shifts stay behind.
+  const week = mondayIn(8 + 20 * testInfo.retry);
   const wed = plus(week, 2);
   const thu = plus(week, 3);
   await login(page, users.manager);
@@ -126,6 +130,7 @@ test("drag and drop moves a shift, Alt copies it, and the day view resizes it", 
     await page.mouse.move(b.x + b.width / 2, b.y + 20, { steps: 12 });
     await page.mouse.up();
     if (alt) await page.keyboard.up("Alt");
+    await saved(page);
   };
 
   await drag(wed, thu);
@@ -156,6 +161,7 @@ test("drag and drop moves a shift, Alt copies it, and the day view resizes it", 
     { steps: 8 },
   );
   await page.mouse.up();
+  await saved(page);
   await expect(bar).toContainText("08:00–13:00");
   await page.reload();
   await expect(

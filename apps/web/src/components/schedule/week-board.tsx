@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { localParts } from "@/lib/domain/schedule-time";
 import { formatHours } from "@/lib/domain/numbers";
 import { moveShiftAction } from "@/lib/actions/schedule";
+import { trackSaving } from "@/lib/schedule/saving";
 import type {
   BoardAvailability,
   BoardEmployee,
@@ -201,7 +202,7 @@ export function WeekBoard({
     const copy = altKey.current;
     if (!copy && employeeId === shift.employeeId && date === localParts(shift.start).date) return;
     if (!copy) setOptimistic((o) => ({ ...o, [shift.id]: { employeeId, date } }));
-    const r = await moveShiftAction({ id: shift.id, employeeId, date, copy });
+    const r = await trackSaving(moveShiftAction({ id: shift.id, employeeId, date, copy }));
     if (!r.ok) {
       toast.error(r.message ?? da.common.unknownError);
       setOptimistic((o) => {
