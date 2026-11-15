@@ -206,28 +206,29 @@ export function resolveAgreement(
   if (base.kind === "base") {
     for (const baseLayer of base.rules) {
       const baseRule = finalize(baseLayer.id, { raw: { ...baseLayer }, layers: [] });
-      const current = rules.find((r) => r.id === baseRule.id);
-      if (!current) {
+      if (!rules.some((r) => r.id === baseRule.id)) {
         const removal = removals.get(baseRule.id);
         if (removal && !removal.legalBasis) {
           warnings.push({ code: "LAW_RULE_REMOVED", ruleId: baseRule.id, layer: removal.layer });
         }
-        continue;
       }
-      if (current.legal_basis) continue;
-      for (const [path, better] of LAW_COMPARISONS[current.primitive] ?? []) {
-        const b = getPath(baseRule.params, path);
-        const v = getPath(current.params, path);
-        if (typeof b !== "number" || typeof v !== "number") continue;
-        if ((better === "higher" && v < b) || (better === "lower" && v > b)) {
-          warnings.push({
-            code: "BELOW_LAW_MINIMUM",
-            ruleId: current.id,
-            path: `params.${path}`,
-            base: b,
-            value: v,
-            layer: current.layers.at(-1)!,
-          });
+      // Every rule of the primitive is held to the law, also one added for a staff group.
+      for (const current of rules.filter((r) => r.primitive === baseRule.primitive)) {
+        if (current.legal_basis) continue;
+        for (const [path, better] of LAW_COMPARISONS[current.primitive] ?? []) {
+          const b = getPath(baseRule.params, path);
+          const v = getPath(current.params, path);
+          if (typeof b !== "number" || typeof v !== "number") continue;
+          if ((better === "higher" && v < b) || (better === "lower" && v > b)) {
+            warnings.push({
+              code: "BELOW_LAW_MINIMUM",
+              ruleId: current.id,
+              path: `params.${path}`,
+              base: b,
+              value: v,
+              layer: current.layers.at(-1)!,
+            });
+          }
         }
       }
     }

@@ -23,11 +23,25 @@ import { cn } from "@/lib/utils";
 import { ParamsForm, type Json } from "./params-form";
 import { ConditionSelect, RemarkFields } from "./remark-fields";
 import {
+  AppliesToFields,
+  PayCodesTable,
+  PayRateFields,
+  StackingFields,
+  SupplementFields,
+  appliesToText,
+  type AppliesTo,
+  type PayRateParams,
+  type Stacking,
+  type SupplementParams,
+} from "./rule-fields";
+import {
   defaultCondition,
   newRemarkRule,
   type ConditionType,
   type RemarkParams,
 } from "@/lib/domain/remarks";
+import { RULE_TYPES, newRule, payCodesUsed } from "@/lib/domain/rule-templates";
+import type { Primitive } from "@vagtplan/rules-engine";
 
 type Rule = {
   id: string;
@@ -39,7 +53,14 @@ type Rule = {
   params?: Json;
   [k: string]: unknown;
 };
-type Doc = { rules: Rule[]; valid_from: string; [k: string]: unknown };
+type Doc = {
+  rules: Rule[];
+  valid_from: string;
+  pay_codes?: Record<string, { label: string }>;
+  [k: string]: unknown;
+};
+/** Rules whose pay lines stack with each other. */
+const STACKABLE = ["time_window_supplement", "overtime"];
 
 const kr = formatKroner;
 
@@ -55,11 +76,14 @@ export function AgreementEditor({
   document: initial,
   employees,
   defaultDate,
+  staffGroups = [],
 }: {
   versionId: string;
   document: Doc;
   employees: { id: string; name: string }[];
   defaultDate: string;
+  /** Staff groups in the organization's contracts, as suggestions. */
+  staffGroups?: string[];
 }) {
   const t = da.agreements;
   const router = useRouter();
@@ -71,25 +95,40 @@ export function AgreementEditor({
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? "");
   const [date, setDate] = useState(defaultDate);
   const [sim, setSim] = useState<SimResult | null>(null);
-  const [remarkName, setRemarkName] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<Primitive>("time_window_supplement");
   const [remarkType, setRemarkType] = useState<ConditionType>("shift_longer_than");
-  const addRemark = () => {
-    const name = remarkName.trim();
-    if (!name) return toast.error(t.remarks.nameRequired);
-    const rule = newRemarkRule(
-      name,
-      doc.rules.map((r) => r.id),
-      defaultCondition(remarkType),
-    );
-    setDoc((d) => ({ ...d, rules: [...d.rules, rule as unknown as Rule] }));
-    setRemarkName("");
-    // Open the new rule so the limit can be set at once.
+  const addRule = () => {
+    const name = newName.trim();
+    if (!name) return toast.error(t.ruleForms.nameRequired);
+    const ids = doc.rules.map((r) => r.id);
+    const rule =
+      newType === "remark"
+        ? { ...newRemarkRule(name, ids, defaultCondition(remarkType)), todo_jura: null }
+        : newRule(newType, name, ids);
+    setDoc((d) => {
+      // New pay codes get the rule's name as their label.
+      const codes = { ...(d.pay_codes ?? {}) };
+      for (const c of payCodesUsed([rule])) codes[c] ??= { label: name };
+      return { ...d, pay_codes: codes, rules: [...d.rules, rule as unknown as Rule] };
+    });
+    setNewName("");
+    toast.success(t.ruleForms.added);
+    // Open the new rule so it can be filled in at once.
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLDetailsElement>(`details[data-rule="${rule.id}"]`)
         ?.setAttribute("open", ""),
     );
   };
+  const allStaffGroups = [
+    ...new Set([
+      ...staffGroups,
+      ...doc.rules.flatMap((r) => (r.applies_to as AppliesTo | undefined)?.staff_groups ?? []),
+    ]),
+  ].sort((a, b) => a.localeCompare(b, "da"));
+  const usedPayCodes = payCodesUsed(doc.rules);
+  const knownPayCodes = [...new Set([...Object.keys(doc.pay_codes ?? {}), ...usedPayCodes])].sort();
 
   const current = (): Doc | null => {
     if (tab === "rules") return doc;
@@ -224,6 +263,12 @@ export function AgreementEditor({
                   {r.id}
                   {r.primitive ? ` · ${r.primitive}` : ""}
                 </span>
+                <span
+                  className="ml-auto rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                  data-testid="rule-applies-to"
+                >
+                  {t.ruleForms.appliesTo}: {appliesToText(r.applies_to as AppliesTo | undefined)}
+                </span>
               </summary>
               <div className="grid gap-3 border-t px-4 py-3">
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -272,6 +317,21 @@ export function AgreementEditor({
                       onChange={(p) => setRule(i, { params: p as unknown as Json })}
                     />
                   </>
+                ) : r.primitive === "time_window_supplement" ? (
+                  <SupplementFields
+                    id={r.id}
+                    value={r.params as unknown as SupplementParams}
+                    payCodes={knownPayCodes}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
+                ) : r.primitive === "pay_rate" ? (
+                  <PayRateFields
+                    id={r.id}
+                    value={r.params as unknown as PayRateParams}
+                    payCodes={knownPayCodes}
+                    staffGroups={allStaffGroups}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
                 ) : (
                   <div className="grid gap-1">
                     <div className="text-sm font-medium">{t.params}</div>
@@ -282,6 +342,25 @@ export function AgreementEditor({
                     />
                   </div>
                 )}
+                {r.primitive && STACKABLE.includes(r.primitive) ? (
+                  <StackingFields
+                    id={`${r.id}-stacking`}
+                    stacking={r.stacking as Stacking | undefined}
+                    priority={r.priority as number | undefined}
+                    otherRules={doc.rules
+                      .filter(
+                        (x) => x.id !== r.id && x.primitive && STACKABLE.includes(x.primitive),
+                      )
+                      .map((x) => ({ id: x.id, label: x.label ?? x.id }))}
+                    onChange={(patch) => setRule(i, patch)}
+                  />
+                ) : null}
+                <AppliesToFields
+                  id={`${r.id}-applies`}
+                  value={r.applies_to as AppliesTo | undefined}
+                  staffGroups={allStaffGroups}
+                  onChange={(v) => setRule(i, { applies_to: v })}
+                />
                 <div>
                   <Button
                     variant="ghost"
@@ -297,28 +376,56 @@ export function AgreementEditor({
               </div>
             </details>
           ))}
-          <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-remark">
+          <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-rule">
             <div>
-              <div className="font-medium">{t.remarks.title}</div>
-              <p className="text-sm text-muted-foreground">{t.remarks.lead}</p>
+              <div className="font-medium">{t.ruleForms.addTitle}</div>
+              <p className="text-sm text-muted-foreground">{t.ruleForms.addLead}</p>
             </div>
             <div className="flex flex-wrap items-end gap-3">
-              <Field label={t.remarks.name} htmlFor="remark-name">
+              <Field label={t.ruleForms.ruleName} htmlFor="new-rule-name">
                 <Input
-                  id="remark-name"
-                  value={remarkName}
-                  onChange={(e) => setRemarkName(e.target.value)}
-                  placeholder="Vagt over 10 timer"
+                  id="new-rule-name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Aftentillæg lager"
                 />
               </Field>
-              <Field label={t.remarks.condition} htmlFor="remark-type">
-                <ConditionSelect id="remark-type" value={remarkType} onChange={setRemarkType} />
+              <Field label={t.ruleForms.ruleType} htmlFor="new-rule-type">
+                <NativeSelect
+                  id="new-rule-type"
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value as Primitive)}
+                >
+                  {(["pay", "time", "leave", "other"] as const).map((g) => (
+                    <optgroup key={g} label={t.ruleForms.typeGroups[g]}>
+                      {RULE_TYPES.filter((x) => x.group === g).map((x) => (
+                        <option key={x.primitive} value={x.primitive}>
+                          {x.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </NativeSelect>
               </Field>
-              <Button variant="outline" onClick={addRemark}>
-                <Plus /> {t.remarks.add}
+              {newType === "remark" ? (
+                <Field label={t.remarks.condition} htmlFor="new-rule-condition">
+                  <ConditionSelect
+                    id="new-rule-condition"
+                    value={remarkType}
+                    onChange={setRemarkType}
+                  />
+                </Field>
+              ) : null}
+              <Button variant="outline" onClick={addRule}>
+                <Plus /> {t.ruleForms.add}
               </Button>
             </div>
           </div>
+          <PayCodesTable
+            value={doc.pay_codes ?? {}}
+            used={usedPayCodes}
+            onChange={(pay_codes) => setDoc((d) => ({ ...d, pay_codes }))}
+          />
         </div>
       ) : (
         <Textarea

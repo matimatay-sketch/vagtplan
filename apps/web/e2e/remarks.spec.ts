@@ -22,10 +22,11 @@ async function addRemark(
   condition: string,
   set: (rule: ReturnType<Page["locator"]>) => Promise<void>,
 ) {
-  const add = page.getByTestId("add-remark");
-  await add.getByLabel("Navn på anmærkning").fill(name);
+  const add = page.getByTestId("add-rule");
+  await add.getByLabel("Navn på reglen").fill(name);
+  await add.getByLabel("Type").selectOption({ label: "Anmærkning" });
   await add.getByLabel("Betingelse").selectOption({ label: condition });
-  await add.getByRole("button", { name: "Tilføj anmærkning" }).click();
+  await add.getByRole("button", { name: "Tilføj", exact: true }).click();
   const rule = page.locator(`details[data-rule^="anm-"]`).filter({ hasText: name });
   await expect(rule.getByTestId("remark-fields")).toBeVisible();
   await set(rule);

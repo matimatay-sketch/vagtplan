@@ -47,7 +47,10 @@ test("admin copies an agreement, raises the evening supplement, sees it in the s
 
   // 30 kr. → 40 kr. an evening hour.
   await editor.locator('details[data-rule="aftentillaeg"] > summary').click();
-  await editor.locator('[id="aftentillaeg.amount.ore"]').fill("4000");
+  await editor
+    .locator('details[data-rule="aftentillaeg"]')
+    .getByLabel("Kr. pr. time")
+    .fill("40,00");
 
   const sim = page.getByTestId("simulator");
   await sim.getByLabel("Medarbejder").selectOption({ label: MADS });
@@ -120,7 +123,10 @@ test("admin saves a hand-calculated test week, which follows a copy and catches 
   const editor = page.getByTestId("agreement-editor");
   await expect(item).toContainText("Kladden: Bestået");
   await editor.locator('details[data-rule="aftentillaeg"] > summary').click();
-  await editor.locator('[id="aftentillaeg.amount.ore"]').fill("4000");
+  await editor
+    .locator('details[data-rule="aftentillaeg"]')
+    .getByLabel("Kr. pr. time")
+    .fill("40,00");
   await editor.getByRole("button", { name: "Gem kladde" }).click();
   await expect(page.getByText("Kladden er gemt.")).toBeVisible();
   await weeks.getByRole("button", { name: "Kør testuger" }).click();

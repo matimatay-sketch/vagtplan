@@ -65,17 +65,27 @@ export class EngineContext {
     return value;
   }
 
-  /** Rules of a primitive that apply to the contract on `date` (applies_to filtered). */
+  /**
+   * Rules of a primitive that apply to the contract on `date` (applies_to
+   * filtered), the most specific first: a rule limited to staff groups and/or
+   * pay forms goes before a general one. Document order is kept among equals.
+   */
   rules<P extends Primitive>(date: IsoDate, primitive: P): (ResolvedRule & Rule<P>)[] {
     const d = this.day(date);
     if (!d) return [];
-    return d.resolved.rules.filter(
-      (r) =>
-        r.primitive === primitive &&
-        (r.applies_to.staff_groups === null ||
-          r.applies_to.staff_groups.includes(d.contract.staffGroup ?? "")) &&
-        (r.applies_to.pay_forms === null || r.applies_to.pay_forms.includes(d.contract.payForm)),
-    ) as (ResolvedRule & Rule<P>)[];
+    const specificity = (r: ResolvedRule) =>
+      (r.applies_to.staff_groups === null ? 0 : 1) + (r.applies_to.pay_forms === null ? 0 : 1);
+    return d.resolved.rules
+      .filter(
+        (r) =>
+          r.primitive === primitive &&
+          (r.applies_to.staff_groups === null ||
+            r.applies_to.staff_groups.includes(d.contract.staffGroup ?? "")) &&
+          (r.applies_to.pay_forms === null || r.applies_to.pay_forms.includes(d.contract.payForm)),
+      )
+      .map((r, i) => ({ r, i, s: specificity(r) }))
+      .sort((a, b) => b.s - a.s || a.i - b.i)
+      .map((x) => x.r) as (ResolvedRule & Rule<P>)[];
   }
 
   rule<P extends Primitive>(date: IsoDate, primitive: P): (ResolvedRule & Rule<P>) | null {
