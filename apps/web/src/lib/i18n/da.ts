@@ -591,6 +591,9 @@ export const da = {
     payPreviewHelp:
       "Beregnet efter overenskomsten, også med tid der afventer godkendelse. Den endelige løn beregnes under Løn.",
     fixed: "fast",
+    why: "Hvorfor?",
+    whyRule: "Regel",
+    departmentTotal: (name: string) => `${name} i alt (foreløbig)`,
     by: "af",
   },
   absence: {

@@ -30,9 +30,17 @@ export async function loadPayPreviews(
           unit: l.unit,
           quantityMinutes: l.quantityMinutes,
           amountOre: l.amountOre,
+          why: {
+            ruleId: l.explanation.ruleId,
+            source: l.explanation.source,
+            layer: `${l.explanation.layer.agreementId} v${l.explanation.layer.version}`,
+            note: l.explanation.note,
+          },
           intervals: l.explanation.intervals.map((i) => ({
             intervalId: i.intervalId,
             minutes: i.minutes,
+            start: i.start,
+            end: i.end,
           })),
         })),
       );

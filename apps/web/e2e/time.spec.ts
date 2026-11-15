@@ -116,6 +116,14 @@ test("completed as planned, deviation with reason, approval and correction as a 
   await expect(
     madsSection.getByTestId("pay-preview").locator('[data-pay-code="NORMAL"]'),
   ).toContainText("1.200,00 kr.");
+  // Why: the rule, its source and the agreement version, so the calculation can be checked.
+  await madsSection.getByTestId("pay-why").getByText("Hvorfor?").click();
+  await expect(madsSection.getByTestId("pay-why")).toContainText("Regel loensats · Eksempel § 1");
+  // The department's total for the week (other employees may add to it).
+  const butik = page.locator('[data-testid="department-total"][data-department="Butik"]');
+  await expect(butik).toContainText("Butik i alt (foreløbig)");
+  await expect(butik.locator('[data-pay-code="NORMAL"]')).toBeVisible();
+  await expect(butik.getByTestId("department-total-amount")).toContainText("kr.");
   await row.getByRole("checkbox").check();
   await page.getByTestId("approve-selected").click();
   await expect(page.getByText("1 registrering godkendt.")).toBeVisible();

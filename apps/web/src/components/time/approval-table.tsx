@@ -11,7 +11,7 @@ import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
 import { EntryDialog, type EntryDraft } from "./entry-dialog";
-import type { PayPreview } from "@/lib/domain/pay-preview";
+import { sumPreviews, type PayPreview } from "@/lib/domain/pay-preview";
 import { decimalHours } from "@/lib/domain/project-report";
 import { formatKroner } from "@/lib/domain/numbers";
 import { CompleteButton, RowDetails, StatusBadge, ViolationList, formatDay } from "./my-entries";
@@ -64,6 +64,24 @@ export function ApprovalTable({
     return [...m.values()].sort((a, b) => a.name.localeCompare(b.name, "da"));
   }, [rows]);
 
+  // The week's pay codes summed per department (amounts only if all its employees' are visible).
+  const departmentTotals = useMemo(() => {
+    const out = new Map<string, { id: string; name: string; ids: string[] }>();
+    for (const r of rows) {
+      const d = out.get(r.departmentId) ?? { id: r.departmentId, name: r.departmentName, ids: [] };
+      if (!d.ids.includes(r.employeeId)) d.ids.push(r.employeeId);
+      out.set(r.departmentId, d);
+    }
+    return [...out.values()]
+      .map((d) => ({
+        ...d,
+        codes: sumPreviews(d.ids.flatMap((id) => (previews[id] ? [previews[id]!] : []))),
+        showAmounts: d.ids.every((id) => amountsFor.includes(id)),
+      }))
+      .filter((d) => d.codes.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, "da"));
+  }, [rows, previews, amountsFor]);
+
   const approvable = (r: TimeRow) =>
     r.kind === "entry" &&
     r.status === "pending" &&
@@ -106,6 +124,34 @@ export function ApprovalTable({
         </Button>
       </div>
 
+      {departmentTotals.map((d) => (
+        <section
+          key={d.id}
+          className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm"
+          data-testid="department-total"
+          data-department={d.name}
+        >
+          <div className="mb-1.5 font-semibold">{t.departmentTotal(d.name)}</div>
+          <span className="inline-flex flex-wrap gap-1.5">
+            {d.codes.map((c) => (
+              <span
+                key={c.payCode}
+                className="rounded bg-card px-1.5 py-0.5 text-xs tabular"
+                data-pay-code={c.payCode}
+              >
+                <span className="font-mono">{c.payCode}</span> {c.label}{" "}
+                {c.unit === "fixed" ? t.fixed : `${decimalHours(c.minutes)} t`}
+                {d.showAmounts ? ` · ${formatKroner(c.amountOre)} kr.` : ""}
+              </span>
+            ))}
+          </span>
+          {d.showAmounts ? (
+            <div className="mt-1.5 font-medium tabular" data-testid="department-total-amount">
+              {da.payroll.total}: {formatKroner(d.codes.reduce((s, c) => s + c.amountOre, 0))} kr.
+            </div>
+          ) : null}
+        </section>
+      ))}
       {employees.map((e) => {
         const own = rows.filter((r) => r.employeeId === e.id);
         const missing = own.filter((r) => r.kind === "missing");
@@ -174,6 +220,33 @@ export function ApprovalTable({
                     </span>
                   ))}
                 </span>
+                <details className="mt-1 text-xs text-muted-foreground" data-testid="pay-why">
+                  <summary className="cursor-pointer">{t.why}</summary>
+                  <ul className="mt-1 grid gap-1.5">
+                    {previews[e.id]!.codes.map((c) => (
+                      <li key={c.payCode}>
+                        <span className="font-mono font-medium text-foreground">{c.payCode}</span>{" "}
+                        {c.label}:{" "}
+                        {c.why
+                          .map(
+                            (w) =>
+                              `${t.whyRule} ${w.ruleId} · ${w.source} · ${w.layer}${w.note ? ` · ${w.note}` : ""}`,
+                          )
+                          .join("; ")}
+                        {c.intervals.length ? (
+                          <span className="block tabular">
+                            {c.intervals
+                              .map(
+                                (i) =>
+                                  `${formatDay(localParts(i.start).date)} ${timeRange(i.start, i.end)} (${decimalHours(i.minutes)} t)`,
+                              )
+                              .join(", ")}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </div>
             ) : null}
             <ul className="divide-y">
