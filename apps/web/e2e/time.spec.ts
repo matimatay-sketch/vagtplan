@@ -128,6 +128,23 @@ test("completed as planned, deviation with reason, approval and correction as a 
   await expect(butik).toContainText("Butik i alt (foreløbig)");
   await expect(butik.locator('tr[data-pay-code="NORMAL"]')).toBeVisible();
   await expect(butik.getByTestId("summary-total")).not.toBeEmpty();
+  // Filters: deviation and pay code match the row; "not stamped out" and "approved" do not.
+  const filters = page.getByTestId("time-filters");
+  await filters.locator('[data-flag="deviation"]').getByRole("checkbox").check();
+  await filters.getByLabel("Lønart").selectOption("NORMAL");
+  await filters.getByRole("button", { name: "Vis" }).click();
+  await expect(page).toHaveURL(/vis=deviation/);
+  await expect(page).toHaveURL(/loenart=NORMAL/);
+  await expect(row).toBeVisible();
+  await expect(page.getByTestId("filter-result")).toContainText("Viser");
+  await filters.getByLabel("Status").selectOption("open");
+  await filters.getByRole("button", { name: "Vis" }).click();
+  await expect(page).toHaveURL(/status=open/);
+  await expect(row).toHaveCount(0);
+  await page.goto(`/tid/godkend?uge=${week}&status=approved&q=Mads`);
+  await expect(row).toHaveCount(0);
+  await page.getByRole("link", { name: "Nulstil filtre" }).click();
+  await expect(row).toBeVisible();
   await row.getByRole("checkbox").check();
   await page.getByTestId("approve-selected").click();
   await expect(page.getByText("1 registrering godkendt.")).toBeVisible();
