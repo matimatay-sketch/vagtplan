@@ -9,7 +9,7 @@ import { formatSupplementAmount } from "@/lib/domain/supplements";
 import { requireContext } from "@/lib/auth";
 import { hasOrg } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { archiveSupplementTypeAction } from "@/lib/actions/settings";
+import { archiveSupplementTypeAction, setSupplementSelectableAction } from "@/lib/actions/settings";
 import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
 import { da } from "@/lib/i18n/da";
 import { LeaveRulesForm, NoticeForm, RuleHandlingForm, SupplementTypeForm } from "./forms";
@@ -24,7 +24,7 @@ export default async function SettingsPage() {
     loadOrganizationSettings(supabase, ctx.organization.id),
     supabase
       .from("supplement_type")
-      .select("id, name, pay_code, amount_type, amount")
+      .select("id, name, pay_code, amount_type, amount, employee_selectable")
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
@@ -108,18 +108,37 @@ export default async function SettingsPage() {
                       {s.pay_code}
                     </span>
                   </span>
-                  <form action={archiveSupplementTypeAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      aria-label={`${da.common.archive} ${s.name}`}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </form>
+                  <span className="ml-auto flex items-center gap-2">
+                    <form action={setSupplementSelectableAction}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <input
+                        type="hidden"
+                        name="employee_selectable"
+                        value={String(!s.employee_selectable)}
+                      />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="sm"
+                        data-testid="toggle-selectable"
+                        title={t.employeeSelectableHelp}
+                      >
+                        {s.employee_selectable ? t.selectableYes : t.selectableNo}
+                      </Button>
+                    </form>
+                    <form action={archiveSupplementTypeAction}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`${da.common.archive} ${s.name}`}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </form>
+                  </span>
                 </li>
               ))}
             </ul>

@@ -76,6 +76,17 @@ export async function createSupplementTypeAction(
   return { ok: true, message: da.common.saved };
 }
 
+export async function setSupplementSelectableAction(formData: FormData) {
+  await requireContext(["settings.manage"]);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("supplement_type")
+    .update({ employee_selectable: formData.get("employee_selectable") === "true" })
+    .eq("id", z.guid().parse(formData.get("id")));
+  if (error) throw new Error(dbErrorMessage(error));
+  revalidateSettings();
+}
+
 export async function archiveSupplementTypeAction(formData: FormData) {
   await requireContext(["settings.manage"]);
   const supabase = await createClient();

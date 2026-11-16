@@ -43,6 +43,8 @@ export type TimeRow = {
   breaks: DbBreak[];
   projectAllocations: ProjectAllocation[];
   postingAllocations: PostingAllocation[];
+  /** Supplements added to the registration (approved together with it). */
+  supplementTypeIds: string[];
   status: "open" | "pending" | "approved" | null;
   source: "stamp" | "planned" | "manual" | null;
   deviationReason: string | null;
@@ -95,6 +97,7 @@ type RpcRow = {
   plan_end: string | null;
   plan_breaks: unknown;
   kind: "work" | "on_call" | "call_out" | null;
+  supplement_type_ids: string[] | null;
 };
 
 const engineBreaks = (b: DbBreak[]) =>
@@ -134,6 +137,7 @@ export async function loadTimeOverview(
       breaks: (r.breaks ?? []) as DbBreak[],
       projectAllocations: (r.project_allocations ?? []) as ProjectAllocation[],
       postingAllocations: (r.posting_allocations ?? []) as PostingAllocation[],
+      supplementTypeIds: r.supplement_type_ids ?? [],
       status: r.status,
       source: r.source,
       deviationReason: r.deviation_reason,

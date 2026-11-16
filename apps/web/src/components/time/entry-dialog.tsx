@@ -27,6 +27,8 @@ import { allocationsToForm, type EditableProjectRow } from "@/lib/domain/project
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
+import type { SupplementOption } from "@/lib/time/supplements";
+import { Checkbox } from "@/components/ui/checkbox";
 import { da } from "@/lib/i18n/da";
 import { PostingEditor } from "@/components/posting/posting-editor";
 import {
@@ -42,15 +44,20 @@ export type EntryDraft =
 
 type Projects = (BoardProject & { departmentIds: string[] })[];
 
+/** Supplement types offered in the dialog; `chooseAll` for managers (the database checks it). */
+export type EntrySupplements = { options: SupplementOption[]; chooseAll: boolean };
+
 export function EntryDialog({
   draft,
   projects,
   posting,
+  supplements,
   onClose,
 }: {
   draft: EntryDraft | null;
   projects: Projects;
   posting: PostingDimension[];
+  supplements: EntrySupplements;
   onClose: () => void;
 }) {
   return (
@@ -62,6 +69,7 @@ export function EntryDialog({
             draft={draft}
             projects={projects}
             posting={posting}
+            supplements={supplements}
             onDone={onClose}
           />
         ) : null}
@@ -74,11 +82,13 @@ function EntryForm({
   draft,
   projects,
   posting,
+  supplements,
   onDone,
 }: {
   draft: EntryDraft;
   projects: Projects;
   posting: PostingDimension[];
+  supplements: EntrySupplements;
   onDone: () => void;
 }) {
   const t = da.time;
@@ -104,6 +114,11 @@ function EntryForm({
   );
   const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
     row ? postingToForm(row.postingAllocations) : [],
+  );
+  const [chosen, setChosen] = useState<string[]>(() => row?.supplementTypeIds ?? []);
+  const supplementChoices = supplements.options.filter(
+    (s) =>
+      chosen.includes(s.id) || (!s.archived && (supplements.chooseAll || s.employeeSelectable)),
   );
   const [history, setHistory] = useState<Awaited<ReturnType<typeof timeEntryHistoryAction>> | null>(
     null,
@@ -194,6 +209,27 @@ function EntryForm({
             )?.[1]
           }
         />
+        <input type="hidden" name="supplement_type_ids" value={JSON.stringify(chosen)} />
+        {supplementChoices.length > 0 ? (
+          <fieldset className="grid gap-2" data-testid="entry-supplements">
+            <legend className="mb-1 text-sm font-medium">{t.supplements}</legend>
+            <p className="text-xs text-muted-foreground">{t.supplementsHelp}</p>
+            {supplementChoices.map((s) => (
+              <label key={s.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={chosen.includes(s.id)}
+                  onChange={(e) =>
+                    setChosen((c) =>
+                      e.target.checked ? [...c, s.id] : c.filter((x) => x !== s.id),
+                    )
+                  }
+                />
+                {s.name}
+                <span className="font-mono text-xs text-muted-foreground">{s.payCode}</span>
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
         <Field
           label={draft.mode === "correct" ? t.correctionReason : t.reason}
           htmlFor="deviation_reason"

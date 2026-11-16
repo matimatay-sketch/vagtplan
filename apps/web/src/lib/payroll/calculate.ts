@@ -67,7 +67,7 @@ export async function calculateEmployee(
     supabase
       .from("time_entry")
       .select(
-        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations",
+        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids",
       )
       .eq("employee_id", employeeId)
       .is("superseded_at", null)
@@ -146,7 +146,10 @@ export async function calculateEmployee(
         employeeDefaults,
         (e.posting_allocations ?? []) as unknown as PostingAllocation[],
       ),
-      supplements: (p?.supplement_type_ids ?? []).flatMap((id) => {
+      // The plan's supplements and those added to the registration (once each).
+      supplements: [
+        ...new Set([...(p?.supplement_type_ids ?? []), ...(e.supplement_type_ids ?? [])]),
+      ].flatMap((id) => {
         const s = supplementById.get(id);
         return s ? [s] : [];
       }),

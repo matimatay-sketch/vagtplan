@@ -155,6 +155,7 @@ export async function saveTimeEntryAction(
     breaks: asJson(breaks),
     project_allocations: asJson(allocations),
     posting_allocations: asJson(posting),
+    supplement_type_ids: f.supplement_type_ids,
     deviation_reason: f.deviation_reason,
     note: f.note,
     kind: f.kind,
@@ -269,6 +270,7 @@ export async function correctTimeEntryAction(
     p_breaks: asJson(breaks),
     p_project_allocations: asJson(allocations),
     p_posting_allocations: asJson(posting),
+    p_supplement_type_ids: f.supplement_type_ids,
     p_reason: f.deviation_reason!,
   });
   if (error) return { message: dbErrorMessage(error), values };

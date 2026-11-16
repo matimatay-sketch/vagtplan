@@ -8,6 +8,7 @@ import {
   optionalGuid,
   postingField,
   projectsField,
+  supplementsField,
   withNextDay,
   type FormProjectRow,
 } from "./schedule";
@@ -34,6 +35,7 @@ export const timeEntryFormSchema = z
     breaks: breaksField,
     project_allocations: projectsField,
     posting_allocations: postingField,
+    supplement_type_ids: supplementsField,
     deviation_reason: optionalText,
     note: optionalText,
     kind: z.enum(["work", "call_out"]).default("work"),

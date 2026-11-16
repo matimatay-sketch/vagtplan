@@ -12,7 +12,7 @@ import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
 import type { PostingDimension } from "@/lib/domain/posting";
 import { cn } from "@/lib/utils";
-import { EntryDialog, type EntryDraft } from "./entry-dialog";
+import { EntryDialog, type EntryDraft, type EntrySupplements } from "./entry-dialog";
 
 const dayLabel = new Intl.DateTimeFormat("da-DK", {
   weekday: "long",
@@ -51,7 +51,13 @@ const sameInstant = (a: { start: string; end: string }, b: { start: string; end:
   new Date(a.start).getTime() === new Date(b.start).getTime() &&
   new Date(a.end).getTime() === new Date(b.end).getTime();
 
-export function RowDetails({ row }: { row: TimeRow }) {
+export function RowDetails({
+  row,
+  supplementNames = {},
+}: {
+  row: TimeRow;
+  supplementNames?: Record<string, string>;
+}) {
   const t = da.time;
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -89,6 +95,15 @@ export function RowDetails({ row }: { row: TimeRow }) {
           data-testid="row-posting"
         >
           <Tags className="size-3" /> {row.postingAllocations.length}
+        </span>
+      ) : null}
+      {row.supplementTypeIds.length ? (
+        <span
+          className="rounded bg-muted px-1 font-medium text-foreground"
+          data-testid="row-supplements"
+        >
+          {t.supplementsShort}:{" "}
+          {row.supplementTypeIds.map((id) => supplementNames[id] ?? "?").join(", ")}
         </span>
       ) : null}
       {row.offline ? (
@@ -159,6 +174,7 @@ export function MyEntries({
   daily,
   projects,
   posting,
+  supplements,
   employeeId,
   dates,
 }: {
@@ -166,10 +182,12 @@ export function MyEntries({
   daily: Record<string, number>;
   projects: (BoardProject & { departmentIds: string[] })[];
   posting: PostingDimension[];
+  supplements: EntrySupplements;
   employeeId: string;
   /** Newest first. */
   dates: string[];
 }) {
+  const supplementNames = Object.fromEntries(supplements.options.map((s) => [s.id, s.name]));
   const t = da.time;
   const [draft, setDraft] = useState<EntryDraft | null>(null);
   const close = useCallback(() => setDraft(null), []);
@@ -258,7 +276,7 @@ export function MyEntries({
                             </span>
                             <StatusBadge row={r} />
                           </span>
-                          <RowDetails row={r} />
+                          <RowDetails row={r} supplementNames={supplementNames} />
                           <ViolationList row={r} />
                         </button>
                       </li>
@@ -270,7 +288,13 @@ export function MyEntries({
           })}
         </ol>
       </section>
-      <EntryDialog draft={draft} projects={projects} posting={posting} onClose={close} />
+      <EntryDialog
+        draft={draft}
+        projects={projects}
+        posting={posting}
+        supplements={supplements}
+        onClose={close}
+      />
     </div>
   );
 }

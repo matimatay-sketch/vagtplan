@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadProjectOptions } from "@/lib/time/projects";
+import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { da } from "@/lib/i18n/da";
 
@@ -29,10 +30,11 @@ export default async function TimePage() {
   const supabase = await createClient();
   const today = todayIn(ctx.organization.timezone);
   const from = addDays(today, -(DAYS - 1));
-  const [overview, projects, posting] = await Promise.all([
+  const [overview, projects, posting, supplementOptions] = await Promise.all([
     loadTimeOverview(supabase, ctx, { from, to: today, onlyMine: true }),
     loadProjectOptions(supabase, ctx.organization.id),
     loadPostingDimensions(supabase),
+    loadSupplementOptions(supabase, ctx.organization.id),
   ]);
   const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
   // Only values available in all of the employee's departments, so a stamp is never rejected.
@@ -66,6 +68,7 @@ export default async function TimePage() {
           daily={overview.daily[ctx.employee.id] ?? {}}
           projects={projects}
           posting={posting}
+          supplements={{ options: supplementOptions, chooseAll: false }}
           employeeId={ctx.employee.id}
           dates={dates}
         />

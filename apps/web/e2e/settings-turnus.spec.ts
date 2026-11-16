@@ -135,7 +135,9 @@ test("shift with paid and unpaid breaks and a supplement; hours shown against th
   await card.click();
   const edit = page.getByTestId("shift-form");
   await expect(edit.getByTestId("break-row")).toHaveCount(2);
-  await expect(edit.getByTestId("supplement-picker").getByRole("checkbox")).toBeChecked();
+  await expect(
+    edit.getByTestId("supplement-picker").getByRole("checkbox", { name: /Ansvarstillæg/ }),
+  ).toBeChecked();
 });
 
 test("turnus: build a 2-week rotation, roll it out, edit it and roll out again", async ({

@@ -13,6 +13,7 @@ import { addDays, isValidIsoDate, todayIn } from "@/lib/domain/civil-date";
 import { isoWeekNumber, weekDates, weekStartOf } from "@/lib/domain/schedule-time";
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadProjectOptions } from "@/lib/time/projects";
+import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { loadPayPreviews } from "@/lib/payroll/preview";
 import { loadPeriodAbsences } from "@/lib/absence/load";
@@ -72,10 +73,11 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   const dates = weekDates(weekStart);
   const filters = parseTimeFilters(sp);
 
-  const [overview, projects, posting] = await Promise.all([
+  const [overview, projects, posting, supplementOptions] = await Promise.all([
     loadTimeOverview(supabase, ctx, { from: weekStart, to: dates[6]!, departmentId }),
     loadProjectOptions(supabase, ctx.organization.id),
     loadPostingDimensions(supabase),
+    loadSupplementOptions(supabase, ctx.organization.id),
   ]);
   const accessible = overview.rows.filter(
     (r) => rights[r.departmentId] || approverOf.has(r.employeeId),
@@ -271,6 +273,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           amountsFor={previewEmployees.filter((e) => e.showAmounts).map((e) => e.id)}
           projects={projects}
           posting={posting}
+          supplements={{ options: supplementOptions, chooseAll: true }}
           dates={dates}
         />
       )}

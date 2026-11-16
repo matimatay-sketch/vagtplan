@@ -795,6 +795,9 @@ export const da = {
       amount: "Beløb",
     },
     departmentTotal: (name: string) => `${name} i alt (foreløbig)`,
+    supplements: "Tillæg",
+    supplementsShort: "Tillæg",
+    supplementsHelp: "Tillæggene godkendes sammen med registreringen.",
     by: "af",
     filters: {
       statuses: {
@@ -1132,6 +1135,11 @@ export const da = {
     amount: "Beløb / procent",
     newSupplement: "Opret tillæg",
     noSupplements: "Ingen vagttillæg endnu.",
+    employeeSelectable: "Medarbejdere kan selv tilføje tillægget på deres registreringer",
+    employeeSelectableHelp:
+      "Tillæg, som medarbejderen selv tilføjer, godkendes sammen med registreringen.",
+    selectableYes: "Medarbejdere kan vælge",
+    selectableNo: "Kun leder",
   },
   availability: {
     pastDate: "Datoen er overstået",
