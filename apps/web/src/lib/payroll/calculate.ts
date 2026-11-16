@@ -14,6 +14,7 @@ import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { zonedTime } from "@/lib/domain/schedule-time";
 import type { DbBreak } from "@/lib/domain/breaks";
 import { engineInputs } from "@/lib/absence/load";
+import { loadExpensePayLines } from "./expense-lines";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
@@ -189,14 +190,17 @@ export async function calculateAndSave(
 ): Promise<string | null> {
   const calc = await calculateEmployee(supabase, ctx, period, employeeId);
   if (!calc) return null;
+  // Mileage and expenses are paid with the period (not working time; not in the engine).
+  const extra = await loadExpensePayLines(supabase, ctx, period, employeeId);
+  const lines = [...calc.result.lines, ...extra.lines];
   const { error } = await supabase.rpc("save_pay_run", {
     p_period_id: period.id,
     p_employee_id: employeeId,
     p_engine_version: ENGINE_VERSION,
-    p_notes: calc.result.notes,
+    p_notes: [...calc.result.notes, ...extra.notes],
     p_daily: calc.result.dailyMinutes,
     p_pending: calc.pending,
-    p_lines: calc.result.lines.map((l) => ({
+    p_lines: lines.map((l) => ({
       pay_code: l.payCode,
       label: l.label,
       unit: l.unit,

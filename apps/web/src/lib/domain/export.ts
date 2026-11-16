@@ -13,6 +13,8 @@ export const EXPORT_FIELDS = [
   "label",
   "quantity_hours",
   "quantity_minutes",
+  "quantity_km",
+  "quantity",
   "rate",
   "amount",
   "period_start",
@@ -72,7 +74,8 @@ export type ExportRow = {
   employeeName: string;
   payCode: string;
   label: string;
-  unit: "hours" | "time_off_minutes" | "fixed";
+  unit: "hours" | "time_off_minutes" | "fixed" | "km";
+  /** Minutes; metres for km; 0 for fixed amounts. */
   quantityMinutes: number;
   rateOre: number;
   amountOre: number;
@@ -90,6 +93,9 @@ function hundredths(value: number, decimal: string): string {
 }
 const hours = (minutes: number, decimal: string) =>
   hundredths(Math.round((minutes * 100) / 60), decimal);
+/** 42 500 m → "42,50" km. */
+const km = (meters: number, decimal: string) => hundredths(Math.round(meters / 10), decimal);
+const isTime = (r: { unit: string }) => r.unit === "hours" || r.unit === "time_off_minutes";
 
 function date(iso: string, format: ExportSettings["dateFormat"]): string {
   const [y, m, d] = iso.split("-") as [string, string, string];
@@ -167,9 +173,17 @@ export function renderExport(
       case "label":
         return r.label;
       case "quantity_hours":
-        return hours(r.quantityMinutes, settings.decimal);
+        return r.unit === "km" ? "" : hours(r.quantityMinutes, settings.decimal);
       case "quantity_minutes":
-        return String(r.quantityMinutes);
+        return r.unit === "km" ? "" : String(r.quantityMinutes);
+      case "quantity_km":
+        return r.unit === "km" ? km(r.quantityMinutes, settings.decimal) : "";
+      case "quantity":
+        return isTime(r)
+          ? hours(r.quantityMinutes, settings.decimal)
+          : r.unit === "km"
+            ? km(r.quantityMinutes, settings.decimal)
+            : "";
       case "rate":
         return hundredths(r.rateOre, settings.decimal);
       case "amount":

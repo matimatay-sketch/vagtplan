@@ -21,6 +21,7 @@ describe("permission catalog", () => {
       "projects.view",
       "projects.manage",
       "posting.manage",
+      "expenses.manage",
       "time.view",
       "time.manage",
       "time.approve",

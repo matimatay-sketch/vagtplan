@@ -103,6 +103,12 @@ export const PERMISSIONS = [
     scopes: ["organization"],
   },
   {
+    key: "expenses.manage",
+    group: "Kørsel og udlæg",
+    label: "Indtaste km-satser og oprette udlægskategorier",
+    scopes: ["organization"],
+  },
+  {
     key: "time.view",
     group: "Tidsregistrering",
     label: "Se registreret tid",

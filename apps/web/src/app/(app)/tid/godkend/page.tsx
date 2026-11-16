@@ -14,6 +14,9 @@ import { isoWeekNumber, weekDates, weekStartOf } from "@/lib/domain/schedule-tim
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadProjectOptions } from "@/lib/time/projects";
 import { loadSupplementOptions } from "@/lib/time/supplements";
+import { loadExpenseItems } from "@/lib/expenses/load";
+import { ExpenseApproval } from "@/components/expenses/expense-list";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { loadPayPreviews } from "@/lib/payroll/preview";
 import { loadPeriodAbsences } from "@/lib/absence/load";
@@ -92,7 +95,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
       canInDepartment(ctx.permissions, "payroll.manage", dept, ctx.responsibleDepartmentIds),
   }));
   const week = { start: weekStart, end: dates[6]! };
-  const [previews, absences] = await Promise.all([
+  const [previews, absences, expenseItems] = await Promise.all([
     loadPayPreviews(supabase, ctx, previewEmployees, week),
     loadPeriodAbsences(
       supabase,
@@ -100,7 +103,21 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
       previewEmployees.map((e) => e.id),
       week,
     ),
+    loadExpenseItems(supabase, { from: week.start, to: week.end }),
   ]);
+  const visibleExpenses = expenseItems.filter(
+    (i) =>
+      (rights[i.departmentId] || approverOf.has(i.employeeId)) &&
+      (!departmentId || i.departmentId === departmentId) &&
+      (!filters.query || i.employeeName.toLowerCase().includes(filters.query.toLowerCase())),
+  );
+  const decidableExpenses = visibleExpenses
+    .filter(
+      (i) =>
+        (rights[i.departmentId]?.approve || approverOf.has(i.employeeId)) &&
+        (i.employeeId !== ctx.employee?.id || ctx.permissions["time.approve"] === "organization"),
+    )
+    .map((i) => `${i.kind}:${i.id}`);
   const filterContext = {
     payCodesByEntry: Object.fromEntries(
       Object.values(previews).flatMap((p) =>
@@ -277,6 +294,16 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           dates={dates}
         />
       )}
+      {visibleExpenses.length > 0 ? (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>{da.expenses.approveTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ExpenseApproval items={visibleExpenses} decidable={decidableExpenses} />
+          </CardContent>
+        </Card>
+      ) : null}
     </>
   );
 }

@@ -156,3 +156,26 @@ describe("renderExport – posting columns", () => {
     ).toBe(false);
   });
 });
+
+describe("renderExport – km and fixed lines", () => {
+  const settings = exportSettingsSchema.parse({
+    header: false,
+    bom: false,
+    lineEnding: "lf",
+    grouping: "line",
+    columns: [
+      { field: "pay_code", header: "" },
+      { field: "quantity_hours", header: "" },
+      { field: "quantity_km", header: "" },
+      { field: "quantity", header: "" },
+    ],
+  });
+  it("writes km for km lines and hours for time lines; the generic quantity is empty for fixed amounts", () => {
+    const { text } = renderExport(settings, [
+      row({ payCode: "KM_HOEJ", unit: "km", quantityMinutes: 42_500 }),
+      row({ payCode: "NORMAL", unit: "hours", quantityMinutes: 450 }),
+      row({ payCode: "UDLAEG", unit: "fixed", quantityMinutes: 0 }),
+    ]);
+    expect(text).toBe("KM_HOEJ;;42,50;42,50\nNORMAL;7,50;;7,50\nUDLAEG;0,00;;\n");
+  });
+});

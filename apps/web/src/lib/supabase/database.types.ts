@@ -267,6 +267,64 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
+                },"expense": {
+                  Row: {
+                    "amount_ore": number,"archived_at": string | null,"category_id": string,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"department_id": string,"description": string,"employee_id": string,"expense_date": string,"id": string,"organization_id": string,"posting_values": NonNullable<Json>,"receipt_path": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_ore": number,"archived_at"?: string | null,"category_id": string,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id": string,"description": string,"employee_id": string,"expense_date": string,"id"?: string,"organization_id": string,"posting_values"?: NonNullable<Json>,"receipt_path"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_ore"?: number,"archived_at"?: string | null,"category_id"?: string,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id"?: string,"description"?: string,"employee_id"?: string,"expense_date"?: string,"id"?: string,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"receipt_path"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "expense_organization_id_category_id_fkey"
+      columns: ["organization_id","category_id"]
+isOneToOne: false
+      referencedRelation: "expense_category"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "expense_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "expense_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "expense_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"expense_category": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"pay_code": string,"receipt_required": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"pay_code": string,"receipt_required"?: boolean
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"pay_code"?: string,"receipt_required"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "expense_category_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"export_log": {
                   Row: {
                     "exported_at": string,"exported_by": string | null,"id": string,"organization_id": string,"pay_period_id": string,"row_count": number,"sha256": string,"template_id": string
@@ -375,6 +433,58 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "permission_profile"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"mileage_rate": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"high_limit_km": number,"high_rate_ore": number,"id": string,"low_rate_ore": number,"organization_id": string,"pay_code_high": string,"pay_code_low": string,"source": string,"year": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"high_limit_km": number,"high_rate_ore": number,"id"?: string,"low_rate_ore": number,"organization_id": string,"pay_code_high": string,"pay_code_low": string,"source": string,"year": number
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"high_limit_km"?: number,"high_rate_ore"?: number,"id"?: string,"low_rate_ore"?: number,"organization_id"?: string,"pay_code_high"?: string,"pay_code_low"?: string,"source"?: string,"year"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mileage_rate_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mileage_trip": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"department_id": string,"employee_id": string,"from_address": string,"id": string,"meters": number,"organization_id": string,"posting_values": NonNullable<Json>,"purpose": string,"status": string,"stops": NonNullable<Json>,"to_address": string,"trip_date": string,"updated_at": string,"vehicle": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id": string,"employee_id": string,"from_address": string,"id"?: string,"meters": number,"organization_id": string,"posting_values"?: NonNullable<Json>,"purpose": string,"status"?: string,"stops"?: NonNullable<Json>,"to_address": string,"trip_date": string,"updated_at"?: string,"vehicle"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id"?: string,"employee_id"?: string,"from_address"?: string,"id"?: string,"meters"?: number,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"purpose"?: string,"status"?: string,"stops"?: NonNullable<Json>,"to_address"?: string,"trip_date"?: string,"updated_at"?: string,"vehicle"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mileage_trip_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "mileage_trip_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "mileage_trip_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"organization": {
@@ -1044,6 +1154,9 @@ isOneToOne: false
                            },
 "decide_absence":
 { Args: { "p_approve": boolean,"p_id": string,"p_note": string,"p_usage": Json }; Returns: undefined
+                           },
+"decide_expense_items":
+{ Args: { "p_decision": string,"p_expense_ids": (string)[],"p_note"?: string,"p_trip_ids": (string)[] }; Returns: number
                            },
 "is_platform_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean

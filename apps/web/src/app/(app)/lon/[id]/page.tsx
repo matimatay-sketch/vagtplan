@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatKm } from "@/lib/domain/mileage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
@@ -182,7 +183,11 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
                               </details>
                             </td>
                             <td className="px-4 py-2 text-right tabular">
-                              {l.unit === "fixed" ? "–" : `${decimalHours(l.quantity_minutes)} t`}
+                              {l.unit === "fixed"
+                                ? "–"
+                                : l.unit === "km"
+                                  ? formatKm(l.quantity_minutes)
+                                  : `${decimalHours(l.quantity_minutes)} t`}
                             </td>
                             <td className="px-4 py-2 text-right tabular">{kr(l.rate_ore)}</td>
                             <td className="px-4 py-2 text-right font-medium tabular">
