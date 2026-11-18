@@ -1,13 +1,12 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
-import { AlertTriangle, CheckCheck, CloudOff, FolderKanban, Info, Plus, Tags } from "lucide-react";
+import { AlertTriangle, CheckCheck, CloudOff, Info, Plus, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { completeAsPlannedAction } from "@/lib/actions/time";
 import { deviation } from "@/lib/domain/time-entries";
 import { formatHours } from "@/lib/domain/numbers";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
-import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
 import type { PostingDimension } from "@/lib/domain/posting";
@@ -83,11 +82,6 @@ export function RowDetails({
         </span>
       ) : null}
       <DeviationText row={row} />
-      {row.projectAllocations.length ? (
-        <span className="inline-flex items-center gap-1">
-          <FolderKanban className="size-3" /> {row.projectAllocations.length}
-        </span>
-      ) : null}
       {row.postingAllocations.length ? (
         <span
           className="inline-flex items-center gap-1"
@@ -172,7 +166,6 @@ export function CompleteButton({
 export function MyEntries({
   rows,
   daily,
-  projects,
   posting,
   supplements,
   employeeId,
@@ -180,7 +173,6 @@ export function MyEntries({
 }: {
   rows: TimeRow[];
   daily: Record<string, number>;
-  projects: (BoardProject & { departmentIds: string[] })[];
   posting: PostingDimension[];
   supplements: EntrySupplements;
   employeeId: string;
@@ -288,13 +280,7 @@ export function MyEntries({
           })}
         </ol>
       </section>
-      <EntryDialog
-        draft={draft}
-        projects={projects}
-        posting={posting}
-        supplements={supplements}
-        onClose={close}
-      />
+      <EntryDialog draft={draft} posting={posting} supplements={supplements} onClose={close} />
     </div>
   );
 }

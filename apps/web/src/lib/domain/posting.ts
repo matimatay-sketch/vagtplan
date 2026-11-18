@@ -109,6 +109,13 @@ export function postingText(
     .join(" · ");
 }
 
+/** A template's or rotation slot's default posting: one row for the whole shift. */
+export function defaultPostingRows(values: PostingValues | null | undefined): EditablePostingRow[] {
+  return values && Object.keys(values).length
+    ? [{ values: { ...values }, mode: "rest", from: "", to: "", minutes: 60 }]
+    : [];
+}
+
 export function postingToForm(rows: readonly PostingAllocation[]): EditablePostingRow[] {
   return rows.map((r) => ({
     values: { ...r.values },

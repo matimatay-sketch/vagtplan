@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { AlertTriangle, FolderKanban, Info, OctagonAlert, PhoneCall } from "lucide-react";
+import { AlertTriangle, Info, OctagonAlert, PhoneCall, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeRange } from "@/lib/domain/schedule-time";
 import type { BoardShift } from "@/lib/schedule/load-week";
@@ -101,14 +101,14 @@ export const ShiftCard = React.forwardRef<
             {da.absence.uncovered}
           </span>
         ) : null}
-        {shift.projectAllocations.length ? (
+        {shift.postingAllocations.length ? (
           <span
             className="flex items-center gap-0.5 rounded bg-secondary px-1 text-[10px] font-medium text-secondary-foreground no-underline"
-            title={da.projects.onShift}
-            data-testid="project-badge"
+            title={da.posting.onShift}
+            data-testid="posting-badge"
           >
-            <FolderKanban className="size-3" aria-hidden />
-            {shift.projectAllocations.length}
+            <Tags className="size-3" aria-hidden />
+            {shift.postingAllocations.length}
           </span>
         ) : null}
         {shift.label ?? (shift.kind === "on_call" ? da.schedule.kinds.on_call : "")}

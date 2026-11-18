@@ -6,7 +6,6 @@ const base = {
   start_time: "08:00",
   end_time: "16:00",
   breaks: JSON.stringify([{ start: "", minutes: 30, paid: false }]),
-  project_allocations: "[]",
 };
 
 describe("timeEntryFormSchema", () => {

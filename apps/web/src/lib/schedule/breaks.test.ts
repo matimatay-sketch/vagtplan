@@ -52,54 +52,7 @@ describe("breaks conversion", () => {
   });
 });
 
-describe("project allocation conversion", () => {
-  it("converts spans to instants (next day after midnight) and keeps rest/minutes rows", async () => {
-    const { formProjectsToDb } = await import("./breaks");
-    expect(
-      formProjectsToDb(
-        [
-          {
-            project_id: "P",
-            mode: "span",
-            from: "23:00",
-            to: "02:00",
-            minutes: null,
-            nextDayFrom: false,
-            nextDayTo: true,
-          },
-          {
-            project_id: "Q",
-            mode: "minutes",
-            from: null,
-            to: null,
-            minutes: 30,
-            nextDayFrom: false,
-            nextDayTo: false,
-          },
-          {
-            project_id: "R",
-            mode: "rest",
-            from: null,
-            to: null,
-            minutes: null,
-            nextDayFrom: false,
-            nextDayTo: false,
-          },
-        ],
-        "2026-01-05",
-      ),
-    ).toEqual([
-      {
-        project_id: "P",
-        start_at: "2026-01-05T22:00:00Z",
-        end_at: "2026-01-06T01:00:00Z",
-        minutes: null,
-      },
-      { project_id: "Q", start_at: null, end_at: null, minutes: 30 },
-      { project_id: "R", start_at: null, end_at: null, minutes: null },
-    ]);
-  });
-
+describe("moving allocations", () => {
   it("moves spans with the shift at the same wall-clock time", async () => {
     const { moveAllocations } = await import("./breaks");
     expect(

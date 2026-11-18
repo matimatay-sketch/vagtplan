@@ -4,8 +4,7 @@
  * DST-safe wall-clock conversion.
  */
 import { addDays, formatInstant, parseInstant, toLocal, wallTime } from "@vagtplan/rules-engine";
-import type { FormBreak, FormProjectRow } from "@/lib/forms/schedule";
-import type { ProjectAllocation } from "@/lib/domain/projects";
+import type { FormBreak } from "@/lib/forms/schedule";
 import { diffDays } from "@/lib/domain/civil-date";
 import { dbBreaksToForm, type DbBreak } from "@/lib/domain/breaks";
 
@@ -53,20 +52,6 @@ export function breakTotals(breaks: readonly DbBreak[]): { paid: number; unpaid:
       b.paid ? { ...t, paid: t.paid + b.minutes } : { ...t, unpaid: t.unpaid + b.minutes },
     { paid: 0, unpaid: 0 },
   );
-}
-
-export function formProjectsToDb(
-  rows: readonly FormProjectRow[],
-  shiftDate: string,
-): ProjectAllocation[] {
-  const at = (time: string, nextDay: boolean) =>
-    formatInstant(wallTime(nextDay ? addDays(shiftDate, 1) : shiftDate, time, TZ));
-  return rows.map((r) => ({
-    project_id: r.project_id,
-    start_at: r.mode === "span" && r.from ? at(r.from, r.nextDayFrom) : null,
-    end_at: r.mode === "span" && r.to ? at(r.to, r.nextDayTo) : null,
-    minutes: r.mode === "minutes" ? r.minutes : null,
-  }));
 }
 
 /** Keeps time spans at the same local time relative to the shift's start date. */

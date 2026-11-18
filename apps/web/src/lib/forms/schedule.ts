@@ -47,35 +47,19 @@ export const jsonField = <T extends z.ZodType>(schema: T) =>
 
 export const breaksField = jsonField(z.array(breakRow).max(10));
 export const supplementsField = jsonField(z.array(z.guid()).max(20));
-
-const projectRow = z
-  .object({
-    project_id: z.guid(da.validation.required),
-    mode: z.enum(["rest", "span", "minutes"]),
-    from: z.string().nullish(),
-    to: z.string().nullish(),
-    minutes: z.number().int().nullish(),
+/** {dimension id: value id} as JSON (a default posting for the whole shift). */
+export const postingValuesField = z
+  .string()
+  .optional()
+  .transform((s, ctx) => {
+    try {
+      return JSON.parse(s || "{}") as unknown;
+    } catch {
+      ctx.addIssue({ code: "custom", message: da.common.unknownError });
+      return z.NEVER;
+    }
   })
-  .transform((r, ctx) => {
-    const from = r.mode === "span" ? (r.from ?? "") : "";
-    const to = r.mode === "span" ? (r.to ?? "") : "";
-    if (r.mode === "span" && (!HHMM.test(from) || !HHMM.test(to) || from === to)) {
-      ctx.addIssue({ code: "custom", message: da.projects.spanInvalid });
-      return z.NEVER;
-    }
-    if (r.mode === "minutes" && (!r.minutes || r.minutes < 1 || r.minutes > 1440)) {
-      ctx.addIssue({ code: "custom", message: da.projects.minutesInvalid });
-      return z.NEVER;
-    }
-    return {
-      project_id: r.project_id,
-      mode: r.mode,
-      from: r.mode === "span" ? from : null,
-      to: r.mode === "span" ? to : null,
-      minutes: r.mode === "minutes" ? r.minutes! : null,
-    };
-  });
-export const projectsField = jsonField(z.array(projectRow).max(20));
+  .pipe(z.record(z.guid(), z.guid()));
 
 const postingRow = z
   .object({
@@ -128,12 +112,6 @@ export function withNextDay<T extends { from: string | null; to: string | null }
   }));
 }
 
-/** A project row as edited in forms; nextDay flags place span times on the next day. */
-export type FormProjectRow = z.output<typeof projectRow> & {
-  nextDayFrom: boolean;
-  nextDayTo: boolean;
-};
-
 /** Shift length in minutes from local times; an end ≤ start ends the next day. */
 export function localDurationMinutes(start: string, end: string): number {
   const d = toMinutes(end) - toMinutes(start);
@@ -171,7 +149,6 @@ export const shiftFormSchema = z
     end_time: hhmm,
     breaks: breaksField,
     supplement_type_ids: supplementsField,
-    project_allocations: projectsField,
     posting_allocations: postingField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
@@ -183,16 +160,9 @@ export const shiftFormSchema = z
       return z.NEVER;
     }
     const breaks = checkBreaks(val, ctx);
-    const startMin = toMinutes(val.start_time);
-    const project_allocations: FormProjectRow[] = val.project_allocations.map((r) => ({
-      ...r,
-      nextDayFrom: r.from !== null && toMinutes(r.from) < startMin,
-      nextDayTo: r.to !== null && toMinutes(r.to) <= startMin,
-    }));
     return {
       ...val,
       breaks,
-      project_allocations,
       posting_allocations: withNextDay(val.posting_allocations, val.start_time),
       endsNextDay: toMinutes(val.end_time) <= toMinutes(val.start_time),
     };
@@ -206,7 +176,7 @@ export const templateFormSchema = z
     end_time: hhmm,
     breaks: breaksField,
     supplement_type_ids: supplementsField,
-    project_id: optionalGuid,
+    posting_values: postingValuesField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
   })

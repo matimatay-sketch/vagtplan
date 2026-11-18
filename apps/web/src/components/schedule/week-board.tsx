@@ -351,7 +351,6 @@ export function WeekBoard({
         employees={board.employees}
         templates={board.templates}
         supplementTypes={board.supplementTypes}
-        projects={board.projects}
         posting={board.posting}
       />
     </DndContext>

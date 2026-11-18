@@ -23,13 +23,12 @@ import {
 import { da } from "@/lib/i18n/da";
 import {
   formBreaksToDb,
-  formProjectsToDb,
   moveAllocations,
   moveDbBreaks,
   localInstants as instants,
   type DbBreak,
 } from "@/lib/schedule/breaks";
-import { allocationProblems, type ProjectAllocation } from "@/lib/domain/projects";
+import { allocationProblems } from "@/lib/domain/projects";
 import { formPostingToDb, type PostingAllocation } from "@/lib/domain/posting";
 import { PERMANENT_OVERRIDE_REASON } from "@/lib/schedule/rule-handling";
 import type { Json } from "@/lib/supabase/database.types";
@@ -61,17 +60,6 @@ export async function saveShiftAction(
   const f = parsed.data;
   const times = instants(f.date, f.start_time, f.end_time, f.endsNextDay);
   const breaks = formBreaksToDb(f.breaks, f.date);
-  const allocations = formProjectsToDb(f.project_allocations, f.date);
-  const problems = allocationProblems(
-    { start: times.start_at, end: times.end_at, breaks },
-    allocations,
-  );
-  if (problems.length) {
-    return {
-      errors: { project_allocations: problems.map((x) => da.projects.problems[x]).join(". ") },
-      values,
-    };
-  }
   const posting = formPostingToDb(f.posting_allocations, f.date);
   const postingProblems = allocationProblems(
     { start: times.start_at, end: times.end_at, breaks },
@@ -90,7 +78,6 @@ export async function saveShiftAction(
     employee_id: f.employee_id,
     ...times,
     breaks: asJson(breaks),
-    project_allocations: asJson(allocations),
     posting_allocations: asJson(posting),
     supplement_type_ids: f.supplement_type_ids,
     label: f.label,
@@ -139,7 +126,7 @@ export async function moveShiftAction(input: {
   const { data: s } = await supabase
     .from("shift")
     .select(
-      "department_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, posting_allocations, label, kind, template_id",
+      "department_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id",
     )
     .eq("id", p.id)
     .maybeSingle();
@@ -152,9 +139,6 @@ export async function moveShiftAction(input: {
     start_at: formatInstant(wallTime(p.date, hhmm(start.minuteOfDay), TZ)),
     end_at: formatInstant(wallTime(engineAddDays(p.date, dayShift), hhmm(end.minuteOfDay), TZ)),
     breaks: asJson(moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, p.date)),
-    project_allocations: asJson(
-      moveAllocations(s.project_allocations as unknown as ProjectAllocation[], start.date, p.date),
-    ),
     posting_allocations: asJson(
       moveAllocations(s.posting_allocations as unknown as PostingAllocation[], start.date, p.date),
     ),
@@ -196,7 +180,7 @@ export async function resizeShiftAction(input: {
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("shift")
-    .select("breaks, project_allocations, posting_allocations")
+    .select("breaks, posting_allocations")
     .eq("id", p.id)
     .maybeSingle();
   if (!s) return { message: da.common.notAllowed };
@@ -219,14 +203,6 @@ export async function resizeShiftAction(input: {
       start_at: formatInstant(newStart),
       end_at: formatInstant(newEnd),
       breaks: asJson(breaks),
-      // Drop project time spans that no longer fit inside the shift.
-      project_allocations: asJson(
-        (s.project_allocations as unknown as ProjectAllocation[]).filter(
-          (a) =>
-            !a.start_at ||
-            (parseInstant(a.start_at) >= newStart && parseInstant(a.end_at!) <= newEnd),
-        ),
-      ),
       posting_allocations: asJson(
         (s.posting_allocations as unknown as PostingAllocation[]).filter(
           (a) =>
@@ -252,7 +228,7 @@ export async function copyPreviousWeekAction(input: {
   const { data: shifts, error } = await supabase
     .from("shift")
     .select(
-      "employee_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, posting_allocations, label, kind, template_id",
+      "employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id",
     )
     .eq("department_id", p.departmentId)
     .is("archived_at", null)
@@ -273,13 +249,6 @@ export async function copyPreviousWeekAction(input: {
         moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, engineAddDays(start.date, 7)),
       ),
       supplement_type_ids: s.supplement_type_ids,
-      project_allocations: asJson(
-        moveAllocations(
-          s.project_allocations as unknown as ProjectAllocation[],
-          start.date,
-          engineAddDays(start.date, 7),
-        ),
-      ),
       posting_allocations: asJson(
         moveAllocations(
           s.posting_allocations as unknown as PostingAllocation[],

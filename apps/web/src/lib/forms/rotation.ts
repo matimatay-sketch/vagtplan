@@ -8,6 +8,7 @@ import {
   optionalGuid,
   optionalLabel,
   supplementsField,
+  postingValuesField,
 } from "./schedule";
 
 const int = (min: number, max: number) =>
@@ -48,7 +49,7 @@ export const slotSchema = z
     end_time: hhmm,
     breaks: breaksField,
     supplement_type_ids: supplementsField,
-    project_id: optionalGuid,
+    posting_values: postingValuesField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
   })

@@ -1,5 +1,6 @@
 import type { DbBreak } from "./breaks";
 import { projectMinutes, type ProjectAllocation } from "./projects";
+import type { PostingAllocation } from "./posting";
 import { localParts } from "./schedule-time";
 
 /** Planned shifts (draft/published) or registered time (open/pending/approved). */
@@ -16,7 +17,7 @@ export type ProjectShiftRow = {
   start_at: string;
   end_at: string;
   breaks: DbBreak[];
-  project_allocations: ProjectAllocation[];
+  posting_allocations: PostingAllocation[];
   status: ReportStatus;
   kind?: "work" | "on_call";
 };
@@ -36,10 +37,25 @@ export type ProjectLine = {
   minutes: number;
 };
 
-/** One line per project and shift. Time without a project is left out. */
-export function projectLines(rows: readonly ProjectShiftRow[]): ProjectLine[] {
+/**
+ * One line per project and shift, from the posting rows of the project
+ * dimension. Rows without a project still use their time. Time without a
+ * project is left out.
+ */
+export function projectLines(
+  projectDimensionId: string,
+  rows: readonly ProjectShiftRow[],
+): ProjectLine[] {
   return rows.flatMap((r) =>
-    projectMinutes({ start: r.start_at, end: r.end_at, breaks: r.breaks }, r.project_allocations)
+    projectMinutes(
+      { start: r.start_at, end: r.end_at, breaks: r.breaks },
+      r.posting_allocations.map((a): ProjectAllocation => ({
+        project_id: a.values[projectDimensionId] ?? null,
+        start_at: a.start_at,
+        end_at: a.end_at,
+        minutes: a.minutes,
+      })),
+    )
       .filter((m): m is { projectId: string; minutes: number } => m.projectId !== null)
       .map((m) => ({
         projectId: m.projectId,

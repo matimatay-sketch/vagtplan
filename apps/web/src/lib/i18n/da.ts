@@ -617,6 +617,7 @@ export const da = {
     keyInvalid: "Nøglen skal være små bogstaver, tal og _ (fx omkostningssted).",
     defaults: "Standardkontering",
     useDefault: "Standard",
+    unavailableValue: "(ikke tilgængelig)",
     defaultsHelp: "Bruges, når vagten eller registreringen ikke har sin egen kontering.",
     none: "Ingen",
     onShift: "Kontering",
@@ -629,6 +630,7 @@ export const da = {
     asPlanned: "som planlagt",
   },
   projects: {
+    dimensionName: "Projekt",
     title: "Projekter",
     lead: "Projekttimer ud fra vagtplanen. Når stempling kommer i fase 4, vises også faktisk registreret tid.",
     manageTitle: "Projektliste",

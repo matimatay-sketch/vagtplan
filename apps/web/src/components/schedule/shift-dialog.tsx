@@ -18,21 +18,15 @@ import { localParts } from "@/lib/domain/schedule-time";
 import { dbBreaksToForm, templateBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
 import type {
   BoardEmployee,
-  BoardProject,
   BoardShift,
   BoardSupplementType,
   BoardTemplate,
 } from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
-import {
-  allocationsToForm,
-  defaultProjectRows,
-  type EditableProjectRow,
-} from "@/lib/domain/projects";
 import { BreaksEditor, SupplementPicker } from "./breaks-editor";
-import { ProjectsEditor } from "./projects-editor";
 import { PostingEditor } from "@/components/posting/posting-editor";
 import {
+  defaultPostingRows,
   postingToForm,
   type EditablePostingRow,
   type PostingDimension,
@@ -45,7 +39,6 @@ type Props = {
   employees: BoardEmployee[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
-  projects: BoardProject[];
   posting: PostingDimension[];
 };
 
@@ -77,7 +70,6 @@ function ShiftForm({
   employees,
   templates,
   supplementTypes,
-  projects,
   posting,
 }: Props & { draft: ShiftDraft; onDone: () => void }) {
   const t = da.schedule;
@@ -104,15 +96,8 @@ function ShiftForm({
   const [supplements, setSupplements] = useState<string[]>(
     () => s?.supplementTypeIds ?? first?.supplementTypeIds ?? [],
   );
-  const [projectRows, setProjectRows] = useState<EditableProjectRow[]>(() =>
-    s
-      ? allocationsToForm(s.projectAllocations)
-      : defaultProjectRows(
-          projects.some((p) => p.id === first?.projectId) ? first?.projectId : null,
-        ),
-  );
   const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
-    s ? postingToForm(s.postingAllocations) : [],
+    s ? postingToForm(s.postingAllocations) : defaultPostingRows(first?.postingValues),
   );
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
@@ -137,8 +122,8 @@ function ShiftForm({
     }));
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
-    if (tpl.projectId && projects.some((p) => p.id === tpl.projectId))
-      setProjectRows(defaultProjectRows(tpl.projectId));
+    if (Object.keys(tpl.postingValues).length)
+      setPostingRows(defaultPostingRows(tpl.postingValues));
   };
   const err = (k: string) => state.errors?.[k];
 
@@ -228,16 +213,6 @@ function ShiftForm({
         </div>
         <BreaksEditor value={breaks} onChange={setBreaks} error={err("breaks")} />
         <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
-        <ProjectsEditor
-          projects={projects}
-          value={projectRows}
-          onChange={setProjectRows}
-          error={
-            Object.entries(state.errors ?? {}).find(([k]) =>
-              k.startsWith("project_allocations"),
-            )?.[1]
-          }
-        />
         <PostingEditor
           dimensions={posting}
           value={postingRows}

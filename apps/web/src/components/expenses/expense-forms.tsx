@@ -8,47 +8,10 @@ import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form"
 import { saveExpenseAction, saveTripAction } from "@/lib/actions/expenses";
 import { initialActionState } from "@/lib/actions/state";
 import type { PostingDimension } from "@/lib/domain/posting";
+import { PostingValuesSelect } from "@/components/posting/posting-values";
 import { da } from "@/lib/i18n/da";
 
 const t = da.expenses;
-
-/** One select per dimension; empty = the department's/employee's default. */
-function PostingSelects({
-  dimensions,
-  value,
-  onChange,
-}: {
-  dimensions: PostingDimension[];
-  value: Record<string, string>;
-  onChange: (v: Record<string, string>) => void;
-}) {
-  if (dimensions.length === 0) return null;
-  return (
-    <>
-      {dimensions.map((d) => (
-        <Field key={d.id} label={d.name} htmlFor={`posting-${d.id}`}>
-          <NativeSelect
-            id={`posting-${d.id}`}
-            value={value[d.id] ?? ""}
-            onChange={(e) => {
-              const next = { ...value };
-              if (e.target.value) next[d.id] = e.target.value;
-              else delete next[d.id];
-              onChange(next);
-            }}
-          >
-            <option value="">{da.posting.useDefault}</option>
-            {d.values.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.code} {v.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-      ))}
-    </>
-  );
-}
 
 export function TripForm({ today, posting }: { today: string; posting: PostingDimension[] }) {
   const [state, action] = useActionState(saveTripAction, initialActionState);
@@ -126,7 +89,7 @@ export function TripForm({ today, posting }: { today: string; posting: PostingDi
         <Field label={`${t.vehicle} (${da.common.optional})`} htmlFor="vehicle">
           <Input {...f("vehicle")} />
         </Field>
-        <PostingSelects dimensions={posting} value={values} onChange={setValues} />
+        <PostingValuesSelect dimensions={posting} value={values} onChange={setValues} />
       </div>
       <div>
         <SubmitButton>{t.saveTrip}</SubmitButton>
@@ -203,7 +166,7 @@ export function ExpenseForm({
             capture="environment"
           />
         </Field>
-        <PostingSelects dimensions={posting} value={values} onChange={setValues} />
+        <PostingValuesSelect dimensions={posting} value={values} onChange={setValues} />
       </div>
       <div>
         <SubmitButton>{t.saveExpense}</SubmitButton>

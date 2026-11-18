@@ -7,10 +7,8 @@ import {
   hhmm,
   optionalGuid,
   postingField,
-  projectsField,
   supplementsField,
   withNextDay,
-  type FormProjectRow,
 } from "./schedule";
 
 const v = da.validation;
@@ -33,7 +31,6 @@ export const timeEntryFormSchema = z
     start_time: hhmm,
     end_time: hhmm,
     breaks: breaksField,
-    project_allocations: projectsField,
     posting_allocations: postingField,
     supplement_type_ids: supplementsField,
     deviation_reason: optionalText,
@@ -46,17 +43,10 @@ export const timeEntryFormSchema = z
       return z.NEVER;
     }
     const breaks = checkBreaks(val, ctx);
-    const startMin = toMinutes(val.start_time);
-    const project_allocations: FormProjectRow[] = val.project_allocations.map((r) => ({
-      ...r,
-      nextDayFrom: r.from !== null && toMinutes(r.from) < startMin,
-      nextDayTo: r.to !== null && toMinutes(r.to) <= startMin,
-    }));
     return {
       ...val,
       breaks,
-      project_allocations,
       posting_allocations: withNextDay(val.posting_allocations, val.start_time),
-      endsNextDay: toMinutes(val.end_time) <= startMin,
+      endsNextDay: toMinutes(val.end_time) <= toMinutes(val.start_time),
     };
   });

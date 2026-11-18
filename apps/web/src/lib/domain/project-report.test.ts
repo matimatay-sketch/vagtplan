@@ -17,7 +17,7 @@ const row = (over: Partial<ProjectShiftRow>): ProjectShiftRow => ({
   start_at: "2027-01-04T07:00:00Z",
   end_at: "2027-01-04T15:00:00Z",
   breaks: [{ start_at: null, minutes: 30, paid: false }],
-  project_allocations: [{ project_id: "p1", start_at: null, end_at: null, minutes: null }],
+  posting_allocations: [{ values: { proj: "p1" }, start_at: null, end_at: null, minutes: null }],
   status: "draft",
   kind: "work",
   ...over,
@@ -25,11 +25,11 @@ const row = (over: Partial<ProjectShiftRow>): ProjectShiftRow => ({
 
 describe("projectLines", () => {
   it("one line per project and shift, dated in local time, without the unallocated rest", () => {
-    const lines = projectLines([
+    const lines = projectLines("proj", [
       row({
-        project_allocations: [
-          { project_id: "p1", start_at: null, end_at: null, minutes: 120 },
-          { project_id: "p2", start_at: null, end_at: null, minutes: 60 },
+        posting_allocations: [
+          { values: { proj: "p1" }, start_at: null, end_at: null, minutes: 120 },
+          { values: { proj: "p2" }, start_at: null, end_at: null, minutes: 60 },
         ],
       }),
       // 23:30 local on 3 January is still 3 January.
@@ -47,24 +47,38 @@ describe("projectLines", () => {
     ]);
   });
   it("an open shift has no employee", () => {
-    const [l] = projectLines([
+    const [l] = projectLines("proj", [
       row({ employee_id: null, employee_number: null, employee_name: null }),
     ]);
     expect(l).toMatchObject({ employeeId: null, minutes: 450 });
   });
 });
 
+describe("projectLines with other dimensions", () => {
+  it("rows without a project use time but give no line; other dimensions are ignored", () => {
+    const lines = projectLines("proj", [
+      row({
+        posting_allocations: [
+          { values: { cc: "1100" }, start_at: null, end_at: null, minutes: 120 },
+          { values: { cc: "1200", proj: "p1" }, start_at: null, end_at: null, minutes: null },
+        ],
+      }),
+    ]);
+    expect(lines.map((l) => [l.projectId, l.minutes])).toEqual([["p1", 330]]);
+  });
+});
+
 describe("summarizeProjects", () => {
   it("totals per project and per employee, counting shifts once", () => {
-    const lines = projectLines([
+    const lines = projectLines("proj", [
       row({}),
       row({ id: "s2", employee_id: "e2", employee_name: "Ole", employee_number: "1002" }),
       row({
         id: "s3",
-        project_allocations: [
-          { project_id: "p1", start_at: null, end_at: null, minutes: 60 },
-          { project_id: "p1", start_at: null, end_at: null, minutes: 30 },
-          { project_id: "p2", start_at: null, end_at: null, minutes: null },
+        posting_allocations: [
+          { values: { proj: "p1" }, start_at: null, end_at: null, minutes: 60 },
+          { values: { proj: "p1" }, start_at: null, end_at: null, minutes: 30 },
+          { values: { proj: "p2" }, start_at: null, end_at: null, minutes: null },
         ],
       }),
     ]);

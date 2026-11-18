@@ -5,7 +5,6 @@ import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { ageOn } from "@/lib/domain/age";
 import { durationMinutes, zonedTime } from "@/lib/domain/schedule-time";
 import { unpaidMinutes, type DbBreak, type TemplateBreak } from "@/lib/domain/breaks";
-import type { ProjectAllocation } from "@/lib/domain/projects";
 import {
   availablePosting,
   type PostingAllocation,
@@ -28,8 +27,6 @@ export type BoardViolation = {
   handling: "block" | "allow";
 };
 
-export type BoardProject = { id: string; number: string; name: string };
-
 export type BoardSupplementType = {
   id: string;
   name: string;
@@ -44,7 +41,6 @@ export type BoardShift = {
   end: string;
   breaks: DbBreak[];
   supplementTypeIds: string[];
-  projectAllocations: ProjectAllocation[];
   postingAllocations: PostingAllocation[];
   label: string | null;
   kind: "work" | "on_call";
@@ -96,7 +92,8 @@ export type BoardTemplate = {
   end: string;
   breaks: TemplateBreak[];
   supplementTypeIds: string[];
-  projectId: string | null;
+  /** Default posting for the whole shift ({dimension id: value id}). */
+  postingValues: Record<string, string>;
   label: string | null;
   kind: "work" | "on_call";
 };
@@ -111,8 +108,6 @@ export type WeekBoard = {
   absences: BoardAbsence[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
-  /** Active projects available in this department. */
-  projects: BoardProject[];
   /** Posting dimensions with the values available in this department. */
   posting: PostingDimension[];
   pendingCount: number;
@@ -140,7 +135,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, posting_allocations, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -149,7 +144,7 @@ export async function loadWeek(
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, project_id, label, kind, department_id",
+        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -184,7 +179,6 @@ export async function loadWeek(
     violations,
     { data: contracts },
     { data: supplementTypes },
-    { data: projects },
     { data: absences },
     agreements,
     postingDimensions,
@@ -218,12 +212,6 @@ export async function loadWeek(
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
-    supabase
-      .from("project")
-      .select("id, number, name, project_department (department_id)")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("number"),
     supabase
       .from("absence")
       .select("id, employee_id, type_code, from_date, to_date, status")
@@ -293,7 +281,6 @@ export async function loadWeek(
     end: s.end_at,
     breaks: s.breaks as unknown as DbBreak[],
     supplementTypeIds: s.supplement_type_ids,
-    projectAllocations: s.project_allocations as unknown as ProjectAllocation[],
     postingAllocations: s.posting_allocations as unknown as PostingAllocation[],
     label: s.label,
     kind: s.kind,
@@ -340,7 +327,7 @@ export async function loadWeek(
       end: t.end_time.slice(0, 5),
       breaks: t.breaks as unknown as TemplateBreak[],
       supplementTypeIds: t.supplement_type_ids,
-      projectId: t.project_id,
+      postingValues: (t.posting_values ?? {}) as Record<string, string>,
       label: t.label,
       kind: t.kind,
     })),
@@ -350,13 +337,6 @@ export async function loadWeek(
       amountType: t.amount_type,
       amount: t.amount,
     })),
-    projects: (projects ?? [])
-      .filter(
-        (x) =>
-          x.project_department.length === 0 ||
-          x.project_department.some((d) => d.department_id === departmentId),
-      )
-      .map((x) => ({ id: x.id, number: x.number, name: x.name })),
     posting: availablePosting(postingDimensions, departmentId),
     pendingCount: (shifts ?? []).filter(
       (s) =>

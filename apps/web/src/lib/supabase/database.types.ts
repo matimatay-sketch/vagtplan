@@ -713,14 +713,14 @@ isOneToOne: false
                   ]
                 },"posting_dimension": {
                   Row: {
-                    "archived_at": string | null,"created_at": string,"id": string,"key": string,"name": string,"organization_id": string,"required": boolean,"sort_order": number
+                    "archived_at": string | null,"created_at": string,"id": string,"is_project": boolean,"key": string,"name": string,"organization_id": string,"required": boolean,"sort_order": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"key": string,"name": string,"organization_id": string,"required"?: boolean,"sort_order"?: number
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"is_project"?: boolean,"key": string,"name": string,"organization_id": string,"required"?: boolean,"sort_order"?: number
                   }
                   Update: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"key"?: string,"name"?: string,"organization_id"?: string,"required"?: boolean,"sort_order"?: number
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"is_project"?: boolean,"key"?: string,"name"?: string,"organization_id"?: string,"required"?: boolean,"sort_order"?: number
                   }
                   Relationships: [
                     {
@@ -733,14 +733,14 @@ isOneToOne: false
                   ]
                 },"posting_value": {
                   Row: {
-                    "archived_at": string | null,"code": string,"created_at": string,"dimension_id": string,"id": string,"name": string,"organization_id": string
+                    "archived_at": string | null,"code": string,"created_at": string,"description": string | null,"dimension_id": string,"id": string,"name": string,"organization_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"code": string,"created_at"?: string,"dimension_id": string,"id"?: string,"name": string,"organization_id": string
+                    "archived_at"?: string | null,"code": string,"created_at"?: string,"description"?: string | null,"dimension_id": string,"id"?: string,"name": string,"organization_id": string
                   }
                   Update: {
-                    "archived_at"?: string | null,"code"?: string,"created_at"?: string,"dimension_id"?: string,"id"?: string,"name"?: string,"organization_id"?: string
+                    "archived_at"?: string | null,"code"?: string,"created_at"?: string,"description"?: string | null,"dimension_id"?: string,"id"?: string,"name"?: string,"organization_id"?: string
                   }
                   Relationships: [
                     {
@@ -897,14 +897,14 @@ isOneToOne: false
                   ]
                 },"rotation_slot": {
                   Row: {
-                    "breaks": NonNullable<Json>,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"line_id": string,"organization_id": string,"project_id": string | null,"rotation_id": string,"start_time": string,"supplement_type_ids": (string)[],"week_index": number,"weekday": number
+                    "breaks": NonNullable<Json>,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"line_id": string,"organization_id": string,"posting_values": NonNullable<Json>,"project_id": string | null,"rotation_id": string,"start_time": string,"supplement_type_ids": (string)[],"week_index": number,"weekday": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "breaks"?: NonNullable<Json>,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"line_id": string,"organization_id": string,"project_id"?: string | null,"rotation_id": string,"start_time": string,"supplement_type_ids"?: (string)[],"week_index": number,"weekday": number
+                    "breaks"?: NonNullable<Json>,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"line_id": string,"organization_id": string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"rotation_id": string,"start_time": string,"supplement_type_ids"?: (string)[],"week_index": number,"weekday": number
                   }
                   Update: {
-                    "breaks"?: NonNullable<Json>,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"line_id"?: string,"organization_id"?: string,"project_id"?: string | null,"rotation_id"?: string,"start_time"?: string,"supplement_type_ids"?: (string)[],"week_index"?: number,"weekday"?: number
+                    "breaks"?: NonNullable<Json>,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"line_id"?: string,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"rotation_id"?: string,"start_time"?: string,"supplement_type_ids"?: (string)[],"week_index"?: number,"weekday"?: number
                   }
                   Relationships: [
                     {
@@ -1025,14 +1025,14 @@ isOneToOne: false
                   ]
                 },"shift_template": {
                   Row: {
-                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"department_id": string | null,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"name": string,"organization_id": string,"project_id": string | null,"start_time": string,"supplement_type_ids": (string)[]
+                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"department_id": string | null,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"name": string,"organization_id": string,"posting_values": NonNullable<Json>,"project_id": string | null,"start_time": string,"supplement_type_ids": (string)[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name": string,"organization_id": string,"project_id"?: string | null,"start_time": string,"supplement_type_ids"?: (string)[]
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name": string,"organization_id": string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"start_time": string,"supplement_type_ids"?: (string)[]
                   }
                   Update: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name"?: string,"organization_id"?: string,"project_id"?: string | null,"start_time"?: string,"supplement_type_ids"?: (string)[]
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name"?: string,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"start_time"?: string,"supplement_type_ids"?: (string)[]
                   }
                   Relationships: [
                     {
@@ -1196,12 +1196,12 @@ isOneToOne: false
                            },
 "project_shifts":
 { Args: { "p_from": string,"p_to": string }; Returns: {
-              "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"project_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["shift_status"]
+              "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"posting_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["shift_status"]
             }[]
                            },
 "project_time_entries":
 { Args: { "p_from": string,"p_to": string }; Returns: {
-              "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"project_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["time_entry_status"]
+              "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"posting_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["time_entry_status"]
             }[]
                            },
 "publish_agreement_version":
