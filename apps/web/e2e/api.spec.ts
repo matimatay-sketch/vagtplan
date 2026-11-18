@@ -5,7 +5,8 @@ import { login, users } from "./helpers";
 const MOCK = "http://127.0.0.1:4545";
 type Hook = { headers: Record<string, string>; body: string };
 const hooks = async (): Promise<Hook[]> => (await fetch(`${MOCK}/__webhooks`)).json();
-const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
+const dayIn = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
+const today = () => dayIn(new Date());
 
 test("integration API: keys with scopes, HR, stamping, reading time and signed webhooks", async ({
   page,
@@ -95,8 +96,10 @@ test("integration API: keys with scopes, HR, stamping, reading time and signed w
   const out = await stamp("out", 30, crypto.randomUUID());
   expect((await out.json()).data.time_entry.status).toBe("pending");
 
+  // The stamp is two hours old: near midnight it belongs to yesterday (Copenhagen).
+  const stampDay = dayIn(new Date(Date.now() - 120 * 60_000));
   const entries = await request.get(
-    `/api/v1/time-entries?from=${today()}&to=${today()}&employee_number=${number}`,
+    `/api/v1/time-entries?from=${stampDay}&to=${today()}&employee_number=${number}`,
     { headers: auth },
   );
   const rows = (await entries.json()).data;
@@ -104,7 +107,7 @@ test("integration API: keys with scopes, HR, stamping, reading time and signed w
   expect(rows[0]).toMatchObject({ employee_number: number, source: "stamp", status: "pending" });
 
   // Approving the time in the app sends a signed time_entry.approved webhook.
-  await page.goto(`/tid/godkend?uge=${today()}&q=${number}`);
+  await page.goto(`/tid/godkend?uge=${stampDay}&q=${number}`);
   const row = page.locator('section[data-employee="Api Testesen"]').getByTestId("approval-row");
   await row.getByRole("checkbox").check();
   await page.getByTestId("approve-selected").click();
