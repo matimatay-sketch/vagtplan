@@ -198,6 +198,12 @@ Acceptkriterier:
 - "Log ind som" en medarbejder (`users.impersonate`). Handlinger markeres i audit-loggen og i registreringens historik. Medarbejdere uden login får et baggrundslogin uden e-mail.
 - Rettighedsprofiler tæller også medarbejdere uden login (under standardprofilen).
 
+### Normprocent pr. vagt (ønsket 2026-11-18)
+
+- En vagt og en vagtskabelon kan have en procent for, hvor meget den tæller i timenormen, fx rådighed 33 %. Ugevisningen viser timer mod norm med procenten.
+- Det vælges på vagten, om procenten også bruges, når lønnen finder overarbejde. Standarden for procent og løn sættes pr. vagttype under Opsætning.
+- Turnusvagter bruger standarden for vagttypen.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.

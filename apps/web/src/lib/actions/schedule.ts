@@ -83,6 +83,8 @@ export async function saveShiftAction(
     supplement_type_ids: f.supplement_type_ids,
     label: f.label,
     kind: f.kind,
+    norm_percent: f.norm_percent,
+    norm_in_pay: f.norm_in_pay,
     template_id: f.template_id,
   };
   const supabase = await createClient();
@@ -127,7 +129,7 @@ export async function moveShiftAction(input: {
   const { data: s } = await supabase
     .from("shift")
     .select(
-      "department_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id",
+      "department_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, norm_percent, norm_in_pay, template_id",
     )
     .eq("id", p.id)
     .maybeSingle();
@@ -152,6 +154,8 @@ export async function moveShiftAction(input: {
         supplement_type_ids: s.supplement_type_ids,
         label: s.label,
         kind: s.kind,
+        norm_percent: s.norm_percent,
+        norm_in_pay: s.norm_in_pay,
         template_id: s.template_id,
       })
     : await supabase.from("shift").update(row).eq("id", p.id);
@@ -227,10 +231,12 @@ type CopySource = {
   posting_allocations: unknown;
   label: string | null;
   kind: "work" | "on_call";
+  norm_percent: number | null;
+  norm_in_pay: boolean | null;
   template_id: string | null;
 };
 const COPY_SELECT =
-  "employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id";
+  "employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, norm_percent, norm_in_pay, template_id";
 
 /** A draft copy of a shift moved by whole days (same wall-clock times). */
 function copyRow(organizationId: string, departmentId: string, s: CopySource, days: number) {
@@ -250,6 +256,8 @@ function copyRow(organizationId: string, departmentId: string, s: CopySource, da
     ),
     label: s.label,
     kind: s.kind,
+    norm_percent: s.norm_percent,
+    norm_in_pay: s.norm_in_pay,
     template_id: s.template_id,
   };
 }

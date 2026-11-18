@@ -8,6 +8,8 @@ export type WorkInterval = Span & {
   kind: "work" | "on_call" | "call_out";
   breaks: (Span & { paid: boolean | null })[];
   plannedShiftId: string | null;
+  /** Percent of the interval that counts towards the norm (see WorkIntervalInput). */
+  normPercent: number;
   supplements: ShiftSupplementInput[];
   postings: PostingRow[];
 };
@@ -40,6 +42,10 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         kind: i.kind ?? "work",
         breaks,
         plannedShiftId: i.plannedShiftId ?? null,
+        normPercent: Math.min(
+          100,
+          Math.max(0, i.normPercent ?? ((i.kind ?? "work") === "on_call" ? 0 : 100)),
+        ),
         supplements: i.supplements ?? [],
         postings: (i.postings ?? []).map((p) => ({
           values: p.values,

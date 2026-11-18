@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { login, users } from "./helpers";
 
 function mondayIn(weeks: number): string {
@@ -129,4 +129,55 @@ test("log in as an employee without a login; actions are marked; back again", as
   await expect(page.getByTestId("entry-history")).toContainText(
     "(gjort af admin@demo.dk som medarbejderen)",
   );
+});
+
+async function setOnCallDefault(browser: Browser, percent: string) {
+  // A separate session, so the test's own login is not disturbed.
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await login(page, users.admin);
+  await page.goto("/indstillinger/opsaetning");
+  const form = page.getByTestId("norm-defaults-form");
+  await form.getByLabel("Rådighed (%)").fill(percent);
+  await form.getByRole("button", { name: "Gem" }).click();
+  await expect(form.getByText("Gemt")).toBeVisible();
+  await context.close();
+}
+
+test("norm percent: on-call counts with the default for its kind or its own share", async ({
+  page,
+  browser,
+}) => {
+  await setOnCallDefault(browser, "50");
+  try {
+    const week = mondayIn(36);
+    await login(page, users.manager);
+    await page.goto(`/vagtplan?uge=${week}`);
+    const c = cell(page, MADS, week);
+    await c.hover();
+    await c.getByRole("button", { name: "Ny vagt" }).click();
+    const form = page.getByTestId("shift-form");
+    await form.getByLabel("Start").fill("08:00");
+    await form.getByLabel("Slut").fill("16:30");
+    await form.getByLabel("Type").selectOption("on_call");
+    await expect(form.getByLabel("Tæller i timenorm (%)")).toHaveAttribute(
+      "placeholder",
+      "Standard: 50 %",
+    );
+    await form.getByRole("button", { name: "Gem vagt" }).click();
+    await expect(form).toHaveCount(0);
+    const hours = page.locator(`tr[data-row="${MADS}"]`).getByTestId("norm-hours");
+    // 8.5 hours minus a 30-minute unpaid break = 8 hours, at 50 % = 4 hours.
+    await expect(hours).toHaveText("4 / 25 t");
+
+    // Its own share wins over the default: 25 % of 8 hours = 2 hours.
+    await c.getByTestId("shift-card").click();
+    await form.getByLabel("Tæller i timenorm (%)").fill("25");
+    await form.getByLabel("Bruges, når lønnen finder overarbejde").selectOption("true");
+    await form.getByRole("button", { name: "Gem vagt" }).click();
+    await expect(form).toHaveCount(0);
+    await expect(hours).toHaveText("2 / 25 t");
+  } finally {
+    await setOnCallDefault(browser, "0");
+  }
 });

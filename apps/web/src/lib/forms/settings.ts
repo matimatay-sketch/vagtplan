@@ -107,3 +107,27 @@ export const leaveRulesSchema = z
     }
     return out;
   });
+
+const percent = z
+  .string()
+  .optional()
+  .transform((s, ctx) => {
+    const n = Number((s ?? "").trim());
+    if (!s || !s.trim() || !Number.isInteger(n) || n < 0 || n > 100) {
+      ctx.addIssue({ code: "custom", message: da.schedule.normPercentInvalid });
+      return z.NEVER;
+    }
+    return n;
+  });
+const bool = z
+  .string()
+  .optional()
+  .transform((s) => s === "true");
+
+/** Norm percent per shift kind (the default when a shift has no value of its own). */
+export const normDefaultsSchema = z.object({
+  norm_percent_work: percent,
+  norm_percent_on_call: percent,
+  norm_in_pay_work: bool,
+  norm_in_pay_on_call: bool,
+});

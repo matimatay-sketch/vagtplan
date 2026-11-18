@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
+import { NormFields } from "./norm-fields";
+import type { NormDefaults } from "@/lib/domain/norm-percent";
 import { copyShiftToDatesAction, removeShiftAction, saveShiftAction } from "@/lib/actions/schedule";
 import { copyDates } from "@/lib/domain/schedule-copy";
 import { weekDates, weekStartOf } from "@/lib/domain/schedule-time";
@@ -43,6 +45,7 @@ type Props = {
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
   posting: PostingDimension[];
+  normDefaults: NormDefaults;
 };
 
 export function ShiftDialog({
@@ -74,6 +77,7 @@ function ShiftForm({
   templates,
   supplementTypes,
   posting,
+  normDefaults,
 }: Props & { draft: ShiftDraft; onDone: () => void }) {
   const t = da.schedule;
   const [state, action] = useActionState(saveShiftAction, initialActionState);
@@ -87,6 +91,8 @@ function ShiftForm({
     end_time: s ? localParts(s.end).time : (first?.end ?? "16:00"),
     label: s?.label ?? first?.label ?? "",
     kind: s?.kind ?? first?.kind ?? "work",
+    norm_percent: String(s ? (s.normPercent ?? "") : (first?.normPercent ?? "")),
+    norm_in_pay: String(s ? (s.normInPay ?? "") : (first?.normInPay ?? "")),
     template_id: s?.templateId ?? first?.id ?? "",
   }));
   const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
@@ -122,6 +128,8 @@ function ShiftForm({
       end_time: tpl.end,
       label: tpl.label ?? "",
       kind: tpl.kind,
+      norm_percent: String(tpl.normPercent ?? ""),
+      norm_in_pay: String(tpl.normInPay ?? ""),
     }));
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
@@ -204,6 +212,15 @@ function ShiftForm({
               <option value="on_call">{t.kinds.on_call}</option>
             </NativeSelect>
           </Field>
+          <NormFields
+            kind={values.kind as "work" | "on_call"}
+            defaults={normDefaults}
+            percent={values.norm_percent}
+            inPay={values.norm_in_pay}
+            onPercent={(v) => setValues((x) => ({ ...x, norm_percent: v }))}
+            onInPay={(v) => setValues((x) => ({ ...x, norm_in_pay: v }))}
+            error={err("norm_percent")}
+          />
           <Field label={`${t.label} (${da.common.optional})`} htmlFor="label" error={err("label")}>
             <Input
               id="label"

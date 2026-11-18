@@ -9,6 +9,7 @@ import {
   createSupplementTypeAction,
   saveLeaveRulesAction,
   saveNoticeAction,
+  saveNormDefaultsAction,
   saveRuleHandlingAction,
 } from "@/lib/actions/settings";
 import { initialActionState } from "@/lib/actions/state";
@@ -236,6 +237,62 @@ export function LeaveRulesForm({ rules }: { rules: LeaveRules }) {
       </div>
       <div>
         <SubmitButton>{da.common.save}</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function NormDefaultsForm({
+  defaults,
+}: {
+  defaults: {
+    norm_percent_work: number;
+    norm_percent_on_call: number;
+    norm_in_pay_work: boolean;
+    norm_in_pay_on_call: boolean;
+  };
+}) {
+  const [state, action] = useActionState(saveNormDefaultsAction, initialActionState);
+  const yesNo = (name: "norm_in_pay_work" | "norm_in_pay_on_call", label: string) => (
+    <Field label={label} htmlFor={name}>
+      <NativeSelect {...fieldProps(name, state, String(defaults[name]))}>
+        <option value="false">{da.schedule.no}</option>
+        <option value="true">{da.schedule.yes}</option>
+      </NativeSelect>
+    </Field>
+  );
+  return (
+    <form
+      action={action}
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end"
+      noValidate
+      data-testid="norm-defaults-form"
+    >
+      <Field label={t.normWork} htmlFor="norm_percent_work" error={state.errors?.norm_percent_work}>
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          {...fieldProps("norm_percent_work", state, String(defaults.norm_percent_work))}
+        />
+      </Field>
+      {yesNo("norm_in_pay_work", t.normInPayWork)}
+      <Field
+        label={t.normOnCall}
+        htmlFor="norm_percent_on_call"
+        error={state.errors?.norm_percent_on_call}
+      >
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          {...fieldProps("norm_percent_on_call", state, String(defaults.norm_percent_on_call))}
+        />
+      </Field>
+      {yesNo("norm_in_pay_on_call", t.normInPayOnCall)}
+      <SubmitButton>{da.common.save}</SubmitButton>
+      <div className="sm:col-span-2 lg:col-span-5">
+        <FormMessage state={state} />
       </div>
     </form>
   );

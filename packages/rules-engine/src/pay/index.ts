@@ -99,6 +99,8 @@ type Segment = Span & {
   /** Index of the posting span row the segment lies in (null = not in a span). */
   postingRow: number | null;
   kind: "work" | "call_out";
+  /** Percent of the segment that counts towards the norm. */
+  normPercent: number;
   date: IsoDate;
   holiday: boolean;
   overtime: { rule: ResolvedRule & Rule<"overtime">; tier: number } | null;
@@ -360,12 +362,16 @@ function absenceMinutesOn(ctx: EngineContext, a: AbsenceInput, date: IsoDate): n
   return Math.round(contract.weeklyNormMinutes / 5);
 }
 
+/** Minutes of on-call that count towards the norm on a date (share already applied). */
+type NormCredit = { date: IsoDate; minutes: number };
+
 /** Norm minutes for a unit: weekly norm per day (/7) summed, or the daily norm. */
 function unitNorm(
   rule: ResolvedRule & Rule<"overtime">,
   ctx: EngineContext,
   dates: IsoDate[],
   absences: readonly AbsenceInput[],
+  credits: readonly NormCredit[],
 ): number | null {
   let norm = 0;
   for (const d of dates) {
@@ -385,6 +391,8 @@ function unitNorm(
       if (type?.counts_towards_norm) norm -= absenceMinutesOn(ctx, a, d);
     }
   }
+  // On-call (rådighed) that counts a share towards the norm fills it the same way.
+  for (const c of credits) if (dates.includes(c.date)) norm -= c.minutes;
   return Math.max(0, Math.round(norm));
 }
 
@@ -404,6 +412,7 @@ function markOvertime(
   ctx: EngineContext,
   absences: readonly AbsenceInput[],
   plannedSpans: Span[],
+  credits: readonly NormCredit[] = [],
 ): Segment[] {
   // Collect overtime rules (by id) that apply on any date, by priority.
   const rules = new Map<string, ResolvedRule & Rule<"overtime">>();
@@ -431,18 +440,26 @@ function markOvertime(
         pieces = [inside ? seg : { ...seg, overtime: { rule, tier: 0 } }];
       } else {
         if (!norms.has(key))
-          norms.set(key, unitNorm(rule, ctx, unitDates(rule, ctx, key), absences));
+          norms.set(key, unitNorm(rule, ctx, unitDates(rule, ctx, key), absences, credits));
         const norm = norms.get(key)!;
         if (norm === null) {
           next.push(seg);
           continue;
         }
+        // Only the segment's share counts towards the norm. Once the counted
+        // minutes reach the norm, the rest of the segment's real time is overtime.
         const before = used.get(key) ?? 0;
-        pieces = splitAtMinute(seg, before, norm).map((p, idx, arr) => {
-          const isOt = arr.length === 2 ? idx === 1 : before >= norm;
+        const share = seg.normPercent / 100;
+        if (share === 0) {
+          next.push(seg);
+          continue;
+        }
+        const left = before >= norm ? 0 : Math.round((norm - before) / share);
+        pieces = splitAtMinute(seg, 0, left).map((p, idx, arr) => {
+          const isOt = arr.length === 2 ? idx === 1 : left === 0;
           return isOt ? { ...p, overtime: { rule, tier: 0 } } : p;
         });
-        used.set(key, before + minutesOf(seg));
+        used.set(key, before + minutesOf(seg) * share);
       }
       // Split overtime pieces at tier boundaries.
       for (const p of pieces) {
@@ -754,6 +771,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
           shiftStart: i.start,
           postingRow,
           kind: i.kind,
+          normPercent: i.normPercent,
           date: d,
           holiday: isHolidayTime(ctx, d, s.start),
           overtime: null,
@@ -763,7 +781,12 @@ export function calculatePay(input: CalcPayInput): PayResult {
   }
 
   // 2. Overtime (needs the whole unit, also outside the pay period).
-  segments = markOvertime(segments, ctx, absences, plannedSpans);
+  const credits: NormCredit[] = worked.flatMap((i) =>
+    i.kind === "on_call" && i.normPercent > 0
+      ? [{ date: localDate(i.start, ctx.tz), minutes: (minutesOf(i) * i.normPercent) / 100 }]
+      : [],
+  );
+  segments = markOvertime(segments, ctx, absences, plannedSpans, credits);
 
   // 3. Candidates, stacking and lines – only inside the pay period.
   const labels = (code: string) => {
