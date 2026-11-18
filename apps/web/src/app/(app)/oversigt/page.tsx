@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Clock, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  CalendarHeart,
+  Car,
+  ClipboardCheck,
+  Clock,
+  Plane,
+  Timer,
+  Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { requireContext } from "@/lib/auth";
 import { hasAny } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -82,6 +91,28 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
       ]
     : [];
 
+  const can = (keys: Parameters<typeof hasAny>[1]) => hasAny(ctx.permissions, keys);
+  const sc = t.shortcuts;
+  const shortcuts = [
+    {
+      href: "/vagtplan",
+      icon: CalendarClock,
+      ...sc.schedule,
+      show: can(["schedule.view", "schedule.manage"]),
+    },
+    { href: "/min-vagtplan", icon: CalendarHeart, ...sc.mySchedule, show: Boolean(ctx.employee) },
+    { href: "/tid", icon: Timer, ...sc.time, show: Boolean(ctx.employee) },
+    {
+      href: "/tid/godkend",
+      icon: ClipboardCheck,
+      ...sc.approveTime,
+      show: can(["time.view", "time.manage", "time.approve"]) || ctx.timeApproverOf.length > 0,
+    },
+    { href: "/fravaer", icon: Plane, ...sc.absence, show: Boolean(ctx.employee) },
+    { href: "/koersel", icon: Car, ...sc.expenses, show: Boolean(ctx.employee) },
+    { href: "/lon", icon: Wallet, ...sc.payroll, show: can(["payroll.view", "payroll.manage"]) },
+  ].filter((x) => x.show);
+
   return (
     <>
       <PageHeader
@@ -136,41 +167,23 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           </CardContent>
         </Card>
       ) : null}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {[{ icon: Wallet, title: "Løn og eksport", text: "Fase 6" }].map(
-          ({ icon: Icon, title, text }) => (
-            <div
-              key={title}
-              className="flex items-center gap-3 rounded-xl border border-dashed p-4 text-sm text-muted-foreground"
-            >
-              <span className="grid size-9 place-items-center rounded-lg bg-accent text-accent-foreground">
-                <Icon className="size-4" />
-              </span>
-              <span>
-                <span className="block font-medium text-foreground">{title}</span>
-                {text}
-              </span>
-            </div>
-          ),
-        )}
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="shortcuts">
+        {shortcuts.map(({ href, icon: Icon, title, text }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-sm transition-colors hover:bg-muted/60"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+              <Icon className="size-4" />
+            </span>
+            <span className="grid gap-0.5">
+              <span className="font-medium">{title}</span>
+              <span className="text-muted-foreground">{text}</span>
+            </span>
+          </Link>
+        ))}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {hasAny(ctx.permissions, ["schedule.view", "schedule.manage"]) ? (
-          <Button asChild variant="signal">
-            <Link href="/vagtplan">
-              <CalendarClock /> {da.nav.schedule}
-            </Link>
-          </Button>
-        ) : null}
-        {ctx.employee ? (
-          <Button asChild variant="outline">
-            <Link href="/min-vagtplan">
-              <CalendarClock /> {da.nav.mySchedule}
-            </Link>
-          </Button>
-        ) : null}
-      </div>
-      <p className="mt-4 text-sm text-muted-foreground">{t.comingSoon}</p>
     </>
   );
 }

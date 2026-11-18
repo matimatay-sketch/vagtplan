@@ -65,7 +65,15 @@ export const da = {
     departments: "Afdelinger",
     activeContracts: "Aktive kontrakter",
     missingContract: "uden aktiv kontrakt",
-    comingSoon: "Stempling, fravær og løn kommer i de næste faser.",
+    shortcuts: {
+      schedule: { title: "Vagtplan", text: "Planlæg og offentliggør vagter" },
+      mySchedule: { title: "Min vagtplan", text: "Dine vagter og ønsker" },
+      time: { title: "Tid", text: "Stempl ind og ud, og se din registrerede tid" },
+      approveTime: { title: "Godkend tid", text: "Godkend registreret tid" },
+      absence: { title: "Fravær og ferie", text: "Søg om ferie og fri, og se dine saldi" },
+      expenses: { title: "Kørsel og udlæg", text: "Registrér kørsel og udlæg med kvittering" },
+      payroll: { title: "Løn", text: "Beregn, kontrollér og eksportér løn" },
+    },
     toActOn: "Til handling",
     pendingAbsence: (n: number) =>
       n === 1 ? "1 ansøgning om fravær venter" : `${n} ansøgninger om fravær venter`,
@@ -633,7 +641,7 @@ export const da = {
   projects: {
     dimensionName: "Projekt",
     title: "Projekter",
-    lead: "Projekttimer ud fra vagtplanen. Når stempling kommer i fase 4, vises også faktisk registreret tid.",
+    lead: "Projekttimer ud fra vagtplanen eller den registrerede tid.",
     manageTitle: "Projektliste",
     number: "Projektnr.",
     name: "Projekt",
