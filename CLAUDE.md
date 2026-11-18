@@ -46,6 +46,8 @@ pnpm e2e                 # Playwright (starter dev-server hvis den ikke kører)
 
 Demo-brugere (seed), alle med adgangskoden `Demo1234!`: `admin@demo.dk`, `leder@demo.dk` (profilen Leder, ansvarlig for Butik), `medarbejder@demo.dk`, `ung@demo.dk` (16 år) og `platform@demo.dk` (platformsadministrator, `/platform`, ikke medlem af demovirksomheden).
 
+Skyen: Supabase (EU) og Vercel (`fra1`). Se `docs/drift/udrulning.md`. Workflowet `Deploy database` lægger migrationer og overenskomstskabeloner op, når `SUPABASE_DB_URL` er sat som GitHub-secret. Demodata (`seed.sql`) bruges kun lokalt.
+
 Der er ingen selvbetjening: Nye kunder oprettes på `/platform` af en platformsadministrator, som inviterer kundens administrator.
 
 ## Arbejdsform
