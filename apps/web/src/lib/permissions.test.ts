@@ -11,6 +11,7 @@ describe("permission catalog", () => {
       "contracts.manage",
       "departments.manage",
       "users.manage",
+      "users.impersonate",
       "settings.manage",
       "agreements.manage",
       "audit.view",
@@ -30,6 +31,7 @@ describe("permission catalog", () => {
       "absence.approve",
       "payroll.view",
       "payroll.manage",
+      "bulletin.manage",
       "assistant.use",
       "integrations.manage",
     ]);

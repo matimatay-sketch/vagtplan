@@ -218,52 +218,111 @@ export async function resizeShiftAction(input: {
   return { ok: true };
 }
 
+type CopySource = {
+  employee_id: string | null;
+  start_at: string;
+  end_at: string;
+  breaks: unknown;
+  supplement_type_ids: string[];
+  posting_allocations: unknown;
+  label: string | null;
+  kind: "work" | "on_call";
+  template_id: string | null;
+};
+const COPY_SELECT =
+  "employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id";
+
+/** A draft copy of a shift moved by whole days (same wall-clock times). */
+function copyRow(organizationId: string, departmentId: string, s: CopySource, days: number) {
+  const start = toLocal(parseInstant(s.start_at), TZ);
+  const end = toLocal(parseInstant(s.end_at), TZ);
+  const to = engineAddDays(start.date, days);
+  return {
+    organization_id: organizationId,
+    department_id: departmentId,
+    employee_id: s.employee_id,
+    start_at: formatInstant(wallTime(to, hhmm(start.minuteOfDay), TZ)),
+    end_at: formatInstant(wallTime(engineAddDays(end.date, days), hhmm(end.minuteOfDay), TZ)),
+    breaks: asJson(moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, to)),
+    supplement_type_ids: s.supplement_type_ids,
+    posting_allocations: asJson(
+      moveAllocations(s.posting_allocations as unknown as PostingAllocation[], start.date, to),
+    ),
+    label: s.label,
+    kind: s.kind,
+    template_id: s.template_id,
+  };
+}
+
+const dayDiff = (a: string, b: string) =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+/** Copies all shifts of a department's week to other weeks (as drafts). */
+export async function copyWeekAction(input: {
+  departmentId: string;
+  fromWeek: string;
+  toWeeks: string[];
+}): Promise<ActionState> {
+  const ctx = await requireContext(["schedule.manage"]);
+  const p = z
+    .object({ departmentId: z.guid(), fromWeek: isoDate, toWeeks: z.array(isoDate).min(1).max(26) })
+    .parse(input);
+  const supabase = await createClient();
+  const { data: shifts, error } = await supabase
+    .from("shift")
+    .select(COPY_SELECT)
+    .eq("department_id", p.departmentId)
+    .is("archived_at", null)
+    .gte("start_at", new Date(zonedTime(p.fromWeek)).toISOString())
+    .lt("start_at", new Date(zonedTime(engineAddDays(p.fromWeek, 7))).toISOString());
+  if (error) return { message: dbErrorMessage(error) };
+  if (!shifts?.length) return { message: da.schedule.nothingToCopyWeek };
+  const rows = p.toWeeks.flatMap((w) =>
+    (shifts as CopySource[]).map((s) =>
+      copyRow(ctx.organization.id, p.departmentId, s, dayDiff(p.fromWeek, w)),
+    ),
+  );
+  const { error: insError } = await supabase.from("shift").insert(rows);
+  if (insError) return { message: dbErrorMessage(insError) };
+  revalidateSchedule();
+  return { ok: true, message: da.schedule.copied(rows.length) };
+}
+
 export async function copyPreviousWeekAction(input: {
   departmentId: string;
   weekStart: string;
 }): Promise<ActionState> {
-  const ctx = await requireContext(["schedule.manage"]);
   const p = z.object({ departmentId: z.guid(), weekStart: isoDate }).parse(input);
-  const prev = engineAddDays(p.weekStart, -7);
-  const supabase = await createClient();
-  const { data: shifts, error } = await supabase
-    .from("shift")
-    .select(
-      "employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, template_id",
-    )
-    .eq("department_id", p.departmentId)
-    .is("archived_at", null)
-    .gte("start_at", new Date(zonedTime(prev)).toISOString())
-    .lt("start_at", new Date(zonedTime(p.weekStart)).toISOString());
-  if (error) return { message: dbErrorMessage(error) };
-  if (!shifts?.length) return { message: da.schedule.nothingToCopy };
-  const rows = shifts.map((s) => {
-    const start = toLocal(parseInstant(s.start_at), TZ);
-    const end = toLocal(parseInstant(s.end_at), TZ);
-    return {
-      organization_id: ctx.organization.id,
-      department_id: p.departmentId,
-      employee_id: s.employee_id,
-      start_at: formatInstant(wallTime(engineAddDays(start.date, 7), hhmm(start.minuteOfDay), TZ)),
-      end_at: formatInstant(wallTime(engineAddDays(end.date, 7), hhmm(end.minuteOfDay), TZ)),
-      breaks: asJson(
-        moveDbBreaks(s.breaks as unknown as DbBreak[], start.date, engineAddDays(start.date, 7)),
-      ),
-      supplement_type_ids: s.supplement_type_ids,
-      posting_allocations: asJson(
-        moveAllocations(
-          s.posting_allocations as unknown as PostingAllocation[],
-          start.date,
-          engineAddDays(start.date, 7),
-        ),
-      ),
-      label: s.label,
-      kind: s.kind,
-      template_id: s.template_id,
-    };
+  const r = await copyWeekAction({
+    departmentId: p.departmentId,
+    fromWeek: engineAddDays(p.weekStart, -7),
+    toWeeks: [p.weekStart],
   });
-  const { error: insError } = await supabase.from("shift").insert(rows);
-  if (insError) return { message: dbErrorMessage(insError) };
+  return r.ok || r.message !== da.schedule.nothingToCopyWeek
+    ? r
+    : { message: da.schedule.nothingToCopy };
+}
+
+/** Copies one shift to other dates (as drafts, same employee and times). */
+export async function copyShiftToDatesAction(input: {
+  id: string;
+  dates: string[];
+}): Promise<ActionState> {
+  const ctx = await requireContext(["schedule.manage"]);
+  const p = z.object({ id: z.guid(), dates: z.array(isoDate).min(1).max(120) }).parse(input);
+  const supabase = await createClient();
+  const { data: s } = await supabase
+    .from("shift")
+    .select(`department_id, ${COPY_SELECT}`)
+    .eq("id", p.id)
+    .maybeSingle();
+  if (!s) return { message: da.common.notAllowed };
+  const from = toLocal(parseInstant(s.start_at), TZ).date;
+  const rows = p.dates.map((d) =>
+    copyRow(ctx.organization.id, s.department_id, s as CopySource, dayDiff(from, d)),
+  );
+  const { error } = await supabase.from("shift").insert(rows);
+  if (error) return { message: dbErrorMessage(error) };
   revalidateSchedule();
   return { ok: true, message: da.schedule.copied(rows.length) };
 }

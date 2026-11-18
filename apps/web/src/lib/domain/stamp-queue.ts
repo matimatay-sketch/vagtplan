@@ -9,6 +9,8 @@ export type QueuedStamp = {
   /** Device time when the button was pressed (ISO). */
   at: string;
   organizationId: string;
+  /** The employee who stamped (another user on the device must never send it). */
+  employeeId?: string;
   /** Posting chosen when stamping in (dimension id → value id); omitted = as planned/standard. */
   posting?: Record<string, string>;
 };
@@ -26,6 +28,7 @@ function isQueued(x: unknown): x is QueuedStamp {
     (o.action === "in" || o.action === "out") &&
     typeof o.at === "string" &&
     typeof o.organizationId === "string" &&
+    (o.employeeId === undefined || typeof o.employeeId === "string") &&
     (o.posting === undefined || (typeof o.posting === "object" && o.posting !== null))
   );
 }
@@ -58,14 +61,27 @@ export function applyResults(
   };
 }
 
+/** The queued stamps of this employee (stamps saved before employeeId was stored count too). */
+export const forOwner = (
+  queue: readonly QueuedStamp[],
+  organizationId: string,
+  employeeId?: string,
+) =>
+  queue.filter(
+    (x) =>
+      x.organizationId === organizationId &&
+      (x.employeeId === undefined || employeeId === undefined || x.employeeId === employeeId),
+  );
+
 /** What to show: the server state with the queued actions applied on top. */
 export function stampState(
   server: { openSince: string | null },
   queue: readonly QueuedStamp[],
   organizationId: string,
+  employeeId?: string,
 ): { in: boolean; since: string | null; pending: number } {
   let since = server.openSince;
-  const mine = queue.filter((x) => x.organizationId === organizationId);
+  const mine = forOwner(queue, organizationId, employeeId);
   for (const x of mine) since = x.action === "in" ? x.at : null;
   return { in: since !== null, since, pending: mine.length };
 }

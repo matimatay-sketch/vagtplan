@@ -191,7 +191,9 @@ test("copy previous week and use a shift template", async ({ page }) => {
   await expect(c.getByTestId("shift-card")).toContainText("06:00–14:00");
 
   await page.goto(`/vagtplan?uge=${plus(week, 7)}`);
-  await page.getByRole("button", { name: "Kopiér forrige uge" }).click();
+  await page.getByTestId("copy-week").click();
+  await page.getByTestId("copy-week-dialog").getByLabel("Kopiér forrige uge hertil").check();
+  await page.getByTestId("copy-week-dialog").getByRole("button", { name: "Kopiér" }).click();
   await expect(page.getByText("1 vagter kopieret som kladde.")).toBeVisible();
   await expect(cell(page, MADS, plus(week, 7)).getByTestId("shift-card")).toContainText(
     "06:00–14:00",

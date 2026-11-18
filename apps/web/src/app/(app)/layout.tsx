@@ -3,6 +3,7 @@ import { Nav } from "@/components/shell/nav";
 import { UserMenu } from "@/components/shell/user-menu";
 import { requireContext } from "@/lib/auth";
 import { fullName } from "@/lib/format";
+import { ImpersonationBanner } from "@/components/impersonation/banner";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const ctx = await requireContext();
@@ -28,7 +29,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               {ctx.organization.name}
             </p>
           </div>
-          <div className="mt-6 flex-1">
+          <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
             <Nav
               permissions={ctx.permissions}
               hasEmployee={Boolean(ctx.employee)}
@@ -42,6 +43,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </aside>
       </div>
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
+        <ImpersonationBanner />
         <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-background/85 px-4 py-2 backdrop-blur md:hidden">
           <Logo />
           <div className="w-44">

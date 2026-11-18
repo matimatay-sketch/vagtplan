@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  Award,
+  Cake,
   CalendarClock,
   CalendarHeart,
   Car,
@@ -15,11 +17,13 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireContext } from "@/lib/auth";
-import { hasAny } from "@/lib/permissions";
+import { canInDepartment, hasAny } from "@/lib/permissions";
+import { BulletinBoard, type BoardPost } from "@/components/dashboard/bulletin-board";
+import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { findActiveContract } from "@/lib/domain/contracts";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
-import { localParts, zonedTime } from "@/lib/domain/schedule-time";
+import { localParts, timeRange, zonedTime } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Oversigt" };
@@ -30,6 +34,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
   const supabase = await createClient();
   const today = todayIn(ctx.organization.timezone);
   const t = da.overview;
+  const can = (keys: Parameters<typeof hasAny>[1]) => hasAny(ctx.permissions, keys);
 
   const [{ data: employees }, { count: departmentCount }] = await Promise.all([
     supabase
@@ -71,6 +76,129 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
       (a) => a.employee_id === s.employee_id && a.from_date <= d && d <= a.to_date,
     );
   }).length;
+  // Dashboard: own shifts, approvals waiting, bulletin board and celebrations.
+  const nowIso = new Date().toISOString();
+  const in14 = new Date(zonedTime(addDays(today, 15))).toISOString();
+  const approves = can(["time.approve"]) || ctx.timeApproverOf.length > 0;
+  const head = { count: "exact" as const, head: true };
+  const [
+    { data: upcoming },
+    { count: pendingTime },
+    { count: pendingTrips },
+    { count: pendingExpenses },
+    { count: openOld },
+    { count: drafts },
+    { data: posts },
+    { data: departments },
+    { data: celebrations },
+  ] = await Promise.all([
+    ctx.employee
+      ? supabase
+          .from("shift")
+          .select("id, published")
+          .not("published", "is", null)
+          .is("archived_at", null)
+          .gte("start_at", new Date(zonedTime(addDays(today, -1))).toISOString())
+          .lt("start_at", in14)
+          .order("start_at")
+      : Promise.resolve({ data: [] as { id: string; published: unknown }[] }),
+    approves
+      ? supabase
+          .from("time_entry")
+          .select("id", head)
+          .eq("status", "pending")
+          .is("superseded_at", null)
+          .is("archived_at", null)
+          .neq("employee_id", ctx.employee?.id ?? "00000000-0000-0000-0000-000000000000")
+      : Promise.resolve({ count: 0 }),
+    approves
+      ? supabase
+          .from("mileage_trip")
+          .select("id", head)
+          .eq("status", "pending")
+          .is("archived_at", null)
+          .neq("employee_id", ctx.employee?.id ?? "00000000-0000-0000-0000-000000000000")
+      : Promise.resolve({ count: 0 }),
+    approves
+      ? supabase
+          .from("expense")
+          .select("id", head)
+          .eq("status", "pending")
+          .is("archived_at", null)
+          .neq("employee_id", ctx.employee?.id ?? "00000000-0000-0000-0000-000000000000")
+      : Promise.resolve({ count: 0 }),
+    can(["time.manage", "time.approve"])
+      ? supabase
+          .from("time_entry")
+          .select("id", head)
+          .eq("status", "open")
+          .is("superseded_at", null)
+          .is("archived_at", null)
+          .lt("start_at", new Date(zonedTime(today)).toISOString())
+      : Promise.resolve({ count: 0 }),
+    can(["schedule.publish"])
+      ? supabase
+          .from("shift")
+          .select("id", head)
+          .eq("status", "draft")
+          .is("archived_at", null)
+          .gte("start_at", nowIso)
+      : Promise.resolve({ count: 0 }),
+    supabase
+      .from("bulletin_post")
+      .select("id, title, body, pinned, department_id, created_at, expires_on")
+      .is("archived_at", null)
+      .or(`expires_on.is.null,expires_on.gte.${today}`)
+      .order("pinned", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase.rpc("celebrations", { p_org: ctx.organization.id, p_from: today, p_days: 14 }),
+  ]);
+  type Snap = {
+    employee_id: string | null;
+    start_at: string;
+    end_at: string;
+    label?: string | null;
+  };
+  const myShifts = (upcoming ?? [])
+    .map((x) => x.published as unknown as Snap)
+    .filter((p) => p.employee_id === ctx.employee?.id && p.end_at > nowIso)
+    .slice(0, 5);
+  const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
+  const canPostIn = (dept: string | null) =>
+    dept === null
+      ? ctx.permissions["bulletin.manage"] === "organization"
+      : canInDepartment(ctx.permissions, "bulletin.manage", dept, ctx.responsibleDepartmentIds);
+  const boardPosts: BoardPost[] = (posts ?? []).map((p) => ({
+    id: p.id,
+    title: p.title,
+    body: p.body,
+    pinned: p.pinned,
+    departmentName: p.department_id ? (deptName.get(p.department_id) ?? null) : null,
+    createdAt: formatDate(localParts(p.created_at).date),
+    author: null,
+    canDelete: canPostIn(p.department_id),
+  }));
+  const postTo = [
+    ...(canPostIn(null) ? [{ id: null, name: da.dashboard.everyone }] : []),
+    ...(departments ?? []).filter((d) => canPostIn(d.id)).map((d) => ({ id: d.id, name: d.name })),
+  ];
+  const waiting = [
+    { n: pendingTime ?? 0, text: da.dashboard.pendingTime, href: "/tid/godkend?status=pending" },
+    {
+      n: (pendingTrips ?? 0) + (pendingExpenses ?? 0),
+      text: da.dashboard.pendingExpenses,
+      href: "/tid/godkend",
+    },
+    { n: openOld ?? 0, text: da.dashboard.openStamps, href: "/tid/godkend?status=open" },
+    { n: drafts ?? 0, text: da.dashboard.drafts, href: "/vagtplan" },
+  ].filter((w) => w.n > 0);
   const list = employees ?? [];
   const withActive = list.filter((e) => findActiveContract(e.contract, today)).length;
   const firstName = ctx.employee?.first_name ?? ctx.email.split("@")[0] ?? "";
@@ -91,7 +219,6 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
       ]
     : [];
 
-  const can = (keys: Parameters<typeof hasAny>[1]) => hasAny(ctx.permissions, keys);
   const sc = t.shortcuts;
   const shortcuts = [
     {
@@ -145,28 +272,117 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           ))}
         </div>
       ) : null}
-      {pendingRequests > 0 || uncovered > 0 ? (
-        <Card className="mt-8" data-testid="to-act-on">
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="grid content-start gap-6">
+          {ctx.employee ? (
+            <Card data-testid="my-shifts">
+              <CardHeader>
+                <CardTitle className="text-base">{da.dashboard.myShifts}</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                {myShifts.length === 0 ? (
+                  <p className="text-muted-foreground">{da.dashboard.noShifts}</p>
+                ) : (
+                  myShifts.map((p) => (
+                    <Link
+                      key={p.start_at}
+                      href="/min-vagtplan"
+                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2 hover:bg-muted"
+                    >
+                      <span className="capitalize">
+                        {localParts(p.start_at).date === today
+                          ? da.dashboard.today
+                          : formatDate(localParts(p.start_at).date)}
+                      </span>
+                      <span className="font-medium tabular">
+                        {timeRange(p.start_at, p.end_at)}
+                        {p.label ? ` · ${p.label}` : ""}
+                      </span>
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+          {pendingRequests > 0 || uncovered > 0 || waiting.length > 0 ? (
+            <Card data-testid="to-act-on">
+              <CardHeader>
+                <CardTitle className="text-base">{t.toActOn}</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                {waiting.map((w) => (
+                  <Link
+                    key={w.href + w.n}
+                    href={w.href}
+                    className="flex items-center gap-2 hover:underline"
+                  >
+                    <ClipboardCheck className="size-4" /> {w.text(w.n)}
+                  </Link>
+                ))}
+                {pendingRequests > 0 ? (
+                  <Link href="/fravaer/godkend" className="flex items-center gap-2 hover:underline">
+                    <Clock className="size-4" /> {t.pendingAbsence(pendingRequests)}
+                  </Link>
+                ) : null}
+                {uncovered > 0 ? (
+                  <Link
+                    href="/vagtplan"
+                    className="flex items-center gap-2 text-destructive hover:underline"
+                  >
+                    <CalendarClock className="size-4" /> {t.uncoveredSoon(uncovered)}
+                  </Link>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+          <Card data-testid="celebrations">
+            <CardHeader>
+              <CardTitle className="text-base">{da.dashboard.celebrations}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              {(celebrations ?? []).length === 0 ? (
+                <p className="text-muted-foreground">{da.dashboard.noCelebrations}</p>
+              ) : (
+                (celebrations ?? []).map((c) => (
+                  <div
+                    key={`${c.employee_id}-${c.kind}`}
+                    className="flex items-center justify-between gap-2"
+                    data-kind={c.kind}
+                  >
+                    <span className="flex items-center gap-2">
+                      {c.kind === "birthday" ? (
+                        <Cake className="size-4 text-signal" />
+                      ) : (
+                        <Award className="size-4 text-signal" />
+                      )}
+                      <span>
+                        <span className="font-medium">{c.name}</span>
+                        {c.department_name ? (
+                          <span className="text-muted-foreground"> · {c.department_name}</span>
+                        ) : null}
+                      </span>
+                    </span>
+                    <span className="text-right text-muted-foreground">
+                      {c.kind === "birthday"
+                        ? da.dashboard.birthday
+                        : da.dashboard.anniversary(c.years ?? 0)}{" "}
+                      · {c.on_date === today ? da.dashboard.today : formatDate(c.on_date)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="content-start">
           <CardHeader>
-            <CardTitle className="text-base">{t.toActOn}</CardTitle>
+            <CardTitle className="text-base">{da.dashboard.bulletin}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 text-sm">
-            {pendingRequests > 0 ? (
-              <Link href="/fravaer/godkend" className="flex items-center gap-2 hover:underline">
-                <Clock className="size-4" /> {t.pendingAbsence(pendingRequests)}
-              </Link>
-            ) : null}
-            {uncovered > 0 ? (
-              <Link
-                href="/vagtplan"
-                className="flex items-center gap-2 text-destructive hover:underline"
-              >
-                <CalendarClock className="size-4" /> {t.uncoveredSoon(uncovered)}
-              </Link>
-            ) : null}
+          <CardContent>
+            <BulletinBoard posts={boardPosts} postTo={postTo} />
           </CardContent>
         </Card>
-      ) : null}
+      </div>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="shortcuts">
         {shortcuts.map(({ href, icon: Icon, title, text }) => (
           <Link

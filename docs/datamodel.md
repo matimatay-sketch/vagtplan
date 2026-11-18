@@ -110,6 +110,18 @@ Rettigheder: `projects.manage` (organisation) og `projects.view` (afdelinger ell
 
 Selvbetjening er fjernet (`create_organization` findes ikke længere). Platform-RPC'erne kræver `is_platform_admin()`: `platform_organizations()`, `platform_create_organization(name)`, `platform_user_id(email)`, `platform_add_owner(org, user)` og `platform_set_archived(org, bool)`. Ukendte e-mails inviteres via service-klienten, efter at databasen har bekræftet platformsrettigheden. Platformsbrugeren kan ikke se kundernes data.
 
+## Oversigt og "log ind som"
+
+| Tabel / felt                 | Bemærkning                                                                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bulletin_post`              | Opslag. `department_id` null = hele organisationen. Læses af medlemmer i afdelingen. Skrives med `bulletin.manage` i afdelingen (`private.can_post`) |
+| `employee.show_celebrations` | Fødselsdag og jubilæum vises på oversigten. Medarbejderen ændrer det selv via `set_show_celebrations()`                                              |
+| `impersonation_session`      | Hvem (`admin_user_id`) der er logget ind som hvem (`target_user_id`), med start og slut. Oprettes og afsluttes kun via RPC                           |
+| `audit_log.impersonator_id`  | Sat, når en ændring er lavet under "log ind som" (`private.impersonator()`)                                                                          |
+| `employee.login_placeholder` | Login oprettet af "log ind som" uden e-mail til medarbejderen. Ryddes ved invitation                                                                 |
+
+RPC'er: `celebrations(org, from, days)` (29. februar vises 28. februar i ikke-skudår), `can_impersonate`, `start_impersonation`, `end_impersonation` og `impersonation_info`. `time_entry_history` viser `created_as_email` og `approved_as_email`.
+
 ## Tidsregistrering (fase 4)
 
 | Tabel / felt | Bemærkning                                                                                                                                                                                                                                       |

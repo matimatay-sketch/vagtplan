@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import { EndContractForm, NewContractForm } from "@/components/employees/contract-forms";
 import { InviteForm } from "@/components/employees/invite-form";
+import { ImpersonateButton } from "@/components/impersonation/impersonate-button";
 import { MemberProfileForm } from "@/components/employees/profile-form";
 import { ApproverForm } from "@/components/employees/approver-form";
 import { PostingDefaultsForm } from "@/components/posting/posting-defaults";
@@ -50,7 +51,7 @@ export default async function EmployeePage({
   const { data: employee } = await supabase
     .from("employee")
     .select(
-      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
+      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, login_placeholder, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -457,7 +458,15 @@ export default async function EmployeePage({
                 </div>
               </CardContent>
             ) : null}
-            {employee.user_id || !canInvite ? null : (
+            {hasOrg(ctx.permissions, "users.impersonate") && employee.user_id !== ctx.userId ? (
+              <CardContent>
+                <ImpersonateButton
+                  employeeId={employee.id}
+                  name={`${employee.first_name} ${employee.last_name}`}
+                />
+              </CardContent>
+            ) : null}
+            {(employee.user_id && !employee.login_placeholder) || !canInvite ? null : (
               <CardContent>
                 <InviteForm
                   employeeId={employee.id}

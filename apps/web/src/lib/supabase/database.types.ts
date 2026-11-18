@@ -171,14 +171,14 @@ isOneToOne: false
                   ]
                 },"audit_log": {
                   Row: {
-                    "action": string,"actor_id": string | null,"after": Json | null,"before": Json | null,"created_at": string,"id": number,"organization_id": string | null,"row_id": string,"table_name": string
+                    "action": string,"actor_id": string | null,"after": Json | null,"before": Json | null,"created_at": string,"id": number,"impersonator_id": string | null,"organization_id": string | null,"row_id": string,"table_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "action": string,"actor_id"?: string | null,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"id"?: never,"organization_id"?: string | null,"row_id": string,"table_name": string
+                    "action": string,"actor_id"?: string | null,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"id"?: never,"impersonator_id"?: string | null,"organization_id"?: string | null,"row_id": string,"table_name": string
                   }
                   Update: {
-                    "action"?: string,"actor_id"?: string | null,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"id"?: never,"organization_id"?: string | null,"row_id"?: string,"table_name"?: string
+                    "action"?: string,"actor_id"?: string | null,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"id"?: never,"impersonator_id"?: string | null,"organization_id"?: string | null,"row_id"?: string,"table_name"?: string
                   }
                   Relationships: [
                     {
@@ -209,6 +209,32 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     },{
       foreignKeyName: "availability_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"bulletin_post": {
+                  Row: {
+                    "archived_at": string | null,"body": string,"created_at": string,"created_by": string | null,"department_id": string | null,"expires_on": string | null,"id": string,"organization_id": string,"pinned": boolean,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"body"?: string,"created_at"?: string,"created_by"?: string | null,"department_id"?: string | null,"expires_on"?: string | null,"id"?: string,"organization_id": string,"pinned"?: boolean,"title": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"body"?: string,"created_at"?: string,"created_by"?: string | null,"department_id"?: string | null,"expires_on"?: string | null,"id"?: string,"organization_id"?: string,"pinned"?: boolean,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bulletin_post_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "bulletin_post_organization_id_fkey"
       columns: ["organization_id"]
 isOneToOne: false
       referencedRelation: "organization"
@@ -295,14 +321,14 @@ isOneToOne: false
                   ]
                 },"employee": {
                   Row: {
-                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"organization_id": string,"phone": string | null,"posting_defaults": NonNullable<Json>,"school_obligated": boolean,"school_obligation_ends_on": string | null,"terminated_on": string | null,"user_id": string | null
+                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"login_placeholder": boolean,"organization_id": string,"phone": string | null,"posting_defaults": NonNullable<Json>,"school_obligated": boolean,"school_obligation_ends_on": string | null,"show_celebrations": boolean,"terminated_on": string | null,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"organization_id": string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"login_placeholder"?: boolean,"organization_id": string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Update: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"organization_id"?: string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"login_placeholder"?: boolean,"organization_id"?: string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -447,6 +473,32 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "organization"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"impersonation_session": {
+                  Row: {
+                    "admin_user_id": string,"ended_at": string | null,"id": string,"organization_id": string,"started_at": string,"target_employee_id": string,"target_user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_user_id": string,"ended_at"?: string | null,"id"?: string,"organization_id": string,"started_at"?: string,"target_employee_id": string,"target_user_id": string
+                  }
+                  Update: {
+                    "admin_user_id"?: string,"ended_at"?: string | null,"id"?: string,"organization_id"?: string,"started_at"?: string,"target_employee_id"?: string,"target_user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "impersonation_session_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "impersonation_session_organization_id_target_employee_id_fkey"
+      columns: ["organization_id","target_employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
     }
                   ]
                 },"leave_posting": {
@@ -1263,6 +1315,11 @@ isOneToOne: false
 "approve_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
+"can_impersonate":
+{ Args: { "p_employee_id": string }; Returns: {
+              "allowed": boolean,"email": string,"reason": string,"user_id": string
+            }[]
+                           },
 "can_on_department":
 { Args: { "dept": string,"perm": string }; Returns: boolean
                            },
@@ -1271,6 +1328,11 @@ isOneToOne: false
                            },
 "cancel_absence":
 { Args: { "p_id": string,"p_note": string }; Returns: undefined
+                           },
+"celebrations":
+{ Args: { "p_days"?: number,"p_from": string,"p_org": string }; Returns: {
+              "department_name": string,"employee_id": string,"kind": string,"name": string,"on_date": string,"years": number
+            }[]
                            },
 "close_pay_period":
 { Args: { "p_id": string }; Returns: undefined
@@ -1289,6 +1351,14 @@ isOneToOne: false
                            },
 "decide_expense_items":
 { Args: { "p_decision": string,"p_expense_ids": (string)[],"p_note"?: string,"p_trip_ids": (string)[] }; Returns: number
+                           },
+"end_impersonation":
+{ Args: { "p_session": string }; Returns: undefined
+                           },
+"impersonation_info":
+{ Args: { "p_session": string }; Returns: {
+              "admin_email": string,"employee_id": string,"employee_name": string
+            }[]
                            },
 "is_platform_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -1353,6 +1423,9 @@ isOneToOne: false
 "set_profile_grants":
 { Args: { "p_grants": Json,"p_profile_id": string }; Returns: undefined
                            },
+"set_show_celebrations":
+{ Args: { "p_show": boolean }; Returns: undefined
+                           },
 "shifts_for_validation":
 { Args: { "p_employee_ids": (string)[],"p_from": string,"p_to": string }; Returns: {
               "breaks": Json,"department_id": string,"employee_id": string,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"start_at": string,"status": Database["public"]['Enums']["shift_status"]
@@ -1361,12 +1434,15 @@ isOneToOne: false
 "stamp":
 { Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_organization_id": string,"p_posting_allocations"?: Json }; Returns: string
                            },
+"start_impersonation":
+{ Args: { "p_employee_id": string }; Returns: string
+                           },
 "time_approvees":
 { Args: { "p_org": string }; Returns: string[]
                            },
 "time_entry_history":
 { Args: { "p_id": string }; Returns: {
-              "approved_at": string,"approved_by_email": string,"breaks": Json,"created_at": string,"created_by_email": string,"deviation_reason": string,"end_at": string,"id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string
+              "approved_as_email": string,"approved_at": string,"approved_by_email": string,"breaks": Json,"created_as_email": string,"created_at": string,"created_by_email": string,"deviation_reason": string,"end_at": string,"id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string
             }[]
                            },
 "time_overview":

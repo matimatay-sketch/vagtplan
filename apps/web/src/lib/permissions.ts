@@ -48,6 +48,12 @@ export const PERMISSIONS = [
     scopes: ["organization"],
   },
   {
+    key: "users.impersonate",
+    group: "Virksomhed",
+    label: "Logge ind som en medarbejder (alt, der gøres, logges med dit navn)",
+    scopes: ["organization"],
+  },
+  {
     key: "settings.manage",
     group: "Virksomhed",
     label: "Lønperioder og indstillinger",
@@ -155,6 +161,12 @@ export const PERMISSIONS = [
     group: "Løn",
     label: "Beregne, afslutte og eksportere løn",
     scopes: ["organization"],
+  },
+  {
+    key: "bulletin.manage",
+    group: "Opslagstavle",
+    label: "Skrive og slette opslag på opslagstavlen",
+    scopes: ["departments", "organization"],
   },
   {
     key: "assistant.use",

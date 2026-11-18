@@ -9,6 +9,7 @@ import { contractStatus } from "@/lib/domain/contracts";
 import { todayIn } from "@/lib/domain/civil-date";
 import { formatDate, formatWeeklyHours, fullName } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
+import { CelebrationsToggle } from "@/components/dashboard/celebrations-toggle";
 
 export const metadata: Metadata = { title: "Min profil" };
 
@@ -26,7 +27,7 @@ export default async function ProfilePage() {
   const { data: me } = await supabase
     .from("employee")
     .select(
-      "employee_number, first_name, last_name, email, phone, birth_date, school_obligated, employee_department (is_primary, department!employee_department_organization_id_department_id_fkey (name)), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, agreement:agreement_id (name))",
+      "employee_number, first_name, last_name, email, phone, birth_date, school_obligated, show_celebrations, employee_department (is_primary, department!employee_department_organization_id_department_id_fkey (name)), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, agreement:agreement_id (name))",
     )
     .eq("id", ctx.employee.id)
     .single();
@@ -61,6 +62,9 @@ export default async function ProfilePage() {
                 {t.youngWorker} – særlige regler for arbejdstid gælder
               </Badge>
             ) : null}
+            <div className="mt-4">
+              <CelebrationsToggle initial={me.show_celebrations} />
+            </div>
           </CardContent>
         </Card>
         <Card>
