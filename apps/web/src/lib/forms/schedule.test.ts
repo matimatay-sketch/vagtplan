@@ -19,6 +19,18 @@ const base = {
 };
 
 describe("shiftFormSchema", () => {
+  it("reads the norm percent: empty is the default for the kind, 0–100 whole numbers", () => {
+    expect(shiftFormSchema.parse(base)).toMatchObject({ norm_percent: null, norm_in_pay: null });
+    expect(
+      shiftFormSchema.parse({ ...base, kind: "on_call", norm_percent: "33", norm_in_pay: "true" }),
+    ).toMatchObject({ norm_percent: 33, norm_in_pay: true });
+    expect(
+      shiftFormSchema.parse({ ...base, norm_percent: "0", norm_in_pay: "false" }),
+    ).toMatchObject({ norm_percent: 0, norm_in_pay: false });
+    expect(shiftFormSchema.safeParse({ ...base, norm_percent: "101" }).success).toBe(false);
+    expect(shiftFormSchema.safeParse({ ...base, norm_percent: "33,5" }).success).toBe(false);
+  });
+
   it("parses a normal shift with one unplaced break", () => {
     expect(shiftFormSchema.parse(base)).toMatchObject({
       employee_id: "50000000-0000-0000-0000-000000000002",
@@ -100,6 +112,8 @@ describe("templateFormSchema", () => {
       posting_values: {},
       label: null,
       kind: "work",
+      norm_percent: null,
+      norm_in_pay: null,
       department_id: null,
     });
   });

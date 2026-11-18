@@ -11,6 +11,26 @@ export const optionalGuid = z
   .optional()
   .transform((s) => (s ? s : null))
   .refine((s) => s === null || z.guid().safeParse(s).success, v.required);
+/** Share of the shift counting towards the norm; empty = the default for the kind. */
+export const normPercentField = z
+  .string()
+  .nullish()
+  .transform((s, ctx) => {
+    if (!s || !s.trim()) return null;
+    const n = Number(s.trim());
+    if (!Number.isInteger(n) || n < 0 || n > 100) {
+      ctx.addIssue({ code: "custom", message: da.schedule.normPercentInvalid });
+      return z.NEVER;
+    }
+    return n;
+  });
+
+/** "true"/"false" or empty (the default for the kind). */
+export const normInPayField = z
+  .string()
+  .nullish()
+  .transform((s) => (s === "true" ? true : s === "false" ? false : null));
+
 export const optionalLabel = z
   .string()
   .trim()
@@ -152,6 +172,8 @@ export const shiftFormSchema = z
     posting_allocations: postingField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
+    norm_percent: normPercentField,
+    norm_in_pay: normInPayField,
     template_id: optionalGuid,
   })
   .transform((val, ctx) => {
@@ -179,6 +201,8 @@ export const templateFormSchema = z
     posting_values: postingValuesField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
+    norm_percent: normPercentField,
+    norm_in_pay: normInPayField,
   })
   .transform((val, ctx) => {
     if (val.start_time === val.end_time) {

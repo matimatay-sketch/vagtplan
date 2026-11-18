@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyResults, enqueue, parseQueue, stampState, type QueuedStamp } from "./stamp-queue";
+import {
+  applyResults,
+  enqueue,
+  forOwner,
+  parseQueue,
+  stampState,
+  type QueuedStamp,
+} from "./stamp-queue";
 
 const q = (over: Partial<QueuedStamp>): QueuedStamp => ({
   clientId: "c1",
@@ -55,6 +62,18 @@ describe("stamp queue", () => {
     ).toEqual({
       in: true,
       since: "x",
+      pending: 0,
+    });
+  });
+
+  it("belongs to the employee who stamped: another user on the same device does not send it", () => {
+    const mine = q({ clientId: "a", employeeId: "e1" });
+    const theirs = q({ clientId: "b", employeeId: "e2" });
+    const legacy = q({ clientId: "c" });
+    expect(forOwner([mine, theirs, legacy], "o1", "e1").map((x) => x.clientId)).toEqual(["a", "c"]);
+    expect(stampState({ openSince: null }, [theirs], "o1", "e1")).toEqual({
+      in: false,
+      since: null,
       pending: 0,
     });
   });

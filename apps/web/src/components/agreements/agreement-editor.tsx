@@ -28,6 +28,8 @@ import {
   AppliesToFields,
   PayCodesTable,
   PayRateFields,
+  StampRoundingFields,
+  type StampRoundingParams,
   StackingFields,
   SupplementFields,
   appliesToText,
@@ -342,6 +344,12 @@ export function AgreementEditor({
                     payCodes={knownPayCodes}
                     onChange={(p) => setRule(i, { params: p as unknown as Json })}
                   />
+                ) : r.primitive === "rounding" ? (
+                  <StampRoundingFields
+                    id={r.id}
+                    value={r.params as unknown as StampRoundingParams}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
                 ) : r.primitive === "pay_rate" ? (
                   <PayRateFields
                     id={r.id}
@@ -434,6 +442,8 @@ export function AgreementEditor({
                   />
                 </Field>
               ) : null}
+            </div>
+            <div>
               <Button variant="outline" onClick={addRule}>
                 <Plus /> {t.ruleForms.add}
               </Button>

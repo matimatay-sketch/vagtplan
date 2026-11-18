@@ -55,6 +55,12 @@ export type WorkIntervalInput = {
   /** Id of the planned shift this registration belongs to. */
   plannedShiftId?: string | null;
   /**
+   * Share of the interval that counts towards the norm when overtime is found,
+   * in percent (0–100). Default: work and call-out 100, on-call 0. On-call
+   * above 0 % reduces the norm of its unit, like absence that counts.
+   */
+  normPercent?: number | null;
+  /**
    * Posting (kontering) of the interval: rows of dimension values. A row is a
    * time span (start/end), a number of paid minutes, or the rest (neither).
    * Pay lines are split per posting. Values are opaque to the engine.

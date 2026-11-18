@@ -1,4 +1,5 @@
 import { resolvePostings, type PostingAllocation, type PostingValues } from "@/lib/domain/posting";
+import { entryPayNormPercent, normDefaultsFrom } from "@/lib/domain/norm-percent";
 import "server-only";
 import {
   ENGINE_VERSION,
@@ -64,29 +65,36 @@ export async function calculateEmployee(
   const from = new Date(zonedTime(addDays(period.start, -MARGIN_DAYS))).toISOString();
   const to = new Date(zonedTime(addDays(period.end, MARGIN_DAYS + 1))).toISOString();
 
-  const [{ data: entries }, { data: absences }, { data: supplementTypes }] = await Promise.all([
-    supabase
-      .from("time_entry")
-      .select(
-        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids",
-      )
-      .eq("employee_id", employeeId)
-      .is("superseded_at", null)
-      .is("archived_at", null)
-      .gte("start_at", from)
-      .lt("start_at", to),
-    supabase
-      .from("absence")
-      .select("id, type_code, from_date, to_date")
-      .eq("employee_id", employeeId)
-      .eq("status", "approved")
-      .lte("from_date", period.end)
-      .gte("to_date", period.start),
-    supabase
-      .from("supplement_type")
-      .select("id, name, pay_code, amount_type, amount")
-      .eq("organization_id", ctx.organization.id),
-  ]);
+  const [{ data: entries }, { data: absences }, { data: supplementTypes }, { data: settings }] =
+    await Promise.all([
+      supabase
+        .from("time_entry")
+        .select(
+          "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids",
+        )
+        .eq("employee_id", employeeId)
+        .is("superseded_at", null)
+        .is("archived_at", null)
+        .gte("start_at", from)
+        .lt("start_at", to),
+      supabase
+        .from("absence")
+        .select("id, type_code, from_date, to_date")
+        .eq("employee_id", employeeId)
+        .eq("status", "approved")
+        .lte("from_date", period.end)
+        .gte("to_date", period.start),
+      supabase
+        .from("supplement_type")
+        .select("id, name, pay_code, amount_type, amount")
+        .eq("organization_id", ctx.organization.id),
+      supabase
+        .from("organization_settings")
+        .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
+        .eq("organization_id", ctx.organization.id)
+        .maybeSingle(),
+    ]);
+  const normDefaults = normDefaultsFrom(settings);
   const approved = (entries ?? []).filter(
     (e) => e.end_at && (e.status === "approved" || (opts.includePending && e.status === "pending")),
   );
@@ -121,6 +129,8 @@ export async function calculateEmployee(
     breaks?: DbBreak[];
     kind?: "work" | "on_call";
     supplement_type_ids?: string[];
+    norm_percent?: number | null;
+    norm_in_pay?: boolean | null;
   };
   const plan = new Map(
     (shifts ?? []).flatMap((s) =>
@@ -142,6 +152,8 @@ export async function calculateEmployee(
       ...i,
       kind: e.kind,
       plannedShiftId: p ? e.shift_id : null,
+      // Share counting towards the norm when overtime is found (only when chosen for pay).
+      normPercent: entryPayNormPercent(e.kind, p, normDefaults),
       postings: resolvePostings(
         departmentDefaults.get(e.department_id) ?? {},
         employeeDefaults,

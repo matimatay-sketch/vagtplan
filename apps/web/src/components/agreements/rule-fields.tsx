@@ -497,6 +497,98 @@ export function WindowsEditor<W extends Window>({
 
 type Rounding = { unit_minutes: number; mode: "started" | "completed" | "nearest" } | null;
 
+/** Minutes as a select of common units (keeps an unusual configured value). */
+function UnitSelect({
+  id,
+  value,
+  units,
+  onChange,
+}: {
+  id: string;
+  value: number;
+  units: readonly number[];
+  onChange: (v: number) => void;
+}) {
+  const all = units.includes(value) ? units : [...units, value].sort((a, b) => a - b);
+  return (
+    <NativeSelect id={id} value={value} onChange={(e) => onChange(Number(e.target.value))}>
+      {all.map((u) => (
+        <option key={u} value={u}>
+          {t.minutesOption(u)}
+        </option>
+      ))}
+    </NativeSelect>
+  );
+}
+
+export type StampRoundingParams = {
+  unit_minutes: number;
+  start: "nearest" | "up" | "down";
+  end: "nearest" | "up" | "down";
+  snap_before_start_minutes?: number;
+  snap_after_end_minutes?: number;
+};
+
+/** Rounding of stamps (rounding primitive): unit, direction at start and end, snapping to the plan. */
+export function StampRoundingFields({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: StampRoundingParams;
+  onChange: (v: StampRoundingParams) => void;
+}) {
+  const dir = (k: "start" | "end") => (
+    <Field label={k === "start" ? t.stampStart : t.stampEnd} htmlFor={`${id}-${k}`}>
+      <NativeSelect
+        id={`${id}-${k}`}
+        value={value[k]}
+        onChange={(e) =>
+          onChange({ ...value, [k]: e.target.value as StampRoundingParams["start"] })
+        }
+      >
+        {(["nearest", "up", "down"] as const).map((d) => (
+          <option key={d} value={d}>
+            {t.directions[d]}
+          </option>
+        ))}
+      </NativeSelect>
+    </Field>
+  );
+  const snap = (k: "snap_before_start_minutes" | "snap_after_end_minutes") => (
+    <Field label={t[k]} htmlFor={`${id}-${k}`} help={t.snapHelp}>
+      <Input
+        id={`${id}-${k}`}
+        type="number"
+        min={0}
+        max={240}
+        className="w-24"
+        value={value[k] ?? 0}
+        onChange={(e) =>
+          onChange({ ...value, [k]: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })
+        }
+      />
+    </Field>
+  );
+  return (
+    <div className="grid gap-3 sm:grid-cols-3" data-testid={`stamp-rounding-${id}`}>
+      <Field label={t.roundingUnit} htmlFor={`${id}-unit`}>
+        <UnitSelect
+          id={`${id}-unit`}
+          value={value.unit_minutes}
+          units={[1, 5, 6, 10, 15, 30, 60]}
+          onChange={(unit_minutes) => onChange({ ...value, unit_minutes })}
+        />
+      </Field>
+      {dir("start")}
+      {dir("end")}
+      {snap("snap_before_start_minutes")}
+      {snap("snap_after_end_minutes")}
+    </div>
+  );
+}
+
 /** Per minute, or per begun/whole/nearest unit of N minutes. */
 function RoundingFields({
   id,
@@ -534,19 +626,11 @@ function RoundingFields({
       </Field>
       {value ? (
         <Field label={t.roundingUnit} htmlFor={`${id}-rounding-unit`}>
-          <Input
+          <UnitSelect
             id={`${id}-rounding-unit`}
-            type="number"
-            min={1}
-            max={240}
-            className="w-24"
             value={value.unit_minutes}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                unit_minutes: Math.max(1, Math.trunc(Number(e.target.value) || 1)),
-              })
-            }
+            units={[5, 10, 15, 30, 60]}
+            onChange={(unit_minutes) => onChange({ ...value, unit_minutes })}
           />
         </Field>
       ) : null}

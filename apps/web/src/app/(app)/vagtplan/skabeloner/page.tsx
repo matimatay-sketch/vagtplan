@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canInDepartment } from "@/lib/permissions";
 import { archiveTemplateAction } from "@/lib/actions/schedule";
 import { da } from "@/lib/i18n/da";
+import { normDefaultsFrom } from "@/lib/domain/norm-percent";
 import type { TemplateBreak } from "@/lib/domain/breaks";
 import { TemplateForm } from "./template-form";
 
@@ -28,30 +29,41 @@ export default async function TemplatesPage() {
   const ctx = await requireContext(["schedule.manage"]);
   const supabase = await createClient();
   const t = da.schedule;
-  const [{ data: templates }, { data: departments }, { data: supplementTypes }, postingDimensions] =
-    await Promise.all([
-      supabase
-        .from("shift_template")
-        .select(
-          "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, department_id",
-        )
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("start_time"),
-      supabase
-        .from("department")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      supabase
-        .from("supplement_type")
-        .select("id, name, amount_type, amount")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      loadPostingDimensions(supabase),
-    ]);
+  const [
+    { data: templates },
+    { data: departments },
+    { data: supplementTypes },
+    postingDimensions,
+    { data: settings },
+  ] = await Promise.all([
+    supabase
+      .from("shift_template")
+      .select(
+        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("start_time"),
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("supplement_type")
+      .select("id, name, amount_type, amount")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    loadPostingDimensions(supabase),
+    supabase
+      .from("organization_settings")
+      .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
+  ]);
+  const normDefaults = normDefaultsFrom(settings);
   const valueName = new Map(
     postingDimensions.flatMap((d) => d.values.map((v) => [v.id, `${v.code} · ${v.name}`] as const)),
   );
@@ -75,6 +87,7 @@ export default async function TemplatesPage() {
       <Card className="mb-6">
         <CardContent>
           <TemplateForm
+            normDefaults={normDefaults}
             departments={manageable}
             allowOrgWide={orgWide}
             supplementTypes={(supplementTypes ?? []).map((x) => ({
@@ -121,6 +134,11 @@ export default async function TemplatesPage() {
                     {tpl.kind === "on_call" ? (
                       <Badge variant="secondary" className="ml-2">
                         {t.kinds.on_call}
+                      </Badge>
+                    ) : null}
+                    {tpl.norm_percent !== null ? (
+                      <Badge variant="outline" className="ml-2" data-testid="template-norm">
+                        {t.normOfShift(tpl.norm_percent)}
                       </Badge>
                     ) : null}
                   </TableCell>

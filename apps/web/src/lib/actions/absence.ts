@@ -1,4 +1,5 @@
 "use server";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireContext } from "@/lib/auth";
@@ -111,6 +112,8 @@ export async function decideAbsenceAction(
   approved: boolean,
   note: string,
 ): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const ctx = await requireContext();
   const p = z.object({ id: z.guid(), note: z.string().max(500) }).parse({ id, note });
   const supabase = await createClient();

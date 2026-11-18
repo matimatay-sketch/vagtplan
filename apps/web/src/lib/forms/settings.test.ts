@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  normDefaultsSchema,
   noticeSchema,
   ruleHandlingFromForm,
   supplementTypeSchema,
@@ -124,5 +125,36 @@ describe("leaveRulesSchema", () => {
       transfer_only_above_days: "2,5",
     });
     expect(r.error!.issues[0]!.path).toEqual(["transfer_only_above_days"]);
+  });
+});
+
+describe("normDefaultsSchema", () => {
+  it("reads whole percentages and yes/no", () => {
+    expect(
+      normDefaultsSchema.parse({
+        norm_percent_work: "100",
+        norm_percent_on_call: "33",
+        norm_in_pay_work: "false",
+        norm_in_pay_on_call: "true",
+      }),
+    ).toEqual({
+      norm_percent_work: 100,
+      norm_percent_on_call: 33,
+      norm_in_pay_work: false,
+      norm_in_pay_on_call: true,
+    });
+  });
+
+  it("requires a whole number from 0 to 100", () => {
+    const ok = {
+      norm_percent_work: "100",
+      norm_in_pay_work: "false",
+      norm_in_pay_on_call: "false",
+    };
+    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "" }).success).toBe(false);
+    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "120" }).success).toBe(
+      false,
+    );
+    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "0" }).success).toBe(true);
   });
 });

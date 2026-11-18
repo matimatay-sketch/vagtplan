@@ -189,6 +189,21 @@ Acceptkriterier:
   - Siden Projekter viser timer pr. projekt og pr. medarbejder for en periode og en afdeling. Den har CSV-eksport (semikolon, UTF-8 med BOM) og påvirker ikke lønnen.
   - Betalte pauser tæller som arbejdstid i arbejdstidsreglerne (jura-todo nr. 16, besluttet 2026-11-13).
 
+### Rettelser fra test i skyen (ønsket 2026-11-18)
+
+- Kopiér en vagt til flere dage og uger. Kopiér en uge til den næste uge, de næste N uger eller en valgt uge. Træk og slip fandtes i forvejen, og Alt-træk kopierer.
+- "Arkivér" hedder "Slet" i brugerfladen. Data slettes stadig blødt. Kunder på platformen hedder fortsat "Arkivér", fordi det kan fortrydes.
+- Oversigten viser mine næste vagter og "Til handling" (tid, udlæg, åbne stemplinger og kladder). Den viser også fødselsdage og jubilæer, som medarbejderen kan fravælge, samt en opslagstavle pr. afdeling (`bulletin.manage`).
+- Overenskomsteditor: "Tilføj regel" står til venstre. Afrunding med 15 og 30 minutter for tillæg og stempling (enhed, retning ved start/slut og snap).
+- "Log ind som" en medarbejder (`users.impersonate`). Handlinger markeres i audit-loggen og i registreringens historik. Medarbejdere uden login får et baggrundslogin uden e-mail.
+- Rettighedsprofiler tæller også medarbejdere uden login (under standardprofilen).
+
+### Normprocent pr. vagt (ønsket 2026-11-18)
+
+- En vagt og en vagtskabelon kan have en procent for, hvor meget den tæller i timenormen, fx rådighed 33 %. Ugevisningen viser timer mod norm med procenten.
+- Det vælges på vagten, om procenten også bruges, når lønnen finder overarbejde. Standarden for procent og løn sættes pr. vagttype under Opsætning.
+- Turnusvagter bruger standarden for vagttypen.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.
@@ -272,6 +287,7 @@ Opgaver:
 14. Kørsel og udlæg: Km-satser (høj/lav med årlig km-grænse) indtastes pr. år med kilde under Indstillinger → Km-satser og udlæg, sammen med udlægskategorier (lønart, kvittering påkrævet). Medarbejderen fører kørselsregnskab (dato, formål, rute med stop, km, bil) og registrerer udlæg med kvittering (privat bucket `receipts`). Godkendes af de samme som tiden (sektion på Godkend tid) og udbetales som lønlinjer (enhed `km` og faste beløb) med kontering og eksportfelterne `quantity_km` og `quantity`.
 15. Projekter som konteringsdimension "Projekt": eksisterende projekter, fordelinger på vagter (også offentliggjorte), registreringer (også godkendte), skabeloner og turnus er flyttet over. Projektoversigten læser konteringen, og lønlinjerne deles pr. projekt.
 16. AI-assistent (pseudonymiseret): forklarer lønarter ud fra lønlinjernes forklaringer og overenskomstens regler, og foreslår vagtplaner som kladdevagter, der kontrolleres af regelmotoren (én rettelsesrunde ved regelbrud). Slås til pr. virksomhed under Opsætning og kræver rettigheden `assistant.use`. Navne, numre og e-mails erstattes med koder, før der sendes til Anthropic, og brugen logges uden indhold.
+17. Integrations-API (`/api/v1`, OpenAPI) med API-nøgler pr. virksomhed og scopes: medarbejdere, afdelinger og kontrakter (læs og skriv), vagtplan, tid, stempling fra stempelure, fravær, lønperioder og lønlinjer samt kontering. Webhooks for godkendt tid, afsluttet lønperiode, fravær, offentliggørelse og medarbejdere, med signatur (HMAC-SHA256) og genforsøg. Opsætning under Indstillinger → Integrationer.
 
 Beslutning 2026-11-14: Eksportfilen konfigureres af konsulenten, så den passer til lønsystemet. Kolonner, format og lønarter vælges selv, og beløb er en valgfri kolonne. Skabeloner til ProLøn og Lessor kommer, når importspecifikationen foreligger.
 

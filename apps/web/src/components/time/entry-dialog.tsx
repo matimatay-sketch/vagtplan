@@ -234,9 +234,11 @@ function EntryForm({
                 <span className="text-muted-foreground tabular">
                   {h.end_at ? timeRange(h.start_at, h.end_at) : localParts(h.start_at).time} ·{" "}
                   {t.sources[h.source]} {h.created_by_email ? `${t.by} ${h.created_by_email}` : ""}
+                  {h.created_as_email ? ` ${da.impersonation.historyAs(h.created_as_email)}` : ""}
                   {h.approved_by_email
                     ? ` · ${t.statuses.approved} ${t.by} ${h.approved_by_email}`
                     : ""}
+                  {h.approved_as_email ? ` ${da.impersonation.historyAs(h.approved_as_email)}` : ""}
                 </span>
                 {h.deviation_reason ? <span>“{h.deviation_reason}”</span> : null}
               </li>

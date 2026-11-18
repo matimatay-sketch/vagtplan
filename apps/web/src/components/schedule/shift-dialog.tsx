@@ -12,7 +12,12 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
-import { removeShiftAction, saveShiftAction } from "@/lib/actions/schedule";
+import { NormFields } from "./norm-fields";
+import type { NormDefaults } from "@/lib/domain/norm-percent";
+import { copyShiftToDatesAction, removeShiftAction, saveShiftAction } from "@/lib/actions/schedule";
+import { copyDates } from "@/lib/domain/schedule-copy";
+import { weekDates, weekStartOf } from "@/lib/domain/schedule-time";
+import { toast } from "sonner";
 import { initialActionState } from "@/lib/actions/state";
 import { localParts } from "@/lib/domain/schedule-time";
 import { dbBreaksToForm, templateBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
@@ -40,6 +45,7 @@ type Props = {
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
   posting: PostingDimension[];
+  normDefaults: NormDefaults;
 };
 
 export function ShiftDialog({
@@ -71,6 +77,7 @@ function ShiftForm({
   templates,
   supplementTypes,
   posting,
+  normDefaults,
 }: Props & { draft: ShiftDraft; onDone: () => void }) {
   const t = da.schedule;
   const [state, action] = useActionState(saveShiftAction, initialActionState);
@@ -84,6 +91,8 @@ function ShiftForm({
     end_time: s ? localParts(s.end).time : (first?.end ?? "16:00"),
     label: s?.label ?? first?.label ?? "",
     kind: s?.kind ?? first?.kind ?? "work",
+    norm_percent: String(s ? (s.normPercent ?? "") : (first?.normPercent ?? "")),
+    norm_in_pay: String(s ? (s.normInPay ?? "") : (first?.normInPay ?? "")),
     template_id: s?.templateId ?? first?.id ?? "",
   }));
   const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
@@ -119,6 +128,8 @@ function ShiftForm({
       end_time: tpl.end,
       label: tpl.label ?? "",
       kind: tpl.kind,
+      norm_percent: String(tpl.normPercent ?? ""),
+      norm_in_pay: String(tpl.normInPay ?? ""),
     }));
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
@@ -201,6 +212,15 @@ function ShiftForm({
               <option value="on_call">{t.kinds.on_call}</option>
             </NativeSelect>
           </Field>
+          <NormFields
+            kind={values.kind as "work" | "on_call"}
+            defaults={normDefaults}
+            percent={values.norm_percent}
+            inPay={values.norm_in_pay}
+            onPercent={(v) => setValues((x) => ({ ...x, norm_percent: v }))}
+            onInPay={(v) => setValues((x) => ({ ...x, norm_in_pay: v }))}
+            error={err("norm_percent")}
+          />
           <Field label={`${t.label} (${da.common.optional})`} htmlFor="label" error={err("label")}>
             <Input
               id="label"
@@ -249,6 +269,9 @@ function ShiftForm({
             ))}
           </ul>
         ) : null}
+        {s && !s.removed ? (
+          <CopyShift shiftId={s.id} date={localParts(s.start).date} onDone={onDone} />
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
           {s && !s.removed ? (
             <Button
@@ -272,5 +295,81 @@ function ShiftForm({
         </div>
       </form>
     </>
+  );
+}
+
+const weekdayShort = new Intl.DateTimeFormat("da-DK", { weekday: "short", timeZone: "UTC" });
+
+/** Copy an existing shift to other days of its week, repeated for N weeks. */
+function CopyShift({
+  shiftId,
+  date,
+  onDone,
+}: {
+  shiftId: string;
+  date: string;
+  onDone: () => void;
+}) {
+  const t = da.schedule;
+  const [days, setDays] = useState<string[]>([]);
+  const [weeks, setWeeks] = useState(1);
+  const [pending, start] = useTransition();
+  const dates = copyDates(date, days, weeks);
+  return (
+    <details className="rounded-lg border p-3" data-testid="copy-shift">
+      <summary className="cursor-pointer text-sm font-medium">{t.copyShift}</summary>
+      <div className="mt-3 grid gap-3">
+        <p className="text-xs text-muted-foreground">{t.copyShiftLead}</p>
+        <fieldset className="flex flex-wrap gap-3">
+          <legend className="mb-1 text-sm">{t.copyDays}</legend>
+          {weekDates(weekStartOf(date)).map((d) => (
+            <label key={d} className="flex items-center gap-1.5 text-sm capitalize">
+              <input
+                type="checkbox"
+                className="accent-primary"
+                disabled={d === date}
+                checked={days.includes(d)}
+                onChange={(e) =>
+                  setDays((x) => (e.target.checked ? [...x, d] : x.filter((y) => y !== d)))
+                }
+              />
+              {weekdayShort.format(new Date(`${d}T00:00:00Z`)).replace(".", "")}{" "}
+              {Number(d.slice(8))}.
+            </label>
+          ))}
+        </fieldset>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label={t.copyRepeat} htmlFor="copy-repeat">
+            <NativeSelect
+              id="copy-repeat"
+              value={weeks}
+              onChange={(e) => setWeeks(Number(e.target.value))}
+            >
+              {[1, 2, 3, 4, 6, 8, 12].map((n) => (
+                <option key={n} value={n}>
+                  {t.copyRepeatWeeks(n)}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending || dates.length === 0}
+            onClick={() =>
+              start(async () => {
+                const r = await copyShiftToDatesAction({ id: shiftId, dates });
+                if (r.ok) {
+                  toast.success(r.message);
+                  onDone();
+                } else toast.error(r.message);
+              })
+            }
+          >
+            {t.copyDo} ({dates.length})
+          </Button>
+        </div>
+      </div>
+    </details>
   );
 }

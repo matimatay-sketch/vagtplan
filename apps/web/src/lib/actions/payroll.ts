@@ -1,4 +1,5 @@
 "use server";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireContext } from "@/lib/auth";
@@ -45,6 +46,8 @@ export async function calculatePeriodAction(periodId: string): Promise<ActionSta
 }
 
 export async function closePeriodAction(periodId: string): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   await requireContext(["payroll.manage"]);
   const supabase = await createClient();
   const { error } = await supabase.rpc("close_pay_period", { p_id: z.guid().parse(periodId) });

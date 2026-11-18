@@ -58,6 +58,7 @@ export default async function TimePage() {
         {overview.exempt.has(ctx.employee.id) ? <Alert>{t.exempt}</Alert> : null}
         <StampCard
           organizationId={ctx.organization.id}
+          employeeId={ctx.employee.id}
           openSince={open?.start ?? null}
           posting={stampPosting}
         />

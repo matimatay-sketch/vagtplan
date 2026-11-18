@@ -1,10 +1,11 @@
-// A local stand-in for the Messages API used by the e2e tests (the app is
+// A local stand-in for the Messages API (and a webhook receiver) used by the e2e tests (the app is
 // started with ANTHROPIC_BASE_URL pointing here). It records every request so
 // the tests can check that only pseudonymized data is sent.
 import { createServer } from "node:http";
 
 const PORT = Number(process.env.MOCK_ANTHROPIC_PORT ?? 4545);
 const requests = [];
+const webhooks = [];
 let proposalCalls = 0;
 
 function sse(res, text) {
@@ -74,6 +75,20 @@ createServer((req, res) => {
   if (req.method === "GET" && req.url === "/__requests") {
     res.setHeader("content-type", "application/json");
     return res.end(JSON.stringify({ requests, proposalCalls }));
+  }
+  // A webhook receiver for the integration tests.
+  if (req.method === "POST" && req.url === "/__webhook") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      webhooks.push({ headers: req.headers, body: raw });
+      res.end("ok");
+    });
+    return;
+  }
+  if (req.method === "GET" && req.url === "/__webhooks") {
+    res.setHeader("content-type", "application/json");
+    return res.end(JSON.stringify(webhooks));
   }
   if (req.method === "POST" && req.url === "/__reset") {
     requests.length = 0;

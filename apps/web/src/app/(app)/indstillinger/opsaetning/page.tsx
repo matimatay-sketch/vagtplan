@@ -18,7 +18,13 @@ import { assistantState } from "@/lib/assistant/access";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
 import { da } from "@/lib/i18n/da";
-import { LeaveRulesForm, NoticeForm, RuleHandlingForm, SupplementTypeForm } from "./forms";
+import {
+  LeaveRulesForm,
+  NormDefaultsForm,
+  NoticeForm,
+  RuleHandlingForm,
+  SupplementTypeForm,
+} from "./forms";
 
 export const metadata: Metadata = { title: "Opsætning" };
 
@@ -29,8 +35,8 @@ export default async function SettingsPage() {
   const since = new Date(
     `${addDays(todayIn(ctx.organization.timezone), -30)}T00:00:00Z`,
   ).toISOString();
-  const [settings, { data: supplements }, assistant, { count: assistantUsage }] = await Promise.all(
-    [
+  const [settings, { data: supplements }, assistant, { count: assistantUsage }, { data: norm }] =
+    await Promise.all([
       loadOrganizationSettings(supabase, ctx.organization.id),
       supabase
         .from("supplement_type")
@@ -44,8 +50,12 @@ export default async function SettingsPage() {
         .select("id", { count: "exact", head: true })
         .eq("organization_id", ctx.organization.id)
         .gte("created_at", since),
-    ],
-  );
+      supabase
+        .from("organization_settings")
+        .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
+        .eq("organization_id", ctx.organization.id)
+        .maybeSingle(),
+    ]);
   const links = [
     { href: "/indstillinger/lonperioder", label: da.nav.payPeriodGroups, show: true },
     {
@@ -78,6 +88,24 @@ export default async function SettingsPage() {
             <NoticeForm
               publish={settings.notice_publish_hours}
               change={settings.notice_change_hours}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.normTitle}</CardTitle>
+            <CardDescription>{t.normLead}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NormDefaultsForm
+              defaults={
+                norm ?? {
+                  norm_percent_work: 100,
+                  norm_percent_on_call: 0,
+                  norm_in_pay_work: false,
+                  norm_in_pay_on_call: false,
+                }
+              }
             />
           </CardContent>
         </Card>

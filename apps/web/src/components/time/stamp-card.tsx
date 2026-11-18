@@ -11,6 +11,7 @@ import {
   applyResults,
   enqueue,
   parseQueue,
+  forOwner,
   stampState,
   type QueuedStamp,
 } from "@/lib/domain/stamp-queue";
@@ -58,11 +59,14 @@ const EMPTY: QueuedStamp[] = [];
 
 export function StampCard({
   organizationId,
+  employeeId,
   openSince,
   disabled,
   posting = [],
 }: {
   organizationId: string;
+  /** The signed-in employee: queued stamps of anyone else on the device are not sent. */
+  employeeId: string;
   /** Start of the open registration on the server, if stamped in. */
   openSince: string | null;
   disabled?: boolean;
@@ -73,30 +77,51 @@ export function StampCard({
   const [choice, setChoice] = useState<Record<string, string>>({});
   const router = useRouter();
   const queue = useSyncExternalStore(subscribe, readQueue, () => EMPTY);
-  const state = stampState({ openSince }, queue, organizationId);
+  // The last stamp the server confirmed, until the page has reloaded the server state
+  // (otherwise the card flips back for a moment after the queue is emptied).
+  const [ack, setAck] = useState<{ action: "in" | "out"; at: string } | null>(null);
+  const [seenOpenSince, setSeenOpenSince] = useState(openSince);
+  if (seenOpenSince !== openSince) {
+    setSeenOpenSince(openSince);
+    setAck(null);
+  }
+  const serverOpen = ack ? (ack.action === "in" ? ack.at : null) : openSince;
+  const state = stampState({ openSince: serverOpen }, queue, organizationId, employeeId);
   const [message, setMessage] = useState<{ text: string; tone: "info" | "error" } | null>(null);
   const syncing = useRef(false);
 
   const flush = useCallback(async () => {
     if (syncing.current) return;
-    const pending = readQueue().filter((x) => x.organizationId === organizationId);
-    if (pending.length === 0) return;
     syncing.current = true;
     try {
-      const results = await syncStampsAction(pending);
-      const { remaining, rejected } = applyResults(readQueue(), results);
-      writeQueue(remaining);
-      if (rejected.length)
-        setMessage({ text: t.rejected[rejected[0]!.reason] ?? t.rejected.unknown!, tone: "error" });
-      else if (results.length) setMessage({ text: t.synced, tone: "info" });
-      if (results.length) router.refresh();
-    } catch {
-      // Offline or the server could not be reached: keep the queue.
-      setMessage({ text: t.savedOffline, tone: "info" });
+      // Stamps made while a batch is being sent (e.g. out right after in) go in the next round.
+      for (let round = 0; round < 5; round++) {
+        const pending = forOwner(readQueue(), organizationId, employeeId);
+        if (pending.length === 0) break;
+        try {
+          const results = await syncStampsAction(pending);
+          const okIds = new Set(results.filter((r) => r.status === "ok").map((r) => r.clientId));
+          const last = [...pending].reverse().find((x) => okIds.has(x.clientId));
+          if (last) setAck({ action: last.action, at: last.at });
+          const { remaining, rejected } = applyResults(readQueue(), results);
+          writeQueue(remaining);
+          if (rejected.length)
+            setMessage({
+              text: t.rejected[rejected[0]!.reason] ?? t.rejected.unknown!,
+              tone: "error",
+            });
+          else if (results.length) setMessage({ text: t.synced, tone: "info" });
+          if (results.length) router.refresh();
+        } catch {
+          // Offline or the server could not be reached: keep the queue.
+          setMessage({ text: t.savedOffline, tone: "info" });
+          break;
+        }
+      }
     } finally {
       syncing.current = false;
     }
-  }, [organizationId, router, t]);
+  }, [organizationId, employeeId, router, t]);
 
   // Send anything left in the queue on load and whenever the network returns.
   useEffect(() => {
@@ -116,6 +141,7 @@ export function StampCard({
         action,
         at: new Date().toISOString(),
         organizationId,
+        employeeId,
         ...(action === "in" && Object.keys(choice).length ? { posting: choice } : {}),
       }),
     );

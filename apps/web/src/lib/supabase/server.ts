@@ -5,10 +5,20 @@ import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import type { Database } from "./database.types";
 
+/** The impersonation session id (not secret) and the sealed admin session. */
+export const IMPERSONATION_COOKIE = "turnus_imp";
+export const IMPERSONATOR_COOKIE = "turnus_imp_admin";
+
 /** Supabase client acting as the signed-in user (RLS applies). */
 export async function createClient() {
   const cookieStore = await cookies();
+  // While an administrator is logged in as an employee, the database records the
+  // administrator on every change (it checks the session id against auth.uid()).
+  const impersonation = cookieStore.get(IMPERSONATION_COOKIE)?.value;
   return createServerClient<Database>(env.supabaseUrl, env.supabaseKey, {
+    ...(impersonation && /^[0-9a-f-]{36}$/.test(impersonation)
+      ? { global: { headers: { "x-turnus-impersonation": impersonation } } }
+      : {}),
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (toSet) => {

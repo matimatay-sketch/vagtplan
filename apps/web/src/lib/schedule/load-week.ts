@@ -15,6 +15,12 @@ import { canInDepartment } from "@/lib/permissions";
 import { absenceLabels, loadAgreements } from "@/lib/engine";
 import { localParts } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
+import {
+  effectivePercent,
+  normDefaultsFrom,
+  normMinutes,
+  type NormDefaults,
+} from "@/lib/domain/norm-percent";
 import { validateWeek } from "./validate-week";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -46,6 +52,10 @@ export type BoardShift = {
   proposalId: string | null;
   label: string | null;
   kind: "work" | "on_call";
+  /** Share counting towards the norm (null = the default for the kind). */
+  normPercent: number | null;
+  /** Use the share when pay finds overtime (null = the default for the kind). */
+  normInPay: boolean | null;
   templateId: string | null;
   status: "draft" | "published";
   /** Published before, edited since. */
@@ -98,6 +108,8 @@ export type BoardTemplate = {
   postingValues: Record<string, string>;
   label: string | null;
   kind: "work" | "on_call";
+  normPercent: number | null;
+  normInPay: boolean | null;
 };
 
 export type WeekBoard = {
@@ -112,6 +124,8 @@ export type WeekBoard = {
   supplementTypes: BoardSupplementType[];
   /** Posting dimensions with the values available in this department. */
   posting: PostingDimension[];
+  /** The organization's norm percent defaults per shift kind. */
+  normDefaults: NormDefaults;
   pendingCount: number;
   canManage: boolean;
   canPublish: boolean;
@@ -137,7 +151,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, label, kind, norm_percent, norm_in_pay, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -146,7 +160,7 @@ export async function loadWeek(
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, department_id",
+        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -184,6 +198,7 @@ export async function loadWeek(
     { data: absences },
     agreements,
     postingDimensions,
+    { data: settings },
   ] = await Promise.all([
     supabase
       .from("availability")
@@ -226,6 +241,11 @@ export async function loadWeek(
       .gte("to_date", weekStart),
     loadAgreements(supabase),
     loadPostingDimensions(supabase),
+    supabase
+      .from("organization_settings")
+      .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
   ]);
   const labels = absenceLabels(agreements.registry);
   const boardAbsences: BoardAbsence[] = (absences ?? []).map((a) => ({
@@ -276,6 +296,7 @@ export async function loadWeek(
     }
   }
 
+  const normDefaults = normDefaultsFrom(settings);
   const boardShifts: BoardShift[] = visibleShifts.map((s) => ({
     id: s.id,
     employeeId: s.employee_id,
@@ -287,6 +308,8 @@ export async function loadWeek(
     proposalId: s.proposal_id,
     label: s.label,
     kind: s.kind,
+    normPercent: s.norm_percent,
+    normInPay: s.norm_in_pay,
     templateId: s.template_id,
     status: s.status,
     changed: s.status === "draft" && s.published !== null && s.archived_at === null,
@@ -300,9 +323,18 @@ export async function loadWeek(
       id: e.id,
       name: `${e.first_name} ${e.last_name}`,
       young: ageOn(e.birth_date, weekStart) < 18 || ageOn(e.birth_date, weekEnd) < 18,
+      // Each shift counts with its share of the norm (e.g. on-call at 33 %).
       weekMinutes: boardShifts
-        .filter((s) => s.employeeId === e.id && !s.removed && s.kind === "work")
-        .reduce((sum, s) => sum + durationMinutes(s.start, s.end, unpaidMinutes(s.breaks)), 0),
+        .filter((s) => s.employeeId === e.id && !s.removed)
+        .reduce(
+          (sum, s) =>
+            sum +
+            normMinutes(
+              durationMinutes(s.start, s.end, unpaidMinutes(s.breaks)),
+              effectivePercent({ kind: s.kind, norm_percent: s.normPercent }, normDefaults),
+            ),
+          0,
+        ),
       normMinutes: normFor(e.id),
       violations: byEmployee.get(e.id) ?? [],
     }))
@@ -333,6 +365,8 @@ export async function loadWeek(
       postingValues: (t.posting_values ?? {}) as Record<string, string>,
       label: t.label,
       kind: t.kind,
+      normPercent: t.norm_percent,
+      normInPay: t.norm_in_pay,
     })),
     supplementTypes: (supplementTypes ?? []).map((t) => ({
       id: t.id,
@@ -341,6 +375,7 @@ export async function loadWeek(
       amount: t.amount,
     })),
     posting: availablePosting(postingDimensions, departmentId),
+    normDefaults,
     pendingCount: (shifts ?? []).filter(
       (s) =>
         (s.archived_at === null && s.status === "draft") ||

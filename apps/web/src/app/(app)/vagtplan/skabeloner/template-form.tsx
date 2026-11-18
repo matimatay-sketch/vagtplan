@@ -14,23 +14,30 @@ import type { EditableBreak } from "@/lib/domain/breaks";
 import { da } from "@/lib/i18n/da";
 import type { PostingDimension } from "@/lib/domain/posting";
 import { PostingValuesSelect } from "@/components/posting/posting-values";
+import { NormFields } from "@/components/schedule/norm-fields";
+import type { NormDefaults } from "@/lib/domain/norm-percent";
 
 export function TemplateForm({
   departments,
   allowOrgWide,
   supplementTypes,
   posting,
+  normDefaults,
 }: {
   departments: { id: string; name: string }[];
   allowOrgWide: boolean;
   supplementTypes: SupplementOption[];
   posting: PostingDimension[];
+  normDefaults: NormDefaults;
 }) {
   const [state, action] = useActionState(createTemplateAction, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
   const [breaks, setBreaks] = useState<EditableBreak[]>([{ start: "", minutes: 30, paid: false }]);
   const [supplements, setSupplements] = useState<string[]>([]);
   const [postingValues, setPostingValues] = useState<Record<string, string>>({});
+  const [kind, setKind] = useState<"work" | "on_call">("work");
+  const [normPercent, setNormPercent] = useState("");
+  const [normInPay, setNormInPay] = useState("");
   const t = da.schedule;
   useEffect(() => {
     if (state.ok) ref.current?.reset();
@@ -38,7 +45,12 @@ export function TemplateForm({
   const [handled, setHandled] = useState(state);
   if (handled !== state) {
     setHandled(state);
-    if (state.ok) setPostingValues({});
+    if (state.ok) {
+      setPostingValues({});
+      setKind("work");
+      setNormPercent("");
+      setNormInPay("");
+    }
   }
   const f = (name: string, fallback?: string) => fieldProps(name, state, fallback);
   return (
@@ -60,11 +72,23 @@ export function TemplateForm({
           <Input type="time" step={900} {...f("end_time", "16:00")} />
         </Field>
         <Field label={t.kind} htmlFor="kind">
-          <NativeSelect {...f("kind", "work")}>
+          <NativeSelect
+            {...f("kind", "work")}
+            onChange={(e) => setKind(e.target.value === "on_call" ? "on_call" : "work")}
+          >
             <option value="work">{t.kinds.work}</option>
             <option value="on_call">{t.kinds.on_call}</option>
           </NativeSelect>
         </Field>
+        <NormFields
+          kind={kind}
+          defaults={normDefaults}
+          percent={normPercent}
+          inPay={normInPay}
+          onPercent={setNormPercent}
+          onInPay={setNormInPay}
+          error={state.errors?.norm_percent}
+        />
         <Field label={`${t.label} (${da.common.optional})`} htmlFor="label">
           <Input placeholder={t.labelPlaceholder} {...f("label")} />
         </Field>

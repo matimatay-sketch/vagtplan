@@ -58,6 +58,14 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 - **`on_call`**: `rate_windows` (andre satser i tidsrum, første match), `exclude_holidays`, `rounding` pr. rådighedsvagt og sats, `monthly_tiers` (ekstra i % af satsen over N minutter i kalendermåneden – rådigheds- og udkaldsminutter tæller, kun rådighed får ekstra; tag hele måneden med i input), `call_out_pay` (beløb, lønart, pr. påbegyndt `unit_minutes`, loft `max_rate_ore`).
 - **`time_off_accrual`** (ny): frihed som linjer med enheden `time_off_minutes` (beløb 0). `worked_in_windows` giver `earn_minutes` pr. `per_minutes` arbejde i tidsrummene (eksakt brøk, fx 3/37). `holiday_work` giver `earn_minutes` pr. søgnehelligdag med arbejde.
 
+### Normprocent (`normPercent`)
+
+Et interval kan have `normPercent` (0–100), som er den andel af intervallet, der tæller med i normen, når overarbejde findes (udløserne `daily_norm`, `weekly_norm` og `period_norm`). Uden værdi tæller arbejde og tilkald 100 % og rådighed 0 %, som hidtil.
+
+- Arbejde med fx 50 % fylder normen med det halve af sine minutter. Når normen er nået, er resten af vagtens faktiske tid overarbejde.
+- Rådighed med mere end 0 % fylder normen på samme måde som fravær, der tæller med i normen. Normen i enheden nedsættes med andelen.
+- Appen sender kun `normPercent`, når vagten (eller virksomhedens standard for vagttypen) er sat til at blive brugt i lønnen.
+
 ### Kontering (`postings`)
 
 `WorkIntervalInput.postings` er rækker `{values, start, end, minutes}`. Lønlinjer deles pr. kontering (`PayLine.posting`): minutter i et tidsrum konteres præcist (segmenterne skæres ved tidsrummets grænser), og resten fordeles på "minutter"-rækker og "resten" forholdsmæssigt. Mængde og beløb fordeles med største rest, så summen altid er den samme som uden opdeling. Appen fletter standardværdier ind (afdeling → medarbejder → række) med `resolvePostings` i `src/lib/domain/posting.ts`.

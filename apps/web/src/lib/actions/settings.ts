@@ -7,6 +7,7 @@ import { fieldErrors } from "@/lib/forms/schemas";
 import {
   leaveRulesSchema,
   noticeSchema,
+  normDefaultsSchema,
   ruleHandlingFromForm,
   supplementTypeSchema,
 } from "@/lib/forms/settings";
@@ -130,5 +131,27 @@ export async function saveLeaveRulesAction(
   if (!data?.length) return { message: da.common.notAllowed, values };
   revalidateSettings();
   revalidatePath("/fravaer", "layout");
+  return { ok: true, message: da.common.saved };
+}
+
+/** Norm percent per shift kind (shifts and templates without their own value use it). */
+export async function saveNormDefaultsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireContext(["settings.manage"]);
+  const values = formValues(formData);
+  const parsed = normDefaultsSchema.safeParse(values);
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organization_settings")
+    .update(parsed.data)
+    .eq("organization_id", ctx.organization.id)
+    .select("organization_id");
+  if (error) return { message: dbErrorMessage(error), values };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidateSettings();
+  revalidatePath("/lon", "layout");
   return { ok: true, message: da.common.saved };
 }

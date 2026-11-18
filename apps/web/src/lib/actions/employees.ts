@@ -1,4 +1,6 @@
 "use server";
+import { createClient as createPlainClient } from "@supabase/supabase-js";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -17,6 +19,8 @@ export async function createEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const parsed = employeeSchema(todayIn(ctx.organization.timezone)).safeParse(values);
@@ -53,6 +57,8 @@ export async function updateEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const id = z.guid().safeParse(values.id);
@@ -124,7 +130,7 @@ export async function inviteEmployeeAction(
     supabase.rpc("can_on_employee", { perm: "employees.invite", emp: employee_id }),
     supabase
       .from("employee")
-      .select("id, email, user_id, organization_id")
+      .select("id, email, user_id, organization_id, login_placeholder")
       .eq("id", employee_id)
       .maybeSingle(),
     supabase
@@ -135,6 +141,26 @@ export async function inviteEmployeeAction(
   ]);
   if (!allowed || !employee) return { message: da.common.notAllowed };
   if (!employee.email) return { message: da.employees.inviteNeedsEmail };
+  if (employee.user_id && employee.login_placeholder) {
+    // A background login (from "log in as"): it gets the employee's e-mail and a login link.
+    const service = createServiceClient();
+    const { error: updateError } = await service.auth.admin.updateUserById(employee.user_id, {
+      email: employee.email,
+      email_confirm: true,
+      app_metadata: { turnus_placeholder: false },
+    });
+    if (updateError) return { message: da.common.unknownError };
+    const { error: linkError } = await createPlainClient(env.supabaseUrl, env.supabaseKey, {
+      auth: { persistSession: false },
+    }).auth.signInWithOtp({
+      email: employee.email,
+      options: { shouldCreateUser: false, emailRedirectTo: `${env.siteUrl}/auth/callback` },
+    });
+    await service.from("employee").update({ login_placeholder: false }).eq("id", employee.id);
+    if (linkError) return { message: da.common.unknownError };
+    revalidatePath(`/medarbejdere/${employee.id}`);
+    return { ok: true, message: da.employees.inviteSent };
+  }
   if (employee.user_id) return { message: da.employees.hasLogin };
 
   let profileId = org?.default_profile_id ?? null;

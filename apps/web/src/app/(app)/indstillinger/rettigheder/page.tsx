@@ -23,26 +23,38 @@ export default async function ProfilesPage({
   const supabase = await createClient();
   const t = da.profiles;
 
-  const [{ data: profiles }, { data: grants }, { data: memberships }, { data: org }] =
-    await Promise.all([
-      supabase
-        .from("permission_profile")
-        .select("id, name, description, is_owner")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("is_owner", { ascending: false })
-        .order("name"),
-      supabase
-        .from("permission_grant")
-        .select("profile_id, permission, scope")
-        .eq("organization_id", ctx.organization.id),
-      supabase.from("membership").select("profile_id").eq("organization_id", ctx.organization.id),
-      supabase
-        .from("organization")
-        .select("default_profile_id")
-        .eq("id", ctx.organization.id)
-        .single(),
-    ]);
+  const [
+    { data: profiles },
+    { data: grants },
+    { data: memberships },
+    { data: org },
+    { count: withoutLogin },
+  ] = await Promise.all([
+    supabase
+      .from("permission_profile")
+      .select("id, name, description, is_owner")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("is_owner", { ascending: false })
+      .order("name"),
+    supabase
+      .from("permission_grant")
+      .select("profile_id, permission, scope")
+      .eq("organization_id", ctx.organization.id),
+    supabase.from("membership").select("profile_id").eq("organization_id", ctx.organization.id),
+    supabase
+      .from("organization")
+      .select("default_profile_id")
+      .eq("id", ctx.organization.id)
+      .single(),
+    // Employees without a login get the default profile when they are invited.
+    supabase
+      .from("employee")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organization.id)
+      .is("user_id", null)
+      .is("archived_at", null),
+  ]);
   const list = profiles ?? [];
   const selected = list.find((p) => p.id === profil) ?? list[0];
   const grantsOf = (id: string): Permissions => {
@@ -78,8 +90,11 @@ export default async function ProfilesPage({
                     <Star className="size-3.5 fill-signal text-signal" aria-label={t.default} />
                   ) : null}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground" data-testid="profile-count">
                   {t.members(memberCount(p.id))}
+                  {org?.default_profile_id === p.id && (withoutLogin ?? 0) > 0
+                    ? ` · ${t.withoutLogin(withoutLogin ?? 0)}`
+                    : ""}
                 </span>
               </Link>
             ))}

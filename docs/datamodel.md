@@ -110,6 +110,27 @@ Rettigheder: `projects.manage` (organisation) og `projects.view` (afdelinger ell
 
 Selvbetjening er fjernet (`create_organization` findes ikke længere). Platform-RPC'erne kræver `is_platform_admin()`: `platform_organizations()`, `platform_create_organization(name)`, `platform_user_id(email)`, `platform_add_owner(org, user)` og `platform_set_archived(org, bool)`. Ukendte e-mails inviteres via service-klienten, efter at databasen har bekræftet platformsrettigheden. Platformsbrugeren kan ikke se kundernes data.
 
+## Oversigt og "log ind som"
+
+| Tabel / felt                 | Bemærkning                                                                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bulletin_post`              | Opslag. `department_id` null = hele organisationen. Læses af medlemmer i afdelingen. Skrives med `bulletin.manage` i afdelingen (`private.can_post`) |
+| `employee.show_celebrations` | Fødselsdag og jubilæum vises på oversigten. Medarbejderen ændrer det selv via `set_show_celebrations()`                                              |
+| `impersonation_session`      | Hvem (`admin_user_id`) der er logget ind som hvem (`target_user_id`), med start og slut. Oprettes og afsluttes kun via RPC                           |
+| `audit_log.impersonator_id`  | Sat, når en ændring er lavet under "log ind som" (`private.impersonator()`)                                                                          |
+| `employee.login_placeholder` | Login oprettet af "log ind som" uden e-mail til medarbejderen. Ryddes ved invitation                                                                 |
+
+RPC'er: `celebrations(org, from, days)` (29. februar vises 28. februar i ikke-skudår), `can_impersonate`, `start_impersonation`, `end_impersonation` og `impersonation_info`. `time_entry_history` viser `created_as_email` og `approved_as_email`.
+
+## Normprocent
+
+| Tabel / felt                                                       | Bemærkning                                                                                                            |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `shift.norm_percent`, `shift_template.norm_percent`                | Andel af vagten (0–100), der tæller i timenormen. Null = standard for vagttypen. Indgår i kladdemarkering og snapshot |
+| `shift.norm_in_pay`, `shift_template.norm_in_pay`                  | Andelen bruges, når lønnen finder overarbejde. Null = standard for vagttypen                                          |
+| `organization_settings.norm_percent_work` / `norm_percent_on_call` | Standard pr. vagttype (100 og 0, som hidtil)                                                                          |
+| `organization_settings.norm_in_pay_work` / `norm_in_pay_on_call`   | Standard: nej. Arbejde tæller så fuldt og rådighed ikke, som hidtil                                                   |
+
 ## Tidsregistrering (fase 4)
 
 | Tabel / felt | Bemærkning                                                                                                                                                                                                                                       |
@@ -169,6 +190,7 @@ Rettigheder: `payroll.view` (afdelinger eller organisation, Leder i egne afdelin
 - Egne overenskomster: "Ny version fra dato" kopierer den seneste version som kladde. Kladden redigeres med en formular pr. regel eller som JSON, valideres med skemaet og ved opløsning mod det, den arver (advarsler under lovens minimum), og publiceres med `publish_agreement_version`. Den forrige version slutter dagen før, og publicerede versioner kan ikke ændres (trigger).
 - Testuger (`agreement_test_case`): en fiktiv medarbejder og kontrakt, en uges vagter og fravær og de forventede lønarter (timer, beløb) og regelbrud, regnet i hånden ud fra overenskomstteksten (`test jsonb`, se `src/lib/domain/test-weeks.ts`). De gemmes pr. organisation og overenskomst (også systemskabeloner), følger med ved kopi og lokalaftale og køres mod den publicerede version og den gemte kladde. Fejler en testuge mod kladden, beder publiceringen om en ekstra bekræftelse. Kræver `agreements.manage`, og der arkiveres i stedet for at slette.
 - Projekter: værdier i konteringsdimensionen med `is_project = true` (`posting_value.description` er kunden). `shift_template.posting_values` og `rotation_slot.posting_values` er standardkontering for hele vagten. `project`, `project_department`, `project_allocations` og `project_id` er historik fra før migrationen `20261129000001_projects_as_posting.sql`.
+- Integrationer: `api_key` (navn, prefix, `key_hash` (SHA-256), scopes, spærring), `webhook_endpoint` (url, hændelser, hemmelighed) og `webhook_delivery` (outbox: hændelse, payload, status, forsøg, næste forsøg). Rettigheden `integrations.manage`. Funktionerne `api_key_lookup`, `api_stamp`, `webhook_claim` og `webhook_result` kan kun kaldes af service-rollen.
 - AI-assistent: `organization_settings.assistant_enabled` (standard fra), rettigheden `assistant.use`, `assistant_request` (forbrug pr. bruger: type, model, udfald, tokens, aldrig indhold) og `assistant_proposal` (et forslag til en afdeling og uge, kan kasseres). `shift.proposal_id` binder kladdevagterne til forslaget.
 - Kørsel og udlæg: `mileage_rate` (år, høj/lav sats i øre pr. km, km-grænse, lønarter, kilde), `expense_category` (navn, lønart, `receipt_required`), `mileage_trip` (dato, formål, fra/til, `stops` som JSON-liste, `meters`, bil, `posting_values`) og `expense` (dato, kategori, beskrivelse, `amount_ore`, `receipt_path`, `posting_values`). Status `pending`/`approved`/`rejected` ændres kun via `decide_expense_items` (samme godkendere som tid). Afgjorte poster er låst. Kvitteringer ligger i den private bucket `receipts` under `<organisation>/<medarbejder>/`. `pay_line.unit` kan være `km` (så er `quantity_minutes` meter). Rettigheden `expenses.manage` styrer opsætningen.
 - Kontering: `posting_dimension` (nøgle, navn, påkrævet) og `posting_value` (kode, navn) med `posting_value_department` (tom = alle afdelinger). `department.posting_defaults` og `employee.posting_defaults` er `{dimension_id: value_id}`. `shift.posting_allocations` og `time_entry.posting_allocations` er rækker `{values, start_at, end_at, minutes}` (tidsrum, minutter eller resten), valideret af en trigger. `pay_line.posting` er konteringen på lønlinjen. Rettigheden `posting.manage` styrer opsætningen.
