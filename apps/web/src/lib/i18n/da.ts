@@ -483,7 +483,7 @@ export const da = {
     kinds: { work: "Arbejde", on_call: "Rådighed" },
     normPercent: "Tæller i timenorm (%)",
     normPercentDefault: (n: number) => `Standard: ${n} %`,
-    normPercentInvalid: "Angiv et helt tal fra 0 til 100",
+    normPercentInvalid: "Angiv et helt tal fra 0 til 1000",
     normInPay: "Bruges, når lønnen finder overarbejde",
     normInPayDefault: (yes: boolean | null) =>
       yes === null ? "Standard for vagttypen" : `Standard (${yes ? "ja" : "nej"})`,

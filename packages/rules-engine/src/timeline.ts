@@ -42,10 +42,7 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         kind: i.kind ?? "work",
         breaks,
         plannedShiftId: i.plannedShiftId ?? null,
-        normPercent: Math.min(
-          100,
-          Math.max(0, i.normPercent ?? ((i.kind ?? "work") === "on_call" ? 0 : 100)),
-        ),
+        normPercent: Math.max(0, i.normPercent ?? ((i.kind ?? "work") === "on_call" ? 0 : 100)),
         supplements: i.supplements ?? [],
         postings: (i.postings ?? []).map((p) => ({
           values: p.values,

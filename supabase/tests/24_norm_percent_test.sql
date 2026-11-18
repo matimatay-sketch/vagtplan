@@ -1,6 +1,6 @@
 -- Norm percent on shifts: range, defaults, draft detection and the published snapshot.
 begin;
-select plan(7);
+select plan(8);
 
 \set org1 20000000-0000-0000-0000-000000000001
 \set admin 10000000-0000-0000-0000-000000000001
@@ -14,8 +14,12 @@ select is((select norm_percent_work::int || '/' || norm_percent_on_call || '/' |
 select tests.login_as(:'manager');
 select throws_ok(
   format($$insert into public.shift (organization_id, department_id, start_at, end_at, kind, norm_percent)
-    values (%L, %L, '2027-03-01 17:00+01', '2027-03-01 23:00+01', 'on_call', 120)$$, :'org1', :'butik'),
-  '23514', null, 'the percent is between 0 and 100');
+    values (%L, %L, '2027-03-01 17:00+01', '2027-03-01 23:00+01', 'on_call', 1001)$$, :'org1', :'butik'),
+  '23514', null, 'the percent is between 0 and 1000');
+select lives_ok(
+  format($$insert into public.shift (organization_id, department_id, start_at, end_at, norm_percent)
+    values (%L, %L, '2027-03-02 22:00+01', '2027-03-03 06:00+01', 150)$$, :'org1', :'butik'),
+  'a shift may count more than its real time (150 %)');
 insert into public.shift (id, organization_id, department_id, start_at, end_at, kind, norm_percent, norm_in_pay)
   values ('70000000-0000-0000-0000-0000000000a1', :'org1', :'butik', '2027-03-01 17:00+01', '2027-03-01 23:00+01', 'on_call', 33, true);
 select tests.logout();

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { da } from "@/lib/i18n/da";
 import { parseDanishDecimal } from "@/lib/domain/numbers";
+import { MAX_NORM_PERCENT } from "@/lib/domain/norm-percent";
 import { RULE_CATALOG, type RuleHandlingMap } from "@/lib/schedule/rule-handling";
 
 const optionalHours = z
@@ -113,7 +114,7 @@ const percent = z
   .optional()
   .transform((s, ctx) => {
     const n = Number((s ?? "").trim());
-    if (!s || !s.trim() || !Number.isInteger(n) || n < 0 || n > 100) {
+    if (!s || !s.trim() || !Number.isInteger(n) || n < 0 || n > MAX_NORM_PERCENT) {
       ctx.addIssue({ code: "custom", message: da.schedule.normPercentInvalid });
       return z.NEVER;
     }

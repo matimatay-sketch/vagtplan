@@ -272,7 +272,7 @@ export function NormDefaultsForm({
         <Input
           type="number"
           min={0}
-          max={100}
+          max={1000}
           {...fieldProps("norm_percent_work", state, String(defaults.norm_percent_work))}
         />
       </Field>
@@ -285,7 +285,7 @@ export function NormDefaultsForm({
         <Input
           type="number"
           min={0}
-          max={100}
+          max={1000}
           {...fieldProps("norm_percent_on_call", state, String(defaults.norm_percent_on_call))}
         />
       </Field>

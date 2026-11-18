@@ -3,6 +3,9 @@
  * norm (e.g. on-call at 33 %). A shift without its own value uses the
  * organization's default for its kind. Pure and browser-safe.
  */
+/** Upper limit against typing errors (the database checks the same). */
+export const MAX_NORM_PERCENT = 1000;
+
 export type ShiftKind = "work" | "on_call";
 
 export type NormDefaults = {

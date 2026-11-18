@@ -124,12 +124,12 @@ RPC'er: `celebrations(org, from, days)` (29. februar vises 28. februar i ikke-sk
 
 ## Normprocent
 
-| Tabel / felt                                                       | Bemærkning                                                                                                            |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `shift.norm_percent`, `shift_template.norm_percent`                | Andel af vagten (0–100), der tæller i timenormen. Null = standard for vagttypen. Indgår i kladdemarkering og snapshot |
-| `shift.norm_in_pay`, `shift_template.norm_in_pay`                  | Andelen bruges, når lønnen finder overarbejde. Null = standard for vagttypen                                          |
-| `organization_settings.norm_percent_work` / `norm_percent_on_call` | Standard pr. vagttype (100 og 0, som hidtil)                                                                          |
-| `organization_settings.norm_in_pay_work` / `norm_in_pay_on_call`   | Standard: nej. Arbejde tæller så fuldt og rådighed ikke, som hidtil                                                   |
+| Tabel / felt                                                       | Bemærkning                                                                                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `shift.norm_percent`, `shift_template.norm_percent`                | Andel af vagten (0–1000 %), der tæller i timenormen. Null = standard for vagttypen. Indgår i kladdemarkering og snapshot |
+| `shift.norm_in_pay`, `shift_template.norm_in_pay`                  | Andelen bruges, når lønnen finder overarbejde. Null = standard for vagttypen                                             |
+| `organization_settings.norm_percent_work` / `norm_percent_on_call` | Standard pr. vagttype (100 og 0, som hidtil)                                                                             |
+| `organization_settings.norm_in_pay_work` / `norm_in_pay_on_call`   | Standard: nej. Arbejde tæller så fuldt og rådighed ikke, som hidtil                                                      |
 
 ## Tidsregistrering (fase 4)
 

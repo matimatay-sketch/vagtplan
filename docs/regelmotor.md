@@ -60,9 +60,10 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 
 ### Normprocent (`normPercent`)
 
-Et interval kan have `normPercent` (0–100), som er den andel af intervallet, der tæller med i normen, når overarbejde findes (udløserne `daily_norm`, `weekly_norm` og `period_norm`). Uden værdi tæller arbejde og tilkald 100 % og rådighed 0 %, som hidtil.
+Et interval kan have `normPercent` (0 eller mere; over 100 tæller mere end den faktiske tid), som er den andel af intervallet, der tæller med i normen, når overarbejde findes (udløserne `daily_norm`, `weekly_norm` og `period_norm`). Uden værdi tæller arbejde og tilkald 100 % og rådighed 0 %, som hidtil.
 
 - Arbejde med fx 50 % fylder normen med det halve af sine minutter. Når normen er nået, er resten af vagtens faktiske tid overarbejde.
+- Arbejde med over 100 %, fx 150 %, fylder normen hurtigere, så overarbejdet begynder tidligere.
 - Rådighed med mere end 0 % fylder normen på samme måde som fravær, der tæller med i normen. Normen i enheden nedsættes med andelen.
 - Appen sender kun `normPercent`, når vagten (eller virksomhedens standard for vagttypen) er sat til at blive brugt i lønnen.
 

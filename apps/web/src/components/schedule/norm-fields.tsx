@@ -36,7 +36,7 @@ export function NormFields({
           type="number"
           inputMode="numeric"
           min={0}
-          max={100}
+          max={1000}
           step={1}
           value={percent}
           placeholder={defaults ? t.normPercentDefault(defaults.percent[kind]) : ""}
