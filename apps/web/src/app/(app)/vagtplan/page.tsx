@@ -10,6 +10,9 @@ import { DayBoard } from "@/components/schedule/day-board";
 import { PublishButton } from "@/components/schedule/publish-dialog";
 import { CopyWeekButton } from "@/components/schedule/copy-week-button";
 import { RealtimeRefresh } from "@/components/schedule/realtime-refresh";
+import { ProposeButton } from "@/components/assistant/propose-button";
+import { ProposalBanner } from "@/components/assistant/proposal-banner";
+import { assistantState } from "@/lib/assistant/access";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { canInDepartment } from "@/lib/permissions";
@@ -64,7 +67,28 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         ? today
         : weekStart;
 
-  const board = await loadWeek(supabase, ctx, department.id, weekStart);
+  const [board, assistant, { data: proposals }] = await Promise.all([
+    loadWeek(supabase, ctx, department.id, weekStart),
+    assistantState(supabase, ctx),
+    supabase
+      .from("assistant_proposal")
+      .select("id, note, shift!shift_proposal_fk (id, archived_at, published)")
+      .eq("department_id", department.id)
+      .eq("week_start", weekStart)
+      .is("discarded_at", null)
+      .order("created_at"),
+  ]);
+  const activeProposals = (proposals ?? [])
+    .map((p) => ({
+      id: p.id,
+      note: p.note,
+      shiftCount: p.shift.filter((s) => s.archived_at === null).length,
+    }))
+    .filter((p) => p.shiftCount > 0);
+  const canPropose =
+    board.canManage &&
+    assistant.usable &&
+    canInDepartment(ctx.permissions, "assistant.use", department.id, ctx.responsibleDepartmentIds);
   const href = (p: Record<string, string>) =>
     `/vagtplan?${new URLSearchParams({ afdeling: department.id, uge: weekStart, visning: view, ...(view === "dag" ? { dag: day } : {}), ...p })}`;
 
@@ -86,6 +110,9 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         }
         actions={
           <>
+            {canPropose ? (
+              <ProposeButton departmentId={department.id} weekStart={weekStart} />
+            ) : null}
             {board.canManage ? (
               <CopyWeekButton departmentId={department.id} weekStart={weekStart} />
             ) : null}
@@ -180,6 +207,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         ) : null}
       </div>
 
+      <ProposalBanner proposals={activeProposals} canManage={board.canManage} />
       {board.shifts.some((x) => x.uncovered) ? (
         <Alert className="mb-4" data-testid="uncovered-alert">
           <AlertDescription>

@@ -101,6 +101,14 @@ export const ShiftCard = React.forwardRef<
             {da.absence.uncovered}
           </span>
         ) : null}
+        {shift.proposalId ? (
+          <span
+            className="rounded bg-accent px-1 text-[10px] font-medium text-accent-foreground no-underline"
+            data-testid="proposal-badge"
+          >
+            {da.assistant.badge}
+          </span>
+        ) : null}
         {shift.postingAllocations.length ? (
           <span
             className="flex items-center gap-0.5 rounded bg-secondary px-1 text-[10px] font-medium text-secondary-foreground no-underline"

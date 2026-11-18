@@ -42,6 +42,8 @@ export type BoardShift = {
   breaks: DbBreak[];
   supplementTypeIds: string[];
   postingAllocations: PostingAllocation[];
+  /** Set when the shift came from an AI proposal. */
+  proposalId: string | null;
   label: string | null;
   kind: "work" | "on_call";
   templateId: string | null;
@@ -135,7 +137,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, label, kind, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -282,6 +284,7 @@ export async function loadWeek(
     breaks: s.breaks as unknown as DbBreak[],
     supplementTypeIds: s.supplement_type_ids,
     postingAllocations: s.posting_allocations as unknown as PostingAllocation[],
+    proposalId: s.proposal_id,
     label: s.label,
     kind: s.kind,
     templateId: s.template_id,

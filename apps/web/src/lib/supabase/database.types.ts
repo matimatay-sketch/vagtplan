@@ -97,6 +97,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"assistant_proposal": {
+                  Row: {
+                    "created_at": string,"created_by": string,"department_id": string,"discarded_at": string | null,"id": string,"note": string | null,"organization_id": string,"week_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string,"department_id": string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id": string,"week_start": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"department_id"?: string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id"?: string,"week_start"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_proposal_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "assistant_proposal_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"assistant_request": {
+                  Row: {
+                    "created_at": string,"department_id": string | null,"id": string,"input_tokens": number,"kind": string,"model": string,"organization_id": string,"outcome": string,"output_tokens": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"department_id"?: string | null,"id"?: string,"input_tokens"?: number,"kind": string,"model": string,"organization_id": string,"outcome": string,"output_tokens"?: number,"user_id"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"department_id"?: string | null,"id"?: string,"input_tokens"?: number,"kind"?: string,"model"?: string,"organization_id"?: string,"outcome"?: string,"output_tokens"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_request_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "assistant_request_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"audit_log": {
                   Row: {
                     "action": string,"actor_id": string | null,"after": Json | null,"before": Json | null,"created_at": string,"id": number,"organization_id": string | null,"row_id": string,"table_name": string
@@ -509,14 +561,14 @@ isOneToOne: false
                   ]
                 },"organization_settings": {
                   Row: {
-                    "leave_rules": NonNullable<Json>,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
+                    "assistant_enabled": boolean,"leave_rules": NonNullable<Json>,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "leave_rules"?: NonNullable<Json>,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"leave_rules"?: NonNullable<Json>,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Update: {
-                    "leave_rules"?: NonNullable<Json>,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"leave_rules"?: NonNullable<Json>,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -981,14 +1033,14 @@ isOneToOne: false
                   ]
                 },"shift": {
                   Row: {
-                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"note": string | null,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"published": Json | null,"published_at": string | null,"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
+                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"note": string | null,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"proposal_id": string | null,"published": Json | null,"published_at": string | null,"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"note"?: string | null,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1014,6 +1066,12 @@ isOneToOne: false
       columns: ["organization_id","template_id"]
 isOneToOne: false
       referencedRelation: "shift_template"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_proposal_fk"
+      columns: ["organization_id","proposal_id"]
+isOneToOne: false
+      referencedRelation: "assistant_proposal"
       referencedColumns: ["organization_id","id"]
     },{
       foreignKeyName: "shift_rollout_fk"

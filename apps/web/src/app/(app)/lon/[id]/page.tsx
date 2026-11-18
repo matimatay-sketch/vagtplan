@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AskPayButton } from "@/components/assistant/ask-pay-button";
+import { assistantState } from "@/lib/assistant/access";
 import { formatKm } from "@/lib/domain/mileage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -58,6 +60,7 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
     loadPostingDimensions(supabase),
   ]);
   const runBy = new Map((runs ?? []).map((r) => [r.employee_id, r]));
+  const assistant = await assistantState(supabase, ctx);
   // Only employees the user may see pay for (the runs are filtered by the database).
   const visible = hasOrg(ctx.permissions, "payroll.manage")
     ? employees
@@ -107,7 +110,10 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
                   <span className="font-semibold">
                     {e.name} <span className="font-normal text-muted-foreground">#{e.number}</span>
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {run && assistant.usable ? (
+                      <AskPayButton periodId={p.id} employeeId={e.id} employeeName={e.name} />
+                    ) : null}
                     {run
                       ? t.calculatedAt(
                           `${formatDate(localParts(run.calculated_at).date)} ${localParts(run.calculated_at).time}`,
