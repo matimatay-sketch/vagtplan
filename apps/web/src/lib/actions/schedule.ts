@@ -1,4 +1,5 @@
 "use server";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
@@ -395,6 +396,8 @@ export async function publishAction(input: {
   weekStart: string;
   overrides: Record<string, string>;
 }): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const p = z
     .object({
       departmentId: z.guid(),

@@ -162,6 +162,12 @@ export const PERMISSIONS = [
     label: "Bruge AI-assistenten (forklaring af lønarter, forslag til vagtplan)",
     scopes: ["departments", "organization"],
   },
+  {
+    key: "integrations.manage",
+    group: "Integrationer",
+    label: "Oprette API-nøgler og webhooks til andre systemer",
+    scopes: ["organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;

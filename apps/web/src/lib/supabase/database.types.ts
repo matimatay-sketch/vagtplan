@@ -97,6 +97,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"api_key": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"key_hash": string,"last_used_at": string | null,"name": string,"organization_id": string,"prefix": string,"revoked_at": string | null,"scopes": (string)[]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"key_hash": string,"last_used_at"?: string | null,"name": string,"organization_id": string,"prefix": string,"revoked_at"?: string | null,"scopes": (string)[]
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"key_hash"?: string,"last_used_at"?: string | null,"name"?: string,"organization_id"?: string,"prefix"?: string,"revoked_at"?: string | null,"scopes"?: (string)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "api_key_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"assistant_proposal": {
                   Row: {
                     "created_at": string,"created_by": string,"department_id": string,"discarded_at": string | null,"id": string,"note": string | null,"organization_id": string,"week_start": string
@@ -1177,6 +1197,52 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
+                },"webhook_delivery": {
+                  Row: {
+                    "attempts": number,"created_at": string,"delivered_at": string | null,"endpoint_id": string,"event": string,"id": string,"last_error": string | null,"last_status": number | null,"next_attempt_at": string,"organization_id": string,"payload": NonNullable<Json>,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"created_at"?: string,"delivered_at"?: string | null,"endpoint_id": string,"event": string,"id"?: string,"last_error"?: string | null,"last_status"?: number | null,"next_attempt_at"?: string,"organization_id": string,"payload": NonNullable<Json>,"status"?: string
+                  }
+                  Update: {
+                    "attempts"?: number,"created_at"?: string,"delivered_at"?: string | null,"endpoint_id"?: string,"event"?: string,"id"?: string,"last_error"?: string | null,"last_status"?: number | null,"next_attempt_at"?: string,"organization_id"?: string,"payload"?: NonNullable<Json>,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "webhook_delivery_organization_id_endpoint_id_fkey"
+      columns: ["organization_id","endpoint_id"]
+isOneToOne: false
+      referencedRelation: "webhook_endpoint"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "webhook_delivery_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"webhook_endpoint": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"description": string | null,"disabled_at": string | null,"events": (string)[],"id": string,"organization_id": string,"secret": string,"url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"description"?: string | null,"disabled_at"?: string | null,"events": (string)[],"id"?: string,"organization_id": string,"secret": string,"url": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"description"?: string | null,"disabled_at"?: string | null,"events"?: (string)[],"id"?: string,"organization_id"?: string,"secret"?: string,"url"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "webhook_endpoint_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -1185,6 +1251,14 @@ isOneToOne: false
           Functions: {
             "add_leave_posting":
 { Args: { "p_account": string,"p_employee_id": string,"p_hundredths": number,"p_kind": Database["public"]['Enums']["leave_posting_kind"],"p_note": string,"p_period_start": string,"p_usable_until": string }; Returns: string
+                           },
+"api_key_lookup":
+{ Args: { "p_hash": string }; Returns: {
+              "key_id": string,"organization_id": string,"scopes": (string)[]
+            }[]
+                           },
+"api_stamp":
+{ Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_employee_id": string,"p_organization_id": string }; Returns: string
                            },
 "approve_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
@@ -1299,6 +1373,17 @@ isOneToOne: false
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "approved_at": string,"approved_by_email": string,"breaks": Json,"department_id": string,"department_name": string,"deviation_reason": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"entry_id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string,"offline": boolean,"plan_breaks": Json,"plan_end": string,"plan_start": string,"posting_allocations": Json,"project_allocations": Json,"row_kind": string,"shift_id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"supplement_type_ids": (string)[],"version": number
             }[]
+                           },
+"webhook_claim":
+{ Args: { "p_limit"?: number }; Returns: {
+              "attempts": number,"event": string,"id": string,"payload": Json,"secret": string,"url": string
+            }[]
+                           },
+"webhook_ping":
+{ Args: { "p_endpoint_id": string }; Returns: undefined
+                           },
+"webhook_result":
+{ Args: { "p_error": string,"p_id": string,"p_ok": boolean,"p_status": number }; Returns: undefined
                            }
           }
           Enums: {

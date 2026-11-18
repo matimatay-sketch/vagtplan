@@ -33,6 +33,8 @@ export default defineConfig({
       env: {
         ANTHROPIC_API_KEY: "e2e-test-key",
         ANTHROPIC_BASE_URL: "http://127.0.0.1:4545",
+        // The webhook receiver in the mock is on http://127.0.0.1.
+        WEBHOOK_ALLOW_INSECURE: "1",
       },
     },
   ],

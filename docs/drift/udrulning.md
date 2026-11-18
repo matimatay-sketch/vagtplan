@@ -62,6 +62,8 @@ Under **Project Settings → API Keys** finder du:
    | `NEXT_PUBLIC_SITE_URL`                 | Webappens adresse, fx `https://turnus-test.vercel.app` |
    | `ANTHROPIC_API_KEY` (valgfri)          | Kun hvis AI-assistenten skal bruges                    |
 
+| `CRON_SECRET` (valgfri) | En lang tilfældig tekst. Beskytter genforsøg af webhooks |
+
 4. Klik **Deploy**.
 5. Når adressen kendes, sætter du `NEXT_PUBLIC_SITE_URL` og Supabase' **Site URL** og **Redirect URLs** til den. Til sidst vælger du **Redeploy** i Vercel.
 
@@ -93,4 +95,5 @@ Før rigtige brugere inviteres, skal der sættes en rigtig mailudbyder op under 
 - **Gratis planer**:
   - Supabase pauser et gratis projekt efter en uge uden aktivitet. Det startes igen i dashboardet.
   - Vercels gratis plan (Hobby) må ikke bruges kommercielt. Til rigtige kunder kræves Pro.
+- **Webhooks**: sendes med det samme efter handlingen. Genforsøg sendes af Vercel Cron (`/api/cron/webhooks`). På gratis-planen kører det kun én gang i døgnet, og på Pro kan det sættes hyppigere i `apps/web/vercel.json`.
 - **AI-assistenten**: kræver `ANTHROPIC_API_KEY` og en databehandleraftale (se `docs/jura-todo.md` nr. 32).

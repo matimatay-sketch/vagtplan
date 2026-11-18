@@ -1,4 +1,5 @@
 "use server";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -17,6 +18,8 @@ export async function createEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const parsed = employeeSchema(todayIn(ctx.organization.timezone)).safeParse(values);
@@ -53,6 +56,8 @@ export async function updateEmployeeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   const ctx = await requireContext(["employees.manage"]);
   const values = formValues(formData);
   const id = z.guid().safeParse(values.id);

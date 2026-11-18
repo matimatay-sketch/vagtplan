@@ -1,4 +1,5 @@
 "use server";
+import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireContext } from "@/lib/auth";
@@ -205,6 +206,8 @@ export async function archiveTimeEntryAction(id: string): Promise<ActionState> {
 
 /** The database checks time.approve on the department or the personal approver. */
 export async function approveTimeEntriesAction(ids: string[]): Promise<ActionState> {
+  // Events recorded by the database are sent to webhooks after the response.
+  sendWebhooksSoon();
   await requireContext();
   const parsed = z.array(z.guid()).min(1).max(500).parse(ids);
   const supabase = await createClient();

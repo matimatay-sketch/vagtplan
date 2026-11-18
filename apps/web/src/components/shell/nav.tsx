@@ -21,6 +21,7 @@ import {
   Tags,
   Car,
   Receipt,
+  Plug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
@@ -124,6 +125,12 @@ const items: Item[] = [
     label: da.nav.expenseSettings,
     icon: Receipt,
     anyOf: ["expenses.manage"],
+  },
+  {
+    href: "/indstillinger/integrationer",
+    label: da.nav.integrations,
+    icon: Plug,
+    anyOf: ["integrations.manage"],
   },
   { href: "/profil", label: da.nav.myProfile, icon: UserRound, anyOf: [], needsEmployee: true },
 ];

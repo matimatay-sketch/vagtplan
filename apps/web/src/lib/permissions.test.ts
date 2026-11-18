@@ -31,6 +31,7 @@ describe("permission catalog", () => {
       "payroll.view",
       "payroll.manage",
       "assistant.use",
+      "integrations.manage",
     ]);
   });
 });
