@@ -13,6 +13,9 @@ import { EndContractForm, NewContractForm } from "@/components/employees/contrac
 import { InviteForm } from "@/components/employees/invite-form";
 import { MemberProfileForm } from "@/components/employees/profile-form";
 import { ApproverForm } from "@/components/employees/approver-form";
+import { PostingDefaultsForm } from "@/components/posting/posting-defaults";
+import { loadPostingDimensions } from "@/lib/posting/load";
+import type { PostingValues } from "@/lib/domain/posting";
 import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
 import { canIn, requireContext } from "@/lib/auth";
 import { hasOrg, type PermissionKey } from "@/lib/permissions";
@@ -47,7 +50,7 @@ export default async function EmployeePage({
   const { data: employee } = await supabase
     .from("employee")
     .select(
-      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, approver_user_id, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
+      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -123,6 +126,12 @@ export default async function EmployeePage({
   const canEdit = canOnEmployee("employees.manage");
   const canSeeContracts = canOnEmployee("contracts.view") || canOnEmployee("contracts.manage");
   const canManageContracts = canOnEmployee("contracts.manage");
+  const canManagePosting = canEdit;
+  const postingDimensions = canManagePosting ? await loadPostingDimensions(supabase) : [];
+  const primaryDepartmentId =
+    employee.employee_department.find((d) => d.is_primary)?.department_id ??
+    employee.employee_department[0]?.department_id ??
+    null;
   const canInvite = canOnEmployee("employees.invite");
   const contracts = [...employee.contract].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
   const latest = contracts[0];
@@ -338,6 +347,23 @@ export default async function EmployeePage({
               ) : null}
             </CardContent>
           </Card>
+
+          {canManagePosting && postingDimensions.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{da.posting.defaults}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PostingDefaultsForm
+                  kind="employee"
+                  id={employee.id}
+                  departmentId={primaryDepartmentId}
+                  dimensions={postingDimensions}
+                  value={employee.posting_defaults as PostingValues}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           {canManageUsers ? (
             <Card>

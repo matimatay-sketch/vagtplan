@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 // RLS-scoped, so a static shell buys nothing. See CLAUDE.md.
 const nextConfig: NextConfig = {
   transpilePackages: ["@vagtplan/rules-engine"],
+  // Receipts (udlæg) are uploaded through a server action; the bucket allows 10 MiB.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   async headers() {
     return [
       {

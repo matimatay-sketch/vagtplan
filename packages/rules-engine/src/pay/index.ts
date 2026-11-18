@@ -28,6 +28,7 @@ import {
   minutesOf,
   normalizeIntervals,
   payPieces,
+  type PostingRow,
   type Span,
   type WorkInterval,
 } from "../timeline";
@@ -58,6 +59,8 @@ export type ExplainedInterval = {
 
 export type PayLine = {
   payCode: string;
+  /** Posting (kontering): dimension → value. Empty when the time has no posting. */
+  posting: Record<string, string>;
   label: string;
   /** hours: money for minutes worked; time_off_minutes: credited time off; fixed: amount per shift (quantity 0). */
   unit: "hours" | "time_off_minutes" | "fixed";
@@ -93,6 +96,8 @@ type Segment = Span & {
   intervalId: string;
   /** Start of the shift the segment belongs to (for windows that depend on it). */
   shiftStart: Instant;
+  /** Index of the posting span row the segment lies in (null = not in a span). */
+  postingRow: number | null;
   kind: "work" | "call_out";
   date: IsoDate;
   holiday: boolean;
@@ -258,6 +263,41 @@ function baseRate(
 function amountRate(amount: Amount, base: number): number {
   return amount.type === "ore_per_hour" ? amount.ore : Math.round((base * amount.bp) / 10000);
 }
+
+/** The posting span row a (cut) span lies in, or null. */
+function postingRowOf(i: WorkInterval, s: Span): number | null {
+  const k = i.postings.findIndex(
+    (r) => r.start !== null && r.end !== null && r.start <= s.start && s.end <= r.end,
+  );
+  return k < 0 ? null : k;
+}
+
+/** Splits an integer total by weights (largest remainder; ties to the first). Sums exactly. */
+export function splitByWeights(total: number, weights: readonly number[]): number[] {
+  const sum = weights.reduce((t, w) => t + w, 0);
+  if (sum <= 0) return weights.map((_, k) => (k === 0 ? total : 0));
+  const sign = total < 0 ? -1 : 1;
+  const abs = Math.abs(total);
+  const exact = weights.map((w) => (abs * w) / sum);
+  const out = exact.map(Math.floor);
+  let left = abs - out.reduce((t, x) => t + x, 0);
+  const order = exact
+    .map((x, k) => ({ k, r: x - Math.floor(x) }))
+    .sort((a, b) => b.r - a.r || a.k - b.k);
+  for (const { k } of order) {
+    if (left <= 0) break;
+    out[k]! += 1;
+    left--;
+  }
+  return out.map((x) => x * sign);
+}
+
+const postingKey = (v: Record<string, string>) =>
+  JSON.stringify(
+    Object.keys(v)
+      .sort()
+      .map((k) => [k, v[k]]),
+  );
 
 function subtractSpan(a: Span, b: Span): Span[] {
   if (b.end <= a.start || b.start >= a.end) return [a];
@@ -516,6 +556,8 @@ type Acc = {
   ratio: [number, number] | null;
   /** Minutes per interval, for rounding per shift. */
   byInterval: Map<string, number>;
+  /** Minutes per interval: in posting span rows, and outside spans ("free"). */
+  parts: Map<string, { rows: Map<number, number>; free: number }>;
 };
 
 export function roundQuantity(minutes: number, r: QuantityRounding): number {
@@ -525,9 +567,18 @@ export function roundQuantity(minutes: number, r: QuantityRounding): number {
 
 class LineBook {
   private readonly map = new Map<string, Acc>();
-  constructor(private readonly labels: (code: string) => string) {}
+  constructor(
+    private readonly labels: (code: string) => string,
+    private readonly postingsOf: (intervalId: string) => readonly PostingRow[] = () => [],
+    private readonly freeOf: (intervalId: string) => number = () => 0,
+  ) {}
 
-  add(c: Candidate, minutes: number, interval: ExplainedInterval | null) {
+  add(
+    c: Candidate,
+    minutes: number,
+    interval: ExplainedInterval | null,
+    postingRow: number | null = null,
+  ) {
     const key = `${c.payCode}|${c.rateOre}|${c.rule.id}|${c.unit}`;
     let acc = this.map.get(key);
     if (!acc) {
@@ -536,8 +587,10 @@ class LineBook {
         rounding: c.rounding ?? null,
         ratio: c.ratio ?? null,
         byInterval: new Map(),
+        parts: new Map(),
         line: {
           payCode: c.payCode,
+          posting: {},
           label: this.labels(c.payCode),
           unit: c.unit,
           quantityMinutes: 0,
@@ -562,6 +615,11 @@ class LineBook {
         interval.intervalId,
         (acc.byInterval.get(interval.intervalId) ?? 0) + minutes,
       );
+    const pid = interval?.intervalId ?? "";
+    const part = acc.parts.get(pid) ?? { rows: new Map<number, number>(), free: 0 };
+    if (postingRow === null) part.free += minutes;
+    else part.rows.set(postingRow, (part.rows.get(postingRow) ?? 0) + minutes);
+    acc.parts.set(pid, part);
     if (interval) {
       const last = acc.line.explanation.intervals.at(-1);
       if (
@@ -589,18 +647,67 @@ class LineBook {
             : acc.minutes;
   }
 
+  /** Raw minutes per posting for a line, from its intervals' posting rows. */
+  private postingMinutes(acc: Acc): { values: Record<string, string>; minutes: number }[] {
+    const out = new Map<string, { values: Record<string, string>; minutes: number }>();
+    const add = (values: Record<string, string>, m: number) => {
+      if (m <= 0) return;
+      const key = postingKey(values);
+      const cur = out.get(key) ?? { values, minutes: 0 };
+      cur.minutes += m;
+      out.set(key, cur);
+    };
+    for (const [id, part] of acc.parts) {
+      const rows = id ? this.postingsOf(id) : [];
+      for (const [k, m] of part.rows) add(rows[k]?.values ?? {}, m);
+      if (part.free <= 0) continue;
+      // Outside spans: minutes rows get their minutes, the rest row the remainder, pro rata.
+      const free = this.freeOf(id) || part.free;
+      const fixed = rows.filter((r) => r.start === null && r.minutes !== null);
+      const restRow = rows.find((r) => r.start === null && r.minutes === null);
+      const used = fixed.reduce((t, r) => t + (r.minutes ?? 0), 0);
+      const targets = [
+        ...fixed.map((r) => ({ values: r.values, w: r.minutes ?? 0 })),
+        { values: restRow?.values ?? {}, w: Math.max(0, free - used) },
+      ];
+      const split = splitByWeights(
+        part.free,
+        targets.map((t) => t.w),
+      );
+      targets.forEach((t, k) => add(t.values, split[k]!));
+    }
+    return [...out.values()];
+  }
+
   lines(): PayLine[] {
     return [...this.map.values()]
-      .map(({ line, minutes }) => ({
-        ...line,
-        amountOre:
+      .flatMap((acc) => {
+        const { line, minutes } = acc;
+        const amountOre =
           line.unit === "hours"
             ? Math.round((line.quantityMinutes * line.rateOre) / 60)
             : line.unit === "fixed"
               ? line.rateOre * minutes // `minutes` counts shifts for fixed amounts
-              : 0,
-      }))
-      .sort((a, b) => a.payCode.localeCompare(b.payCode) || a.rateOre - b.rateOre);
+              : 0;
+        const postings = this.postingMinutes(acc);
+        if (postings.length <= 1)
+          return [{ ...line, amountOre, posting: postings[0]?.values ?? {} }];
+        const weights = postings.map((p) => p.minutes);
+        const qty = splitByWeights(line.quantityMinutes, weights);
+        const amounts = splitByWeights(amountOre, weights);
+        return postings.map((p, k) => ({
+          ...line,
+          quantityMinutes: qty[k]!,
+          amountOre: amounts[k]!,
+          posting: p.values,
+        }));
+      })
+      .sort(
+        (a, b) =>
+          a.payCode.localeCompare(b.payCode) ||
+          a.rateOre - b.rateOre ||
+          postingKey(a.posting).localeCompare(postingKey(b.posting)),
+      );
   }
 }
 
@@ -626,19 +733,26 @@ export function calculatePay(input: CalcPayInput): PayResult {
   const worked = normalizeIntervals(input.worked).map((i) => applyRounding(ctx, i, planned));
   const absences = input.absences ?? [];
 
-  // 1. Paid pieces → segments.
+  // 1. Paid pieces → segments (cut at posting spans; paid minutes outside spans per interval).
+  const freePaid = new Map<string, number>();
   let segments: Segment[] = [];
   for (const i of worked) {
     if (i.kind === "on_call" || i.end <= i.start) continue;
     const date = localDate(i.start, ctx.tz);
     const pieces = payPieces(i, ctx.rule(date, "break")?.params.paid ?? false);
+    const spanCuts = i.postings.flatMap((r) =>
+      r.start !== null && r.end !== null ? [r.start, r.end] : [],
+    );
     for (const piece of pieces) {
-      for (const s of cutSpan(piece, boundaryCuts(piece, ctx, plannedSpans))) {
+      for (const s of cutSpan(piece, [...boundaryCuts(piece, ctx, plannedSpans), ...spanCuts])) {
         const d = localDate(s.start, ctx.tz);
+        const postingRow = postingRowOf(i, s);
+        if (postingRow === null) freePaid.set(i.id, (freePaid.get(i.id) ?? 0) + minutesOf(s));
         segments.push({
           ...s,
           intervalId: i.id,
           shiftStart: i.start,
+          postingRow,
           kind: i.kind,
           date: d,
           holiday: isHolidayTime(ctx, d, s.start),
@@ -659,7 +773,12 @@ export function calculatePay(input: CalcPayInput): PayResult {
     }
     return code;
   };
-  const book = new LineBook(labels);
+  const intervalsById = new Map(worked.map((i) => [i.id, i]));
+  const book = new LineBook(
+    labels,
+    (id) => intervalsById.get(id)?.postings ?? [],
+    (id) => freePaid.get(id) ?? 0,
+  );
   const dailyMinutes: Record<IsoDate, number> = {};
   const missingRate = new Set<IsoDate>();
   const holidayEarned = new Set<string>();
@@ -691,10 +810,11 @@ export function calculatePay(input: CalcPayInput): PayResult {
         },
         minutes,
         explained(seg),
+        seg.postingRow,
       );
     }
     for (const c of stack(candidatesFor(seg, ctx, contract, rate?.ore ?? null)))
-      book.add(c, minutes, explained(seg));
+      book.add(c, minutes, explained(seg), seg.postingRow);
     for (const rule of ctx.rules(seg.date, "time_off_accrual")) {
       const b = rule.params.basis;
       if (b.type === "holiday_work") {
@@ -712,6 +832,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
             },
             b.earn_minutes,
             explained(seg),
+            seg.postingRow,
           );
         }
         continue;
@@ -730,6 +851,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
         },
         minutes,
         explained(seg),
+        seg.postingRow,
       );
     }
   }
@@ -825,6 +947,11 @@ export function calculatePay(input: CalcPayInput): PayResult {
       const h = ctx.holiday(d);
       if (h?.from) cuts.add(wallTime(d, h.from, ctx.tz));
     }
+    for (const r of i.postings)
+      if (r.start !== null && r.end !== null) {
+        cuts.add(r.start);
+        cuts.add(r.end);
+      }
     for (const sub of cutSpan(piece, [...cuts])) {
       const d = localDate(sub.start, ctx.tz);
       const seg = { ...sub, holiday: isHolidayTime(ctx, d, sub.start), shiftStart: i.start };
@@ -834,6 +961,8 @@ export function calculatePay(input: CalcPayInput): PayResult {
       const amount = w?.amount ?? onCall.params.amount;
       const m = minutesOf(sub);
       const before = counted(d, m);
+      const row = postingRowOf(i, sub);
+      if (row === null) freePaid.set(i.id, (freePaid.get(i.id) ?? 0) + m);
       if (d < from || d > to) continue;
       if (amount.type === "percent_of_base" && !rate) {
         missingRate.add(d);
@@ -852,6 +981,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
         },
         m,
         interval,
+        row,
       );
       for (const t of onCall.params.monthly_tiers) {
         const lo = Math.max(before, t.from_minutes);
@@ -868,6 +998,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
           },
           hi - lo,
           interval,
+          row,
         );
       }
     }

@@ -40,6 +40,7 @@ export const supplementTypeSchema = z
       .pipe(z.string().regex(/^[A-Z0-9_]{1,32}$/, da.settings.payCodeInvalid)),
     amount_type: z.enum(["per_hour", "fixed", "percent"]),
     amount: z.string(),
+    employee_selectable: z.literal("on").nullish(),
   })
   .transform((v, ctx) => {
     const n = parseDanishDecimal(v.amount);
@@ -48,7 +49,11 @@ export const supplementTypeSchema = z
       return z.NEVER;
     }
     // kr. → øre; percent → basis points (both ×100)
-    return { ...v, amount: Math.round(n * 100) };
+    return {
+      ...v,
+      amount: Math.round(n * 100),
+      employee_selectable: v.employee_selectable === "on",
+    };
   });
 
 const choice = <T extends string>(values: readonly [T, ...T[]]) =>

@@ -6,7 +6,10 @@ import {
   checkBreaks,
   hhmm,
   optionalGuid,
+  postingField,
   projectsField,
+  supplementsField,
+  withNextDay,
   type FormProjectRow,
 } from "./schedule";
 
@@ -31,6 +34,8 @@ export const timeEntryFormSchema = z
     end_time: hhmm,
     breaks: breaksField,
     project_allocations: projectsField,
+    posting_allocations: postingField,
+    supplement_type_ids: supplementsField,
     deviation_reason: optionalText,
     note: optionalText,
     kind: z.enum(["work", "call_out"]).default("work"),
@@ -51,6 +56,7 @@ export const timeEntryFormSchema = z
       ...val,
       breaks,
       project_allocations,
+      posting_allocations: withNextDay(val.posting_allocations, val.start_time),
       endsNextDay: toMinutes(val.end_time) <= startMin,
     };
   });

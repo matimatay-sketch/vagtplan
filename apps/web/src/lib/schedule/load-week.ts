@@ -6,6 +6,12 @@ import { ageOn } from "@/lib/domain/age";
 import { durationMinutes, zonedTime } from "@/lib/domain/schedule-time";
 import { unpaidMinutes, type DbBreak, type TemplateBreak } from "@/lib/domain/breaks";
 import type { ProjectAllocation } from "@/lib/domain/projects";
+import {
+  availablePosting,
+  type PostingAllocation,
+  type PostingDimension,
+} from "@/lib/domain/posting";
+import { loadPostingDimensions } from "@/lib/posting/load";
 import { canInDepartment } from "@/lib/permissions";
 import { absenceLabels, loadAgreements } from "@/lib/engine";
 import { localParts } from "@/lib/domain/schedule-time";
@@ -39,6 +45,7 @@ export type BoardShift = {
   breaks: DbBreak[];
   supplementTypeIds: string[];
   projectAllocations: ProjectAllocation[];
+  postingAllocations: PostingAllocation[];
   label: string | null;
   kind: "work" | "on_call";
   templateId: string | null;
@@ -106,6 +113,8 @@ export type WeekBoard = {
   supplementTypes: BoardSupplementType[];
   /** Active projects available in this department. */
   projects: BoardProject[];
+  /** Posting dimensions with the values available in this department. */
+  posting: PostingDimension[];
   pendingCount: number;
   canManage: boolean;
   canPublish: boolean;
@@ -131,7 +140,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, label, kind, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, project_allocations, posting_allocations, label, kind, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -178,6 +187,7 @@ export async function loadWeek(
     { data: projects },
     { data: absences },
     agreements,
+    postingDimensions,
   ] = await Promise.all([
     supabase
       .from("availability")
@@ -225,6 +235,7 @@ export async function loadWeek(
       .lte("from_date", weekEnd)
       .gte("to_date", weekStart),
     loadAgreements(supabase),
+    loadPostingDimensions(supabase),
   ]);
   const labels = absenceLabels(agreements.registry);
   const boardAbsences: BoardAbsence[] = (absences ?? []).map((a) => ({
@@ -283,6 +294,7 @@ export async function loadWeek(
     breaks: s.breaks as unknown as DbBreak[],
     supplementTypeIds: s.supplement_type_ids,
     projectAllocations: s.project_allocations as unknown as ProjectAllocation[],
+    postingAllocations: s.posting_allocations as unknown as PostingAllocation[],
     label: s.label,
     kind: s.kind,
     templateId: s.template_id,
@@ -345,6 +357,7 @@ export async function loadWeek(
           x.project_department.some((d) => d.department_id === departmentId),
       )
       .map((x) => ({ id: x.id, number: x.number, name: x.name })),
+    posting: availablePosting(postingDimensions, departmentId),
     pendingCount: (shifts ?? []).filter(
       (s) =>
         (s.archived_at === null && s.status === "draft") ||

@@ -1,3 +1,4 @@
+import { resolvePostings, type PostingAllocation, type PostingValues } from "@/lib/domain/posting";
 import "server-only";
 import {
   ENGINE_VERSION,
@@ -13,6 +14,7 @@ import { addDays, type IsoDate } from "@/lib/domain/civil-date";
 import { zonedTime } from "@/lib/domain/schedule-time";
 import type { DbBreak } from "@/lib/domain/breaks";
 import { engineInputs } from "@/lib/absence/load";
+import { loadExpensePayLines } from "./expense-lines";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
@@ -65,7 +67,9 @@ export async function calculateEmployee(
   const [{ data: entries }, { data: absences }, { data: supplementTypes }] = await Promise.all([
     supabase
       .from("time_entry")
-      .select("id, shift_id, start_at, end_at, breaks, kind, status")
+      .select(
+        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids",
+      )
       .eq("employee_id", employeeId)
       .is("superseded_at", null)
       .is("archived_at", null)
@@ -99,6 +103,18 @@ export async function calculateEmployee(
     ? await supabase.from("shift").select("id, published").in("id", shiftIds)
     : { data: [] };
   const supplementById = new Map((supplementTypes ?? []).map((t) => [t.id, supplementInput(t)]));
+  // Posting defaults: the department, then the employee (most specific wins).
+  const departmentIds = [...new Set(approved.map((e) => e.department_id))];
+  const [{ data: employeeRow }, { data: departments }] = await Promise.all([
+    supabase.from("employee").select("posting_defaults").eq("id", employeeId).maybeSingle(),
+    departmentIds.length
+      ? supabase.from("department").select("id, posting_defaults").in("id", departmentIds)
+      : Promise.resolve({ data: [] as { id: string; posting_defaults: unknown }[] }),
+  ]);
+  const employeeDefaults = (employeeRow?.posting_defaults ?? {}) as PostingValues;
+  const departmentDefaults = new Map(
+    (departments ?? []).map((d) => [d.id, (d.posting_defaults ?? {}) as PostingValues]),
+  );
   type Snapshot = {
     start_at: string;
     end_at: string;
@@ -126,7 +142,15 @@ export async function calculateEmployee(
       ...i,
       kind: e.kind,
       plannedShiftId: p ? e.shift_id : null,
-      supplements: (p?.supplement_type_ids ?? []).flatMap((id) => {
+      postings: resolvePostings(
+        departmentDefaults.get(e.department_id) ?? {},
+        employeeDefaults,
+        (e.posting_allocations ?? []) as unknown as PostingAllocation[],
+      ),
+      // The plan's supplements and those added to the registration (once each).
+      supplements: [
+        ...new Set([...(p?.supplement_type_ids ?? []), ...(e.supplement_type_ids ?? [])]),
+      ].flatMap((id) => {
         const s = supplementById.get(id);
         return s ? [s] : [];
       }),
@@ -166,14 +190,17 @@ export async function calculateAndSave(
 ): Promise<string | null> {
   const calc = await calculateEmployee(supabase, ctx, period, employeeId);
   if (!calc) return null;
+  // Mileage and expenses are paid with the period (not working time; not in the engine).
+  const extra = await loadExpensePayLines(supabase, ctx, period, employeeId);
+  const lines = [...calc.result.lines, ...extra.lines];
   const { error } = await supabase.rpc("save_pay_run", {
     p_period_id: period.id,
     p_employee_id: employeeId,
     p_engine_version: ENGINE_VERSION,
-    p_notes: calc.result.notes,
+    p_notes: [...calc.result.notes, ...extra.notes],
     p_daily: calc.result.dailyMinutes,
     p_pending: calc.pending,
-    p_lines: calc.result.lines.map((l) => ({
+    p_lines: lines.map((l) => ({
       pay_code: l.payCode,
       label: l.label,
       unit: l.unit,
@@ -181,6 +208,7 @@ export async function calculateAndSave(
       rate_ore: l.rateOre,
       amount_ore: l.amountOre,
       explanation: l.explanation,
+      posting: l.posting,
     })),
   });
   return error ? error.message : null;

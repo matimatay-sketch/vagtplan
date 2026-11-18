@@ -77,6 +77,57 @@ const projectRow = z
   });
 export const projectsField = jsonField(z.array(projectRow).max(20));
 
+const postingRow = z
+  .object({
+    values: z.record(z.guid(), z.guid()),
+    mode: z.enum(["rest", "span", "minutes"]),
+    from: z.string().nullish(),
+    to: z.string().nullish(),
+    minutes: z.number().int().nullish(),
+  })
+  .transform((r, ctx) => {
+    if (Object.keys(r.values).length === 0) {
+      ctx.addIssue({ code: "custom", message: da.posting.valueRequired });
+      return z.NEVER;
+    }
+    const from = r.mode === "span" ? (r.from ?? "") : "";
+    const to = r.mode === "span" ? (r.to ?? "") : "";
+    if (r.mode === "span" && (!HHMM.test(from) || !HHMM.test(to) || from === to)) {
+      ctx.addIssue({ code: "custom", message: da.projects.spanInvalid });
+      return z.NEVER;
+    }
+    if (r.mode === "minutes" && (!r.minutes || r.minutes < 1 || r.minutes > 1440)) {
+      ctx.addIssue({ code: "custom", message: da.projects.minutesInvalid });
+      return z.NEVER;
+    }
+    return {
+      values: r.values,
+      mode: r.mode,
+      from: r.mode === "span" ? from : null,
+      to: r.mode === "span" ? to : null,
+      minutes: r.mode === "minutes" ? r.minutes! : null,
+    };
+  });
+/** Posting rows (konteringsdimensioner): a value per dimension, and a span, minutes or the rest. */
+export const postingField = jsonField(z.array(postingRow).max(20));
+export type FormPostingRow = z.output<typeof postingRow> & {
+  nextDayFrom: boolean;
+  nextDayTo: boolean;
+};
+
+/** Marks span times before the shift's start time as the next day. */
+export function withNextDay<T extends { from: string | null; to: string | null }>(
+  rows: readonly T[],
+  startTime: string,
+): (T & { nextDayFrom: boolean; nextDayTo: boolean })[] {
+  const startMin = toMinutes(startTime);
+  return rows.map((r) => ({
+    ...r,
+    nextDayFrom: r.from !== null && toMinutes(r.from) < startMin,
+    nextDayTo: r.to !== null && toMinutes(r.to) <= startMin,
+  }));
+}
+
 /** A project row as edited in forms; nextDay flags place span times on the next day. */
 export type FormProjectRow = z.output<typeof projectRow> & {
   nextDayFrom: boolean;
@@ -121,6 +172,7 @@ export const shiftFormSchema = z
     breaks: breaksField,
     supplement_type_ids: supplementsField,
     project_allocations: projectsField,
+    posting_allocations: postingField,
     label: optionalLabel,
     kind: z.enum(["work", "on_call"]).default("work"),
     template_id: optionalGuid,
@@ -141,6 +193,7 @@ export const shiftFormSchema = z
       ...val,
       breaks,
       project_allocations,
+      posting_allocations: withNextDay(val.posting_allocations, val.start_time),
       endsNextDay: toMinutes(val.end_time) <= toMinutes(val.start_time),
     };
   });

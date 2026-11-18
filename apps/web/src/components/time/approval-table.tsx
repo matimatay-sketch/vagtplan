@@ -10,7 +10,8 @@ import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
-import { EntryDialog, type EntryDraft } from "./entry-dialog";
+import type { PostingDimension } from "@/lib/domain/posting";
+import { EntryDialog, type EntryDraft, type EntrySupplements } from "./entry-dialog";
 import { sumRows, type PayPreview } from "@/lib/domain/pay-preview";
 import { PaySummary } from "./pay-summary";
 import { decimalHours } from "@/lib/domain/project-report";
@@ -28,6 +29,8 @@ export function ApprovalTable({
   previews,
   amountsFor,
   projects,
+  posting,
+  supplements,
   dates,
 }: {
   rows: TimeRow[];
@@ -43,8 +46,11 @@ export function ApprovalTable({
   /** Employees whose amounts the user may see. */
   amountsFor: string[];
   projects: (BoardProject & { departmentIds: string[] })[];
+  posting: PostingDimension[];
+  supplements: EntrySupplements;
   dates: string[];
 }) {
+  const supplementNames = Object.fromEntries(supplements.options.map((s) => [s.id, s.name]));
   const t = da.time;
   const [draft, setDraft] = useState<EntryDraft | null>(null);
   const close = useCallback(() => setDraft(null), []);
@@ -211,7 +217,9 @@ export function ApprovalTable({
                           <span className="text-xs text-muted-foreground">{r.departmentName}</span>
                         ) : null}
                       </span>
-                      {r.kind === "entry" ? <RowDetails row={r} /> : null}
+                      {r.kind === "entry" ? (
+                        <RowDetails row={r} supplementNames={supplementNames} />
+                      ) : null}
                       {r.entryId && previews[e.id]?.byEntry[r.entryId]?.length ? (
                         <span
                           className="flex flex-wrap gap-1 text-xs"
@@ -274,7 +282,13 @@ export function ApprovalTable({
             : [],
         )}
       />
-      <EntryDialog draft={draft} projects={projects} onClose={close} />
+      <EntryDialog
+        draft={draft}
+        projects={projects}
+        posting={posting}
+        supplements={supplements}
+        onClose={close}
+      />
     </div>
   );
 }

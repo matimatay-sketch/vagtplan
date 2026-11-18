@@ -9,6 +9,8 @@ export type QueuedStamp = {
   /** Device time when the button was pressed (ISO). */
   at: string;
   organizationId: string;
+  /** Posting chosen when stamping in (dimension id → value id); omitted = as planned/standard. */
+  posting?: Record<string, string>;
 };
 
 export type StampResult =
@@ -23,7 +25,8 @@ function isQueued(x: unknown): x is QueuedStamp {
     typeof o.clientId === "string" &&
     (o.action === "in" || o.action === "out") &&
     typeof o.at === "string" &&
-    typeof o.organizationId === "string"
+    typeof o.organizationId === "string" &&
+    (o.posting === undefined || (typeof o.posting === "object" && o.posting !== null))
   );
 }
 

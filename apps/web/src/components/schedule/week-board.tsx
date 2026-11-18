@@ -352,6 +352,7 @@ export function WeekBoard({
         templates={board.templates}
         supplementTypes={board.supplementTypes}
         projects={board.projects}
+        posting={board.posting}
       />
     </DndContext>
   );

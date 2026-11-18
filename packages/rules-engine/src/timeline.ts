@@ -9,6 +9,14 @@ export type WorkInterval = Span & {
   breaks: (Span & { paid: boolean | null })[];
   plannedShiftId: string | null;
   supplements: ShiftSupplementInput[];
+  postings: PostingRow[];
+};
+
+export type PostingRow = {
+  values: Record<string, string>;
+  start: Instant | null;
+  end: Instant | null;
+  minutes: number | null;
 };
 
 export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkInterval[] {
@@ -33,6 +41,12 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         breaks,
         plannedShiftId: i.plannedShiftId ?? null,
         supplements: i.supplements ?? [],
+        postings: (i.postings ?? []).map((p) => ({
+          values: p.values,
+          start: p.start && p.end ? parseInstant(p.start) : null,
+          end: p.start && p.end ? parseInstant(p.end) : null,
+          minutes: p.start && p.end ? null : p.minutes,
+        })),
       };
     })
     .sort((a, b) => a.start - b.start || a.end - b.end);

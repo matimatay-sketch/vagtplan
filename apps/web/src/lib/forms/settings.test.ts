@@ -57,6 +57,7 @@ describe("supplementTypeSchema", () => {
       pay_code: "ANSVAR",
       amount_type: "per_hour",
       amount: 2550,
+      employee_selectable: false,
     });
     expect(
       supplementTypeSchema.parse({
@@ -66,6 +67,13 @@ describe("supplementTypeSchema", () => {
         amount: "12,5",
       }).amount,
     ).toBe(1250);
+  });
+  it("an unticked checkbox means employees cannot choose the supplement", () => {
+    const base = { name: "Smuds", pay_code: "SMUDS", amount_type: "fixed", amount: "25" };
+    expect(supplementTypeSchema.parse(base).employee_selectable).toBe(false);
+    expect(
+      supplementTypeSchema.parse({ ...base, employee_selectable: "on" }).employee_selectable,
+    ).toBe(true);
   });
   it("rejects invalid pay codes and amounts", () => {
     expect(

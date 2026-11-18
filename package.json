@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
-    "db:start": "supabase start -x studio,imgproxy,vector,logflare,edge-runtime,storage-api",
+    "db:start": "supabase start -x studio,imgproxy,vector,logflare,edge-runtime",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase db reset && supabase test db",

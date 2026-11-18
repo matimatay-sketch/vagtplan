@@ -3,6 +3,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import {
   createSupplementTypeAction,
@@ -150,6 +151,10 @@ export function SupplementTypeForm() {
       <div className="sm:pt-[22px]">
         <SubmitButton>{t.newSupplement}</SubmitButton>
       </div>
+      <label className="flex items-center gap-2 text-sm sm:col-span-5">
+        <Checkbox name="employee_selectable" />
+        {t.employeeSelectable}
+      </label>
       <div className="sm:col-span-5">{state.ok ? null : <FormMessage state={state} />}</div>
     </form>
   );

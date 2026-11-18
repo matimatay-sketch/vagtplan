@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatKm } from "@/lib/domain/mileage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
@@ -15,6 +16,8 @@ import { formatDate } from "@/lib/format";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
 import { formatKroner } from "@/lib/domain/numbers";
+import { postingText, type PostingValues } from "@/lib/domain/posting";
+import { loadPostingDimensions } from "@/lib/posting/load";
 
 export const metadata: Metadata = { title: "Lønperiode" };
 
@@ -42,16 +45,17 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
     .maybeSingle();
   if (!p) notFound();
 
-  const [employees, { data: runs }, { data: templates }] = await Promise.all([
+  const [employees, { data: runs }, { data: templates }, postingDimensions] = await Promise.all([
     employeesInPeriod(supabase, { groupId: p.group_id, start: p.start_date, end: p.end_date }),
     supabase
       .from("pay_run")
       .select(
-        "id, employee_id, calculated_at, pending_entries, notes, pay_line (id, position, pay_code, label, unit, quantity_minutes, rate_ore, amount_ore, explanation)",
+        "id, employee_id, calculated_at, pending_entries, notes, pay_line (id, position, pay_code, label, unit, quantity_minutes, rate_ore, amount_ore, explanation, posting)",
       )
       .eq("pay_period_id", id)
       .is("superseded_at", null),
     supabase.from("export_template").select("id, name").is("archived_at", null).order("name"),
+    loadPostingDimensions(supabase),
   ]);
   const runBy = new Map((runs ?? []).map((r) => [r.employee_id, r]));
   // Only employees the user may see pay for (the runs are filtered by the database).
@@ -139,6 +143,14 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
                             <td className="px-4 py-2 font-mono text-xs">{l.pay_code}</td>
                             <td className="px-4 py-2">
                               {l.label}
+                              {postingText(l.posting as PostingValues, postingDimensions) ? (
+                                <div
+                                  className="text-xs text-muted-foreground"
+                                  data-testid="line-posting"
+                                >
+                                  {postingText(l.posting as PostingValues, postingDimensions)}
+                                </div>
+                              ) : null}
                               <details className="mt-1 text-xs text-muted-foreground">
                                 <summary className="cursor-pointer">{t.why}</summary>
                                 <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
@@ -171,7 +183,11 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
                               </details>
                             </td>
                             <td className="px-4 py-2 text-right tabular">
-                              {l.unit === "fixed" ? "–" : `${decimalHours(l.quantity_minutes)} t`}
+                              {l.unit === "fixed"
+                                ? "–"
+                                : l.unit === "km"
+                                  ? formatKm(l.quantity_minutes)
+                                  : `${decimalHours(l.quantity_minutes)} t`}
                             </td>
                             <td className="px-4 py-2 text-right tabular">{kr(l.rate_ore)}</td>
                             <td className="px-4 py-2 text-right font-medium tabular">

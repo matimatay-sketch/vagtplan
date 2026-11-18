@@ -54,6 +54,19 @@ export type WorkIntervalInput = {
   supplements?: ShiftSupplementInput[];
   /** Id of the planned shift this registration belongs to. */
   plannedShiftId?: string | null;
+  /**
+   * Posting (kontering) of the interval: rows of dimension values. A row is a
+   * time span (start/end), a number of paid minutes, or the rest (neither).
+   * Pay lines are split per posting. Values are opaque to the engine.
+   */
+  postings?: PostingRowInput[];
+};
+
+export type PostingRowInput = {
+  values: Record<string, string>;
+  start: string | null;
+  end: string | null;
+  minutes: number | null;
 };
 
 export type AbsenceInput = {

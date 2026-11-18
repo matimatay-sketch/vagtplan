@@ -44,6 +44,9 @@ test("a personal approver approves one employee's time without a time permission
   // Mads (profile Medarbejder) sees only Ida's time and approves it.
   await login(page, users.employee);
   await nav().getByRole("link", { name: "Godkend tid" }).click();
+  await expect(page).toHaveURL(/\/tid\/godkend/);
+  // Yesterday may be in last week (on a Monday).
+  await page.goto(`/tid/godkend?uge=${yesterday()}`);
   await expect(page.locator("section[data-employee]")).toHaveCount(1);
   const ida = page.locator('section[data-employee="Ida Ung"]');
   const row = ida.getByTestId("approval-row").filter({ hasText: "15:00–18:00" });

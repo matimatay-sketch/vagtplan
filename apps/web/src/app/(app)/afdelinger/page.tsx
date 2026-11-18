@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
 import { da } from "@/lib/i18n/da";
 import { CreateDepartmentForm } from "./forms";
+import { PostingDefaultsForm } from "@/components/posting/posting-defaults";
+import { loadPostingDimensions } from "@/lib/posting/load";
+import type { PostingValues } from "@/lib/domain/posting";
 
 export const metadata: Metadata = { title: "Afdelinger" };
 
@@ -26,7 +29,7 @@ export default async function DepartmentsPage() {
     await Promise.all([
       supabase
         .from("department")
-        .select("id, name")
+        .select("id, name, posting_defaults")
         .eq("organization_id", ctx.organization.id)
         .is("archived_at", null)
         .order("name"),
@@ -45,6 +48,7 @@ export default async function DepartmentsPage() {
         : Promise.resolve([]),
     ]);
 
+  const dimensions = canCreate ? await loadPostingDimensions(supabase) : [];
   const nameOf = (userId: string) => {
     const m = members.find((x) => x.user_id === userId);
     if (!m) return t.responsiblePerson;
@@ -112,6 +116,20 @@ export default async function DepartmentsPage() {
                       ))}
                     </div>
                   </div>
+                  {canCreate && dimensions.length ? (
+                    <div>
+                      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        {da.posting.defaults}
+                      </p>
+                      <PostingDefaultsForm
+                        kind="department"
+                        id={d.id}
+                        departmentId={d.id}
+                        dimensions={dimensions}
+                        value={d.posting_defaults as PostingValues}
+                      />
+                    </div>
+                  ) : null}
                   {canAssign && candidates.length ? (
                     <form action={addManagerAction} className="flex gap-2">
                       <input type="hidden" name="department_id" value={d.id} />

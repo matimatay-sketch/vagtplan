@@ -252,3 +252,40 @@ export async function usageFor(
     hundredths: u.hundredths,
   }));
 }
+
+/**
+ * Absence types per employee in a period (requested or approved), with the
+ * labels of the employees' agreements. Used to filter the approval page.
+ */
+export async function loadPeriodAbsences(
+  supabase: Client,
+  ctx: AppContext,
+  employeeIds: string[],
+  period: { start: IsoDate; end: IsoDate },
+): Promise<{ byEmployee: Record<string, string[]>; labels: Record<string, string> }> {
+  if (employeeIds.length === 0) return { byEmployee: {}, labels: {} };
+  const [{ data }, inputs] = await Promise.all([
+    supabase
+      .from("absence")
+      .select("employee_id, type_code")
+      .in("employee_id", employeeIds)
+      .in("status", ["requested", "approved"])
+      .lte("from_date", period.end)
+      .gte("to_date", period.start),
+    engineInputs(supabase, ctx, employeeIds),
+  ]);
+  const byEmployee: Record<string, string[]> = {};
+  for (const a of data ?? []) {
+    const list = (byEmployee[a.employee_id] ??= []);
+    if (!list.includes(a.type_code)) list.push(a.type_code);
+  }
+  const labels: Record<string, string> = {};
+  for (const input of inputs.values()) {
+    try {
+      for (const t of leaveTypes(input, period.start)) labels[t.code] ??= t.label;
+    } catch {
+      // No agreement version in force.
+    }
+  }
+  return { byEmployee, labels };
+}

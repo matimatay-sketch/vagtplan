@@ -18,6 +18,9 @@ import {
   UserRound,
   Users,
   Wallet,
+  Tags,
+  Car,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
@@ -76,6 +79,7 @@ const items: Item[] = [
     anyOf: ["time.view", "time.manage", "time.approve"],
     forApprovers: true,
   },
+  { href: "/koersel", label: da.nav.expenses, icon: Car, anyOf: [], needsEmployee: true },
   { href: "/lon", label: da.nav.payroll, icon: Wallet, anyOf: ["payroll.view", "payroll.manage"] },
   { href: "/fravaer", label: da.nav.absence, icon: Plane, anyOf: [], needsEmployee: true },
   {
@@ -108,6 +112,18 @@ const items: Item[] = [
     label: da.nav.agreements,
     icon: FileText,
     anyOf: ["agreements.manage"],
+  },
+  {
+    href: "/indstillinger/kontering",
+    label: da.nav.posting,
+    icon: Tags,
+    anyOf: ["posting.manage"],
+  },
+  {
+    href: "/indstillinger/koersel",
+    label: da.nav.expenseSettings,
+    icon: Receipt,
+    anyOf: ["expenses.manage"],
   },
   { href: "/profil", label: da.nav.myProfile, icon: UserRound, anyOf: [], needsEmployee: true },
 ];
