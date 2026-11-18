@@ -617,6 +617,7 @@ export const da = {
     keyInvalid: "Nøglen skal være små bogstaver, tal og _ (fx omkostningssted).",
     defaults: "Standardkontering",
     useDefault: "Standard",
+    unavailableValue: "(ikke tilgængelig)",
     defaultsHelp: "Bruges, når vagten eller registreringen ikke har sin egen kontering.",
     none: "Ingen",
     onShift: "Kontering",
@@ -629,6 +630,7 @@ export const da = {
     asPlanned: "som planlagt",
   },
   projects: {
+    dimensionName: "Projekt",
     title: "Projekter",
     lead: "Projekttimer ud fra vagtplanen. Når stempling kommer i fase 4, vises også faktisk registreret tid.",
     manageTitle: "Projektliste",
@@ -830,6 +832,62 @@ export const da = {
       noMatch: "Ingen registreringer passer til filtrene.",
       showing: (n: number, total: number) => `Viser ${n} af ${total} rækker.`,
     },
+  },
+  assistant: {
+    name: "AI-assistent",
+    notConfigured: "AI-assistenten er ikke sat op på serveren (mangler API-nøgle).",
+    disabled:
+      "AI-assistenten er slået fra for virksomheden. Den kan slås til under Indstillinger → Opsætning.",
+    apiError: "AI-tjenesten svarede ikke. Prøv igen om lidt.",
+    unknownError: "Assistenten kunne ikke svare. Prøv igen.",
+    refused: "Assistenten ville ikke svare på det. Prøv at formulere det anderledes.",
+    noPayRun: "Der er ingen beregnet løn for medarbejderen i perioden.",
+    defaultPayQuestion: "Forklar lønarterne, og hvor de kommer fra.",
+    instructionsRequired: "Skriv hvad forslaget skal dække, fx åbningstider og bemanding.",
+    privacy:
+      "Navne, medarbejdernumre og e-mails erstattes med koder, før der sendes noget til AI-tjenesten (Anthropic). Svaret oversættes tilbage i Turnus.",
+    ask: "Spørg AI-assistenten",
+    askPayTitle: "Spørg om lønarterne",
+    question: "Spørgsmål",
+    send: "Spørg",
+    thinking: "Assistenten tænker …",
+    answer: "Svar",
+    answerNote:
+      "Svaret er lavet af en AI ud fra lønlinjerne og deres regler. Kontrollér det, før du bruger det.",
+    propose: "Foreslå med AI",
+    proposeTitle: "Forslag til vagtplan",
+    proposeLead:
+      "Beskriv hvad ugen skal dække. Forslaget gemmes som kladdevagter, som regelmotoren kontrollerer. Du gennemgår og offentliggør selv.",
+    instructions: "Ønsker til ugen",
+    instructionsPlaceholder:
+      "Fx: Butikken har åbent 8–18 på hverdage og 9–14 lørdag. Der skal være 2 på hver vagt, og MEDARBEJDER kan ikke arbejde om aftenen.",
+    proposing: "Laver forslag …",
+    created: (n: number) => (n === 1 ? "1 kladdevagt oprettet." : `${n} kladdevagter oprettet.`),
+    skipped: (n: number) => `${n} foreslåede vagter kunne ikke bruges og er sprunget over.`,
+    blocking: (n: number) => `${n} regelbrud skal rettes eller begrundes før offentliggørelse.`,
+    proposalBanner: (n: number) =>
+      n === 1 ? "Ugen har 1 vagt fra et AI-forslag." : `Ugen har ${n} vagter fra et AI-forslag.`,
+    discard: "Kassér forslaget",
+    discarded: "Forslaget er kasseret.",
+    badge: "AI",
+    problemText: {
+      unknown_employee: "ukendt medarbejder",
+      outside_week: "datoen er uden for ugen",
+      invalid_time: "ugyldigt tidspunkt",
+      break_too_long: "pausen er for lang",
+      overlap: "overlapper en anden vagt",
+    } as Record<string, string>,
+    settingsTitle: "AI-assistent",
+    settingsLead:
+      "Forklarer lønarter og laver forslag til vagtplaner. Kun pseudonymiserede data sendes til AI-tjenesten (Anthropic), og brugen logges uden indhold.",
+    enabled: "Slået til",
+    off: "Slået fra",
+    enable: "Slå AI-assistenten til",
+    disable: "Slå AI-assistenten fra",
+    keyMissing:
+      "Serveren mangler en API-nøgle (ANTHROPIC_API_KEY). Assistenten virker først, når den er sat.",
+    usage: (n: number) =>
+      n === 1 ? "1 forespørgsel de sidste 30 dage." : `${n} forespørgsler de sidste 30 dage.`,
   },
   expenses: {
     title: "Kørsel og udlæg",

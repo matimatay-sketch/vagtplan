@@ -1,12 +1,11 @@
-import { localParts } from "./schedule-time";
-
 /**
  * Project allocation of a shift. A row is either a time span (start_at/end_at),
  * a number of minutes, or "the rest of the shift" (neither). Minutes are
  * paid work minutes: unpaid breaks are deducted.
  */
 export type ProjectAllocation = {
-  project_id: string;
+  /** null: time without a project (e.g. another posting row). */
+  project_id: string | null;
   start_at: string | null;
   end_at: string | null;
   minutes: number | null;
@@ -103,29 +102,4 @@ export function allocationProblems<T extends AllocationSpan>(
   );
   if (fixed > paidMinutes(s)) problems.add("too_many_minutes");
   return [...problems];
-}
-
-/** A project row as edited in the shift dialog (local times, "" = not set). */
-export type EditableProjectRow = {
-  project_id: string;
-  mode: "rest" | "span" | "minutes";
-  from: string;
-  to: string;
-  minutes: number;
-};
-
-/** Database allocations → editable rows (local wall time). Browser-safe. */
-export function allocationsToForm(rows: readonly ProjectAllocation[]): EditableProjectRow[] {
-  return rows.map((r) => ({
-    project_id: r.project_id,
-    mode: r.start_at && r.end_at ? "span" : r.minutes !== null ? "minutes" : "rest",
-    from: r.start_at ? localParts(r.start_at).time : "",
-    to: r.end_at ? localParts(r.end_at).time : "",
-    minutes: r.minutes ?? 60,
-  }));
-}
-
-/** A default project from a template or rotation slot: the whole shift. */
-export function defaultProjectRows(projectId: string | null | undefined): EditableProjectRow[] {
-  return projectId ? [{ project_id: projectId, mode: "rest", from: "", to: "", minutes: 60 }] : [];
 }

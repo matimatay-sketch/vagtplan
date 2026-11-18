@@ -12,26 +12,34 @@ import { createTemplateAction } from "@/lib/actions/schedule";
 import { initialActionState } from "@/lib/actions/state";
 import type { EditableBreak } from "@/lib/domain/breaks";
 import { da } from "@/lib/i18n/da";
+import type { PostingDimension } from "@/lib/domain/posting";
+import { PostingValuesSelect } from "@/components/posting/posting-values";
 
 export function TemplateForm({
   departments,
   allowOrgWide,
   supplementTypes,
-  projects,
+  posting,
 }: {
   departments: { id: string; name: string }[];
   allowOrgWide: boolean;
   supplementTypes: SupplementOption[];
-  projects: { id: string; number: string; name: string }[];
+  posting: PostingDimension[];
 }) {
   const [state, action] = useActionState(createTemplateAction, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
   const [breaks, setBreaks] = useState<EditableBreak[]>([{ start: "", minutes: 30, paid: false }]);
   const [supplements, setSupplements] = useState<string[]>([]);
+  const [postingValues, setPostingValues] = useState<Record<string, string>>({});
   const t = da.schedule;
   useEffect(() => {
     if (state.ok) ref.current?.reset();
   }, [state]);
+  const [handled, setHandled] = useState(state);
+  if (handled !== state) {
+    setHandled(state);
+    if (state.ok) setPostingValues({});
+  }
   const f = (name: string, fallback?: string) => fieldProps(name, state, fallback);
   return (
     <form ref={ref} action={action} className="grid gap-4" noValidate>
@@ -75,23 +83,12 @@ export function TemplateForm({
             ))}
           </NativeSelect>
         </Field>
-        {projects.length ? (
-          <Field
-            label={`${da.projects.defaultProject} (${da.common.optional})`}
-            htmlFor="project_id"
-            error={state.errors?.project_id}
-            className="lg:col-span-2"
-          >
-            <NativeSelect {...f("project_id", "")}>
-              <option value="">{da.projects.noProject}</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.number} · {p.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        ) : null}
+        <PostingValuesSelect
+          dimensions={posting}
+          value={postingValues}
+          onChange={setPostingValues}
+          name="posting_values"
+        />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />

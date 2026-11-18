@@ -14,8 +14,8 @@ export type RotationSlot = {
   label: string | null;
   breaks: TemplateBreak[];
   supplementTypeIds: string[];
-  /** Default project for the whole shift. */
-  projectId?: string | null;
+  /** Default posting for the whole shift ({dimension id: value id}). */
+  postingValues?: Record<string, string>;
 };
 
 export type RolloutAssignment = {
@@ -38,7 +38,7 @@ export type PlannedSlot = {
   label: string | null;
   breaks: { start: string | null; minutes: number; paid: boolean; nextDay: boolean }[];
   supplementTypeIds: string[];
-  projectId: string | null;
+  postingValues: Record<string, string>;
 };
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
@@ -78,7 +78,7 @@ export function planRollout(input: {
             };
           }),
           supplementTypeIds: [...s.supplementTypeIds],
-          projectId: s.projectId ?? null,
+          postingValues: { ...(s.postingValues ?? {}) },
         });
       }
     }

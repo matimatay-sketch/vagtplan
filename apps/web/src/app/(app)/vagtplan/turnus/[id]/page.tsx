@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { loadPostingDimensions } from "@/lib/posting/load";
+import { availablePosting } from "@/lib/domain/posting";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Plus, Trash2, X } from "lucide-react";
@@ -55,7 +57,7 @@ export default async function RotationPage({
     { data: supplements },
     { data: templates },
     { data: rollouts },
-    { data: projects },
+    postingDimensions,
   ] = await Promise.all([
     supabase
       .from("rotation_line")
@@ -65,7 +67,7 @@ export default async function RotationPage({
     supabase
       .from("rotation_slot")
       .select(
-        "id, line_id, week_index, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids, project_id",
+        "id, line_id, week_index, weekday, start_time, end_time, kind, label, breaks, supplement_type_ids, posting_values",
       )
       .eq("rotation_id", id)
       .order("start_time"),
@@ -85,7 +87,7 @@ export default async function RotationPage({
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, label, kind, breaks, supplement_type_ids, project_id, department_id",
+        "id, name, start_time, end_time, label, kind, breaks, supplement_type_ids, posting_values, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -96,20 +98,9 @@ export default async function RotationPage({
       .select("id, start_date, weeks, assignments, created_at")
       .eq("rotation_id", id)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("project")
-      .select("id, number, name, project_department (department_id)")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("number"),
+    loadPostingDimensions(supabase),
   ]);
-  const projectList = (projects ?? [])
-    .filter(
-      (p) =>
-        p.project_department.length === 0 ||
-        p.project_department.some((d) => d.department_id === rotation.department_id),
-    )
-    .map((p) => ({ id: p.id, number: p.number, name: p.name }));
+  const posting = availablePosting(postingDimensions, rotation.department_id);
 
   const allSlots: RotationSlot[] = (slots ?? []).map((s) => ({
     id: s.id,
@@ -122,7 +113,7 @@ export default async function RotationPage({
     label: s.label,
     breaks: s.breaks as unknown as TemplateBreak[],
     supplementTypeIds: s.supplement_type_ids,
-    projectId: s.project_id,
+    postingValues: (s.posting_values ?? {}) as Record<string, string>,
   }));
   const employees = (members ?? [])
     .flatMap((m) =>
@@ -234,9 +225,9 @@ export default async function RotationPage({
           kind: tpl.kind,
           breaks: tpl.breaks as unknown as TemplateBreak[],
           supplementTypeIds: tpl.supplement_type_ids,
-          projectId: tpl.project_id,
+          postingValues: (tpl.posting_values ?? {}) as Record<string, string>,
         }))}
-        projects={projectList}
+        posting={posting}
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.3fr]">

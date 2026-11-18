@@ -18,6 +18,8 @@ import { templateBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
 import type { RotationSlot } from "@/lib/domain/rotation";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
+import type { PostingDimension } from "@/lib/domain/posting";
+import { PostingValuesSelect } from "@/components/posting/posting-values";
 
 type Line = { id: string; name: string };
 type Draft = { slot?: RotationSlot; lineId: string; weekday: number };
@@ -30,9 +32,8 @@ type ShiftTemplate = {
   kind: "work" | "on_call";
   breaks: { start_time: string | null; minutes: number; paid: boolean }[];
   supplementTypeIds: string[];
-  projectId: string | null;
+  postingValues: Record<string, string>;
 };
-type Project = { id: string; number: string; name: string };
 
 export function RotationGrid({
   rotationId,
@@ -41,7 +42,7 @@ export function RotationGrid({
   slots,
   supplementTypes,
   shiftTemplates,
-  projects,
+  posting,
 }: {
   rotationId: string;
   weekIndex: number;
@@ -49,7 +50,7 @@ export function RotationGrid({
   slots: RotationSlot[];
   supplementTypes: SupplementOption[];
   shiftTemplates: ShiftTemplate[];
-  projects: Project[];
+  posting: PostingDimension[];
 }) {
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const t = da.turnus;
@@ -135,7 +136,7 @@ export function RotationGrid({
               weekIndex={weekIndex}
               lines={lines}
               supplementTypes={supplementTypes}
-              projects={projects}
+              posting={posting}
               shiftTemplates={shiftTemplates}
               onDone={() => setDraft(null)}
             />
@@ -153,7 +154,7 @@ function SlotForm({
   lines,
   supplementTypes,
   shiftTemplates,
-  projects,
+  posting,
   onDone,
 }: {
   draft: Draft;
@@ -162,7 +163,7 @@ function SlotForm({
   lines: Line[];
   supplementTypes: SupplementOption[];
   shiftTemplates: ShiftTemplate[];
-  projects: Project[];
+  posting: PostingDimension[];
   onDone: () => void;
 }) {
   const t = da.turnus;
@@ -177,12 +178,14 @@ function SlotForm({
     end_time: s?.endTime ?? "16:00",
     label: s?.label ?? "",
     kind: s?.kind ?? "work",
-    project_id: s?.projectId ?? "",
   });
   const [breaks, setBreaks] = React.useState<EditableBreak[]>(() =>
     s ? templateBreaksToForm(s.breaks) : [{ start: "", minutes: 30, paid: false }],
   );
   const [supplements, setSupplements] = React.useState<string[]>(s?.supplementTypeIds ?? []);
+  const [postingValues, setPostingValues] = React.useState<Record<string, string>>(
+    () => s?.postingValues ?? {},
+  );
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
   useEffect(() => {
@@ -197,11 +200,8 @@ function SlotForm({
       end_time: tpl.end,
       label: tpl.label ?? "",
       kind: tpl.kind,
-      project_id:
-        tpl.projectId && projects.some((p) => p.id === tpl.projectId)
-          ? tpl.projectId
-          : v.project_id,
     }));
+    if (Object.keys(tpl.postingValues).length) setPostingValues(tpl.postingValues);
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
   };
@@ -297,28 +297,12 @@ function SlotForm({
               onChange={set("label")}
             />
           </Field>
-          {projects.length ? (
-            <Field
-              label={`${da.projects.defaultProject} (${da.common.optional})`}
-              htmlFor="project_id"
-              error={state.errors?.project_id}
-              className="sm:col-span-2"
-            >
-              <NativeSelect
-                id="project_id"
-                name="project_id"
-                value={values.project_id}
-                onChange={set("project_id")}
-              >
-                <option value="">{da.projects.noProject}</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.number} · {p.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-          ) : null}
+          <PostingValuesSelect
+            dimensions={posting}
+            value={postingValues}
+            onChange={setPostingValues}
+            name="posting_values"
+          />
         </div>
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />
         <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />

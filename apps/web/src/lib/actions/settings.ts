@@ -87,6 +87,20 @@ export async function setSupplementSelectableAction(formData: FormData) {
   revalidateSettings();
 }
 
+/** Turns the AI assistant on or off for the organization. */
+export async function setAssistantEnabledAction(formData: FormData) {
+  const ctx = await requireContext(["settings.manage"]);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organization_settings")
+    .update({ assistant_enabled: formData.get("enabled") === "true" })
+    .eq("organization_id", ctx.organization.id);
+  if (error) throw new Error(dbErrorMessage(error));
+  revalidateSettings();
+  revalidatePath("/vagtplan", "layout");
+  revalidatePath("/lon", "layout");
+}
+
 export async function archiveSupplementTypeAction(formData: FormData) {
   await requireContext(["settings.manage"]);
   const supabase = await createClient();

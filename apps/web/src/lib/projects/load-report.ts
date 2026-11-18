@@ -23,6 +23,21 @@ export type ReportProject = {
   departmentIds: string[];
 };
 
+/** The organization's project dimension ("Projekt"), if any. */
+export async function loadProjectDimension(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organizationId: string,
+): Promise<{ id: string; key: string; name: string } | null> {
+  const { data } = await supabase
+    .from("posting_dimension")
+    .select("id, key, name")
+    .eq("organization_id", organizationId)
+    .eq("is_project", true)
+    .is("archived_at", null)
+    .maybeSingle();
+  return data ?? null;
+}
+
 export type ReportFilter = {
   from: IsoDate;
   to: IsoDate;
@@ -56,19 +71,24 @@ export async function loadProjectReport(
   ctx: AppContext,
   filter: ReportFilter,
 ) {
+  const dimension = await loadProjectDimension(supabase, ctx.organization.id);
   const [{ data: projects }, { data: departments }, rows] = await Promise.all([
-    supabase
-      .from("project")
-      .select("id, number, name, customer, archived_at, project_department (department_id)")
-      .eq("organization_id", ctx.organization.id)
-      .order("number"),
+    dimension
+      ? supabase
+          .from("posting_value")
+          .select(
+            "id, code, name, description, archived_at, posting_value_department (department_id)",
+          )
+          .eq("dimension_id", dimension.id)
+          .order("code")
+      : Promise.resolve({ data: [] }),
     supabase
       .from("department")
       .select("id, name")
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
-    ctx.permissions["projects.view"]
+    ctx.permissions["projects.view"] && dimension
       ? supabase.rpc(filter.source === "actual" ? "project_time_entries" : "project_shifts", {
           p_from: new Date(zonedTime(filter.from)).toISOString(),
           p_to: new Date(zonedTime(addDays(filter.to, 1))).toISOString(),
@@ -83,20 +103,21 @@ export async function loadProjectReport(
   const shiftRows = ((rows.data ?? []) as unknown as ProjectShiftRow[]).filter(
     (r) => !filter.departmentId || r.department_id === filter.departmentId,
   );
-  const lines: ProjectLine[] = projectLines(shiftRows).sort(
+  const lines: ProjectLine[] = (dimension ? projectLines(dimension.id, shiftRows) : []).sort(
     (a, b) =>
       a.date.localeCompare(b.date) ||
       a.start.localeCompare(b.start) ||
       (a.employeeName ?? "").localeCompare(b.employeeName ?? "", "da"),
   );
   return {
+    dimension,
     projects: (projects ?? []).map((p): ReportProject => ({
       id: p.id,
-      number: p.number,
+      number: p.code,
       name: p.name,
-      customer: p.customer,
+      customer: p.description,
       archived: p.archived_at !== null,
-      departmentIds: p.project_department.map((d) => d.department_id),
+      departmentIds: p.posting_value_department.map((d) => d.department_id),
     })),
     departments: departments ?? [],
     visibleDepartments,

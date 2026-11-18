@@ -156,6 +156,12 @@ export const PERMISSIONS = [
     label: "Beregne, afslutte og eksportere løn",
     scopes: ["organization"],
   },
+  {
+    key: "assistant.use",
+    group: "AI-assistent",
+    label: "Bruge AI-assistenten (forklaring af lønarter, forslag til vagtplan)",
+    scopes: ["departments", "organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;

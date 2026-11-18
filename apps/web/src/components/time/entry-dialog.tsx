@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
 import { BreaksEditor } from "@/components/schedule/breaks-editor";
-import { ProjectsEditor } from "@/components/schedule/projects-editor";
 import {
   archiveTimeEntryAction,
   correctTimeEntryAction,
@@ -23,9 +22,7 @@ import {
 } from "@/lib/actions/time";
 import { initialActionState } from "@/lib/actions/state";
 import { dbBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
-import { allocationsToForm, type EditableProjectRow } from "@/lib/domain/projects";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
-import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import type { SupplementOption } from "@/lib/time/supplements";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,20 +39,16 @@ export type EntryDraft =
   | { mode: "edit" | "correct"; row: TimeRow }
   | { mode: "create"; employeeId: string; departmentId: string | null; date: string };
 
-type Projects = (BoardProject & { departmentIds: string[] })[];
-
 /** Supplement types offered in the dialog; `chooseAll` for managers (the database checks it). */
 export type EntrySupplements = { options: SupplementOption[]; chooseAll: boolean };
 
 export function EntryDialog({
   draft,
-  projects,
   posting,
   supplements,
   onClose,
 }: {
   draft: EntryDraft | null;
-  projects: Projects;
   posting: PostingDimension[];
   supplements: EntrySupplements;
   onClose: () => void;
@@ -67,7 +60,6 @@ export function EntryDialog({
           <EntryForm
             key={draft.mode === "create" ? `new-${draft.date}` : draft.row.entryId}
             draft={draft}
-            projects={projects}
             posting={posting}
             supplements={supplements}
             onDone={onClose}
@@ -80,13 +72,11 @@ export function EntryDialog({
 
 function EntryForm({
   draft,
-  projects,
   posting,
   supplements,
   onDone,
 }: {
   draft: EntryDraft;
-  projects: Projects;
   posting: PostingDimension[];
   supplements: EntrySupplements;
   onDone: () => void;
@@ -109,9 +99,6 @@ function EntryForm({
   const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
     row ? dbBreaksToForm(row.breaks) : [{ start: "", minutes: 30, paid: false }],
   );
-  const [projectRows, setProjectRows] = useState<EditableProjectRow[]>(() =>
-    row ? allocationsToForm(row.projectAllocations) : [],
-  );
   const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
     row ? postingToForm(row.postingAllocations) : [],
   );
@@ -131,12 +118,6 @@ function EntryForm({
   }, [state, onDone]);
 
   const departmentId = row?.departmentId ?? (draft.mode === "create" ? draft.departmentId : null);
-  const available = projects.filter(
-    (p) => p.departmentIds.length === 0 || (departmentId && p.departmentIds.includes(departmentId)),
-  );
-  const projectError = Object.entries(state.errors ?? {}).find(([k]) =>
-    k.startsWith("project_allocations"),
-  )?.[1];
 
   return (
     <>
@@ -193,12 +174,6 @@ function EntryForm({
           </Field>
         </div>
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />
-        <ProjectsEditor
-          projects={available}
-          value={projectRows}
-          onChange={setProjectRows}
-          error={projectError}
-        />
         <PostingEditor
           dimensions={availablePosting(posting, departmentId)}
           value={postingRows}

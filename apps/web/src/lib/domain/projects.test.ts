@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  allocationsToForm,
-  defaultProjectRows,
-  projectMinutes,
-  type ProjectAllocation,
-} from "./projects";
+import { projectMinutes, type ProjectAllocation } from "./projects";
 
 // 08:00–16:00 local on 5 Jan 2026 = 07:00–15:00Z
 const shift = {
@@ -109,33 +104,5 @@ describe("allocationProblems", () => {
     expect(
       allocationProblems(shift, [{ project_id: "A", start_at: null, end_at: null, minutes: 500 }]),
     ).toEqual(["too_many_minutes"]);
-  });
-});
-
-describe("allocationsToForm", () => {
-  it("maps spans, minutes and rest rows to local times", () => {
-    expect(
-      allocationsToForm([
-        {
-          project_id: "a",
-          start_at: "2026-03-29T06:00:00.000Z",
-          end_at: "2026-03-29T08:30:00.000Z",
-          minutes: null,
-        },
-        { project_id: "b", start_at: null, end_at: null, minutes: 45 },
-        { project_id: "c", start_at: null, end_at: null, minutes: null },
-      ]),
-    ).toEqual([
-      // 29 March 2026 is the first day of summer time (UTC+2).
-      { project_id: "a", mode: "span", from: "08:00", to: "10:30", minutes: 60 },
-      { project_id: "b", mode: "minutes", from: "", to: "", minutes: 45 },
-      { project_id: "c", mode: "rest", from: "", to: "", minutes: 60 },
-    ]);
-  });
-  it("a default project covers the whole shift", () => {
-    expect(defaultProjectRows(null)).toEqual([]);
-    expect(defaultProjectRows("p")).toEqual([
-      { project_id: "p", mode: "rest", from: "", to: "", minutes: 60 },
-    ]);
   });
 });

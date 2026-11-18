@@ -30,6 +30,7 @@ describe("permission catalog", () => {
       "absence.approve",
       "payroll.view",
       "payroll.manage",
+      "assistant.use",
     ]);
   });
 });

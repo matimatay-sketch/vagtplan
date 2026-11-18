@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { approveTimeEntriesAction } from "@/lib/actions/time";
 import { formatHours } from "@/lib/domain/numbers";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
-import type { BoardProject } from "@/lib/schedule/load-week";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
 import type { PostingDimension } from "@/lib/domain/posting";
@@ -28,7 +27,6 @@ export function ApprovalTable({
   approverOf,
   previews,
   amountsFor,
-  projects,
   posting,
   supplements,
   dates,
@@ -45,7 +43,6 @@ export function ApprovalTable({
   previews: Record<string, PayPreview>;
   /** Employees whose amounts the user may see. */
   amountsFor: string[];
-  projects: (BoardProject & { departmentIds: string[] })[];
   posting: PostingDimension[];
   supplements: EntrySupplements;
   dates: string[];
@@ -282,13 +279,7 @@ export function ApprovalTable({
             : [],
         )}
       />
-      <EntryDialog
-        draft={draft}
-        projects={projects}
-        posting={posting}
-        supplements={supplements}
-        onClose={close}
-      />
+      <EntryDialog draft={draft} posting={posting} supplements={supplements} onClose={close} />
     </div>
   );
 }

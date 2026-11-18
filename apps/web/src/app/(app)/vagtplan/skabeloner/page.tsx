@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { loadPostingDimensions } from "@/lib/posting/load";
 import Link from "next/link";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -27,39 +28,33 @@ export default async function TemplatesPage() {
   const ctx = await requireContext(["schedule.manage"]);
   const supabase = await createClient();
   const t = da.schedule;
-  const [
-    { data: templates },
-    { data: departments },
-    { data: supplementTypes },
-    { data: projects },
-  ] = await Promise.all([
-    supabase
-      .from("shift_template")
-      .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, project_id, label, kind, department_id",
-      )
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("start_time"),
-    supabase
-      .from("department")
-      .select("id, name")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("name"),
-    supabase
-      .from("supplement_type")
-      .select("id, name, amount_type, amount")
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("name"),
-    supabase
-      .from("project")
-      .select("id, number, name, archived_at")
-      .eq("organization_id", ctx.organization.id)
-      .order("number"),
-  ]);
-  const projectName = new Map((projects ?? []).map((p) => [p.id, `${p.number} · ${p.name}`]));
+  const [{ data: templates }, { data: departments }, { data: supplementTypes }, postingDimensions] =
+    await Promise.all([
+      supabase
+        .from("shift_template")
+        .select(
+          "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, department_id",
+        )
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("start_time"),
+      supabase
+        .from("department")
+        .select("id, name")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+      supabase
+        .from("supplement_type")
+        .select("id, name, amount_type, amount")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+      loadPostingDimensions(supabase),
+    ]);
+  const valueName = new Map(
+    postingDimensions.flatMap((d) => d.values.map((v) => [v.id, `${v.code} · ${v.name}`] as const)),
+  );
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const manageable = (departments ?? []).filter((d) =>
     canInDepartment(ctx.permissions, "schedule.manage", d.id, ctx.responsibleDepartmentIds),
@@ -88,9 +83,7 @@ export default async function TemplatesPage() {
               amountType: x.amount_type,
               amount: x.amount,
             }))}
-            projects={(projects ?? [])
-              .filter((p) => !p.archived_at)
-              .map((p) => ({ id: p.id, number: p.number, name: p.name }))}
+            posting={postingDimensions}
           />
         </CardContent>
       </Card>
@@ -118,11 +111,13 @@ export default async function TemplatesPage() {
                     {tpl.label ? (
                       <span className="ml-2 text-muted-foreground">{tpl.label}</span>
                     ) : null}
-                    {tpl.project_id ? (
-                      <Badge variant="outline" className="ml-2">
-                        {projectName.get(tpl.project_id)}
-                      </Badge>
-                    ) : null}
+                    {Object.values((tpl.posting_values ?? {}) as Record<string, string>).map(
+                      (id) => (
+                        <Badge key={id} variant="outline" className="ml-2">
+                          {valueName.get(id) ?? "?"}
+                        </Badge>
+                      ),
+                    )}
                     {tpl.kind === "on_call" ? (
                       <Badge variant="secondary" className="ml-2">
                         {t.kinds.on_call}

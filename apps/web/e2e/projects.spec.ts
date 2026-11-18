@@ -58,32 +58,26 @@ test("projects: create, allocate on a shift, see hours and export CSV", async ({
   const shift = page.getByTestId("shift-form");
   await shift.getByLabel("Start").fill("08:00");
   await shift.getByLabel("Slut").fill("16:00");
-  const editor = shift.getByTestId("projects-editor");
-  await editor.getByRole("button", { name: "Tilføj projekt" }).click();
-  await editor.getByRole("button", { name: "Tilføj projekt" }).click();
-  const rows = editor.getByTestId("project-row");
-  await rows
-    .nth(0)
-    .getByLabel("Projekt")
-    .selectOption({ label: `${b} · Vareoptælling` });
-  await expect(rows.nth(0).getByLabel("Fordeling")).toHaveValue("rest");
-  await rows
-    .nth(1)
-    .getByLabel("Projekt")
-    .selectOption({ label: `${a} · Ombygning` });
-  await rows.nth(1).getByLabel("Fordeling").selectOption("minutes");
-  await rows.nth(1).getByLabel("Minutter").fill("600");
+  // Projects are values of the "Projekt" posting dimension.
+  const editor = shift.getByTestId("posting-editor");
+  await editor.getByRole("button", { name: "Tilføj kontering" }).click();
+  await editor.getByRole("button", { name: "Tilføj kontering" }).click();
+  await editor.getByLabel("Projekt 1").selectOption({ label: `${b} · Vareoptælling` });
+  await expect(editor.getByLabel("Fordeling 1")).toHaveValue("rest");
+  await editor.getByLabel("Projekt 2").selectOption({ label: `${a} · Ombygning` });
+  await editor.getByLabel("Fordeling 2").selectOption("minutes");
+  await editor.getByLabel("Minutter 2").fill("600");
   await shift.getByRole("button", { name: "Gem vagt" }).click();
   // 600 minutes do not fit in 7.5 paid hours.
   await expect(editor.getByText("Der er fordelt mere tid end vagtens betalte tid")).toBeVisible();
-  await rows.nth(1).getByLabel("Minutter").fill("120");
+  await editor.getByLabel("Minutter 2").fill("120");
   await shift.getByRole("button", { name: "Gem vagt" }).click();
   await expect(shift).toHaveCount(0);
   const card = c.getByTestId("shift-card");
-  await expect(card.getByTestId("project-badge")).toHaveText("2");
+  await expect(card.getByTestId("posting-badge")).toHaveText("2");
 
   await card.click();
-  await expect(page.getByTestId("shift-form").getByTestId("project-row")).toHaveCount(2);
+  await expect(page.getByTestId("shift-form").getByTestId("posting-row")).toHaveCount(2);
   await page.keyboard.press("Escape");
 
   // Hours per project: 8 h minus 30 unpaid minutes = 7.5 h; A 2 h, B 5.5 h.

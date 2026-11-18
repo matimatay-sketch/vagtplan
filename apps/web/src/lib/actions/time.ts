@@ -9,7 +9,7 @@ import { allocationProblems } from "@/lib/domain/projects";
 import { formPostingToDb } from "@/lib/domain/posting";
 import { needsReason } from "@/lib/domain/time-entries";
 import type { StampResult } from "@/lib/domain/stamp-queue";
-import { formBreaksToDb, formProjectsToDb, localInstants } from "@/lib/schedule/breaks";
+import { formBreaksToDb, localInstants } from "@/lib/schedule/breaks";
 import { da } from "@/lib/i18n/da";
 import type { Json } from "@/lib/supabase/database.types";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
@@ -98,16 +98,6 @@ export async function saveTimeEntryAction(
 
   const times = localInstants(f.date, f.start_time, f.end_time, f.endsNextDay);
   const breaks = formBreaksToDb(f.breaks, f.date);
-  const allocations = formProjectsToDb(f.project_allocations, f.date);
-  const problems = allocationProblems(
-    { start: times.start_at, end: times.end_at, breaks },
-    allocations,
-  );
-  if (problems.length)
-    return {
-      errors: { project_allocations: problems.map((x) => da.projects.problems[x]).join(". ") },
-      values,
-    };
   const posting = formPostingToDb(f.posting_allocations, f.date);
   const postingProblems = allocationProblems(
     { start: times.start_at, end: times.end_at, breaks },
@@ -153,7 +143,6 @@ export async function saveTimeEntryAction(
   const row = {
     ...times,
     breaks: asJson(breaks),
-    project_allocations: asJson(allocations),
     posting_allocations: asJson(posting),
     supplement_type_ids: f.supplement_type_ids,
     deviation_reason: f.deviation_reason,
@@ -240,16 +229,6 @@ export async function correctTimeEntryAction(
     return { errors: { deviation_reason: da.time.reasonRequired }, values };
   const times = localInstants(f.date, f.start_time, f.end_time, f.endsNextDay);
   const breaks = formBreaksToDb(f.breaks, f.date);
-  const allocations = formProjectsToDb(f.project_allocations, f.date);
-  const problems = allocationProblems(
-    { start: times.start_at, end: times.end_at, breaks },
-    allocations,
-  );
-  if (problems.length)
-    return {
-      errors: { project_allocations: problems.map((x) => da.projects.problems[x]).join(". ") },
-      values,
-    };
   const posting = formPostingToDb(f.posting_allocations, f.date);
   const postingProblems = allocationProblems(
     { start: times.start_at, end: times.end_at, breaks },
@@ -268,7 +247,8 @@ export async function correctTimeEntryAction(
     p_start_at: times.start_at,
     p_end_at: times.end_at,
     p_breaks: asJson(breaks),
-    p_project_allocations: asJson(allocations),
+    // Projects are a posting dimension; the old column is no longer written.
+    p_project_allocations: [],
     p_posting_allocations: asJson(posting),
     p_supplement_type_ids: f.supplement_type_ids,
     p_reason: f.deviation_reason!,
