@@ -1,0 +1,54 @@
+name: Deploy database
+
+# Applies new migrations and the system agreement templates to the cloud
+# database (Supabase). Runs after CI-relevant pushes to main and on demand.
+# Needs the repository secret SUPABASE_DB_URL (the Session pooler connection
+# string from Supabase → Connect). Without it the job does nothing.
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**", "supabase/seeds/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-db
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrations and agreement templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configuration
+        id: cfg
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL is not set; skipping." >> "$GITHUB_STEP_SUMMARY"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.enabled == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.cfg.outputs.enabled == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.cfg.outputs.enabled == 'true'
+      - name: Apply migrations
+        if: steps.cfg.outputs.enabled == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: pnpm exec supabase db push --remote="$SUPABASE_DB_URL" --yes
+      - name: Agreement templates (idempotent)
+        if: steps.cfg.outputs.enabled == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seeds/agreements.sql
