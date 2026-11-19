@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { da } from "@/lib/i18n/da";
 import { isValidIsoDate } from "@/lib/domain/civil-date";
+import { MAX_NORM_PERCENT } from "@/lib/domain/norm-percent";
 
 const v = da.validation;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -18,7 +19,7 @@ export const normPercentField = z
   .transform((s, ctx) => {
     if (!s || !s.trim()) return null;
     const n = Number(s.trim());
-    if (!Number.isInteger(n) || n < 0 || n > 100) {
+    if (!Number.isInteger(n) || n < 0 || n > MAX_NORM_PERCENT) {
       ctx.addIssue({ code: "custom", message: da.schedule.normPercentInvalid });
       return z.NEVER;
     }

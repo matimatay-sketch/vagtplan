@@ -56,7 +56,7 @@ export type WorkIntervalInput = {
   plannedShiftId?: string | null;
   /**
    * Share of the interval that counts towards the norm when overtime is found,
-   * in percent (0–100). Default: work and call-out 100, on-call 0. On-call
+   * in percent (0 or more; above 100 counts more than the real time). Default: work and call-out 100, on-call 0. On-call
    * above 0 % reduces the norm of its unit, like absence that counts.
    */
   normPercent?: number | null;

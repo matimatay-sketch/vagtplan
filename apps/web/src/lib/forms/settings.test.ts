@@ -145,16 +145,17 @@ describe("normDefaultsSchema", () => {
     });
   });
 
-  it("requires a whole number from 0 to 100", () => {
+  it("requires a whole number from 0 to 1000", () => {
     const ok = {
       norm_percent_work: "100",
       norm_in_pay_work: "false",
       norm_in_pay_on_call: "false",
     };
     expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "" }).success).toBe(false);
-    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "120" }).success).toBe(
+    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "1001" }).success).toBe(
       false,
     );
+    expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "150" }).success).toBe(true);
     expect(normDefaultsSchema.safeParse({ ...ok, norm_percent_on_call: "0" }).success).toBe(true);
   });
 });

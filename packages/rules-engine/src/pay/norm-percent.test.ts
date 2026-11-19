@@ -69,6 +69,25 @@ describe("norm percent (share of a shift that counts towards the norm)", () => {
     expect(otMinutes(r)).toBe(480);
   });
 
+  it("a work shift above 100 % fills the norm faster (e.g. 150 %)", () => {
+    // Friday 08–12 = 240 minutes at 150 % = 360 counted. 60 norm minutes are left
+    // after Thursday, reached after 40 real minutes; the remaining 200 are overtime.
+    const r = run([
+      ...monToThu(),
+      { ...shift("2026-01-09 08:00", "2026-01-09 12:00"), normPercent: 150 },
+    ]);
+    expect(otMinutes(r)).toBe(200);
+  });
+
+  it("on-call above 100 % reduces the norm by more than its length", () => {
+    // 360 minutes at 200 % = 720 → norm 1500. Work 2160 → 660 minutes of overtime.
+    const r = run([
+      ...monToThu(),
+      { ...shift("2026-01-07 17:00", "2026-01-07 23:00", { kind: "on_call" }), normPercent: 200 },
+    ]);
+    expect(otMinutes(r)).toBe(660);
+  });
+
   it("a work shift at 0 % never makes overtime", () => {
     const r = run([
       ...monToThu(),

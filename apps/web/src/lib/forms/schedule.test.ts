@@ -27,7 +27,11 @@ describe("shiftFormSchema", () => {
     expect(
       shiftFormSchema.parse({ ...base, norm_percent: "0", norm_in_pay: "false" }),
     ).toMatchObject({ norm_percent: 0, norm_in_pay: false });
-    expect(shiftFormSchema.safeParse({ ...base, norm_percent: "101" }).success).toBe(false);
+    // Above 100 % counts more than the real time (e.g. night work at 150 %).
+    expect(shiftFormSchema.parse({ ...base, norm_percent: "150" })).toMatchObject({
+      norm_percent: 150,
+    });
+    expect(shiftFormSchema.safeParse({ ...base, norm_percent: "1001" }).success).toBe(false);
     expect(shiftFormSchema.safeParse({ ...base, norm_percent: "33,5" }).success).toBe(false);
   });
 
