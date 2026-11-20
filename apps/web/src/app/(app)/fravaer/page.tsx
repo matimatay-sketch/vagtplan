@@ -40,7 +40,7 @@ export default async function MyAbsencePage() {
     <>
       <PageHeader
         title={t.title}
-        lead={t.leadSimple}
+        help={t.leadSimple}
         actions={
           <Button asChild>
             <a href="#soeg">

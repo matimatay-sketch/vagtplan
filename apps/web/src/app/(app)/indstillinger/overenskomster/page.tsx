@@ -36,7 +36,7 @@ export default async function AgreementsPage() {
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={<NewAgreementForm defaultDate={todayIn(ctx.organization.timezone)} />}
       />
       <Card className="py-0">

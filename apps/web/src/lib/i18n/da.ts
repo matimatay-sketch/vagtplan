@@ -3,6 +3,11 @@
  * Keep keys grouped by feature.
  */
 export const da = {
+  help: {
+    turnOn: "Vis forklaringer (?)",
+    turnOff: "Skjul forklaringer",
+    explain: "Forklaring",
+  },
   common: {
     saveDetails: "Gem stamdata",
     saveApprover: "Gem godkender",

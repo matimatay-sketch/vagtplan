@@ -68,7 +68,7 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/medarb
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={
           hasAny(ctx.permissions, ["employees.manage"]) ? (
             <Button asChild variant="signal">

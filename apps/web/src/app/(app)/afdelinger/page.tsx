@@ -60,7 +60,7 @@ export default async function DepartmentsPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       {canCreate ? (
         <Card className="mb-6">
           <CardContent>

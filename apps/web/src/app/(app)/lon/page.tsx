@@ -36,7 +36,7 @@ export default async function PayrollPage({ searchParams }: PageProps<"/lon">) {
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={
           hasOrg(ctx.permissions, "payroll.manage") ? (
             <Button asChild variant="outline">

@@ -55,7 +55,7 @@ export default async function TemplatesPage({ searchParams }: PageProps<"/lon/sk
           </Link>
         }
         title={t.templates}
-        lead={t.templatesLead}
+        help={t.templatesLead}
       />
       <Alert className="mb-6">
         <AlertDescription>{t.presetMissing}</AlertDescription>

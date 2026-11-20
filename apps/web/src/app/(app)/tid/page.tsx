@@ -22,7 +22,7 @@ export default async function TimePage() {
   if (!ctx.employee) {
     return (
       <>
-        <PageHeader title={t.title} lead={t.lead} />
+        <PageHeader title={t.title} help={t.lead} />
         <EmptyState>{da.common.notAllowed}</EmptyState>
       </>
     );
@@ -41,7 +41,7 @@ export default async function TimePage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <div className="grid gap-6">
         {overview.exempt.has(ctx.employee.id) ? <Alert>{t.exempt}</Alert> : null}
         <StampCard

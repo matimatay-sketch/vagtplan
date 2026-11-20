@@ -55,7 +55,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
 
       {canView ? (
         <section className="mb-8 grid gap-4" aria-labelledby="report-title">

@@ -183,3 +183,28 @@ test("norm percent: on-call counts with the default for its kind or its own shar
     await setOnCallDefault(browser, "0");
   }
 });
+
+test("help mode: the ? in the corner shows explanations on hover, and is remembered", async ({
+  page,
+}) => {
+  await login(page, users.employee);
+  await page.goto("/fravaer");
+  const explain = page.getByRole("button", { name: "Forklaring: Fravær og ferie" });
+  // Off by default: the explanation is not on the page.
+  await expect(explain).toBeHidden();
+  await expect(page.getByText("Søg om ferie og fri, og se hvor mange dage")).toHaveCount(0);
+
+  await page.getByTestId("help-toggle").filter({ visible: true }).click();
+  await expect(page.getByTestId("help-toggle").filter({ visible: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await explain.hover();
+  await expect(page.getByTestId("help-content")).toContainText("Søg om ferie og fri");
+
+  // Remembered on this device.
+  await page.reload();
+  await expect(explain).toBeVisible();
+  await page.getByTestId("help-toggle").filter({ visible: true }).click();
+  await expect(explain).toBeHidden();
+});

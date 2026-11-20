@@ -1,14 +1,19 @@
 import * as React from "react";
 import Link from "next/link";
+import { HelpTip } from "@/components/help/help";
 
 export function PageHeader({
   title,
   lead,
+  help,
   actions,
   eyebrow,
 }: {
   title: React.ReactNode;
+  /** Short context that is always shown (e.g. a role or a date). */
   lead?: React.ReactNode;
+  /** An explanation, shown behind a "?" when help is turned on. */
+  help?: React.ReactNode;
   actions?: React.ReactNode;
   eyebrow?: React.ReactNode;
 }) {
@@ -16,7 +21,12 @@ export function PageHeader({
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow ? <div className="mb-2 text-sm text-muted-foreground">{eyebrow}</div> : null}
-        <h1 className="text-2xl font-semibold sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          {title}
+          {help ? (
+            <HelpTip label={typeof title === "string" ? title : undefined}>{help}</HelpTip>
+          ) : null}
+        </h1>
         {lead ? <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{lead}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}

@@ -82,7 +82,7 @@ export default async function TemplatesPage() {
           </Link>
         }
         title={t.templates}
-        lead={t.templatesLead}
+        help={t.templatesLead}
       />
       <Card className="mb-6">
         <CardContent>

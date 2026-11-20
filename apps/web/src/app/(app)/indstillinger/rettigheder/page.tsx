@@ -70,7 +70,7 @@ export default async function ProfilesPage({
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={
           list.length > 1 ? (
             <Button asChild variant="outline" size="sm">

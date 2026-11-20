@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, PhoneCall, X } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -74,7 +75,7 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={
           <div className="flex items-center rounded-lg border bg-card p-0.5">
             <Button
@@ -158,8 +159,10 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
         </section>
         <Card className="content-start">
           <CardHeader>
-            <CardTitle>{t.availabilityTitle}</CardTitle>
-            <CardDescription>{t.availabilityLead}</CardDescription>
+            <CardTitle>
+              {t.availabilityTitle}
+              <HelpTip>{t.availabilityLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <AvailabilityForm defaultDate={addDays(today, 1)} />

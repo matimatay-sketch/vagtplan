@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { brand } from "@/lib/brand";
+import { HELP_BOOT_SCRIPT } from "@/lib/domain/help-mode";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -27,8 +28,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="da"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
+      <head>
+        {/* Sets data-help before paint so "?" icons do not flash in or out. */}
+        <script dangerouslySetInnerHTML={{ __html: HELP_BOOT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">
         {children}
         <Toaster position="top-right" richColors />

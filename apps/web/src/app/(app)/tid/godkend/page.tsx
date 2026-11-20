@@ -163,7 +163,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
 
   return (
     <>
-      <PageHeader title={t.approveTitle} lead={t.approveLead} />
+      <PageHeader title={t.approveTitle} help={t.approveLead} />
       <div className="mb-6 flex flex-wrap items-start gap-2">
         <form className="flex w-full flex-col gap-3" data-testid="time-filters">
           <input type="hidden" name="uge" value={weekStart} />

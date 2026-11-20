@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
 import { SubmitButton } from "@/components/form";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { availablePosting } from "@/lib/domain/posting";
@@ -6,7 +7,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Plus, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,8 +275,10 @@ export default async function RotationPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>{t.rolloutTitle}</CardTitle>
-            <CardDescription>{t.rolloutLead}</CardDescription>
+            <CardTitle>
+              {t.rolloutTitle}
+              <HelpTip>{t.rolloutLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-6">
             <RolloutForm

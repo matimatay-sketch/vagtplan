@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
 import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -368,8 +369,10 @@ export default async function EmployeePage({
           {canManageUsers ? (
             <Card>
               <CardHeader>
-                <CardTitle>{t.approver}</CardTitle>
-                <CardDescription>{t.approverLead}</CardDescription>
+                <CardTitle>
+                  {t.approver}
+                  <HelpTip>{t.approverLead}</HelpTip>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ApproverForm
