@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { login, users } from "./helpers";
+import { login, users, openMoreSettings } from "./helpers";
 
 function mondayIn(weeks: number): string {
   const d = new Date();
@@ -121,6 +121,7 @@ test("shift with paid and unpaid breaks and a supplement; hours shown against th
   await second.getByLabel("Minutter").fill("15");
   await second.getByLabel("Betalt").selectOption("paid");
   await expect(editor).toContainText("Betalt: 15 min · Ubetalt: 30 min");
+  await openMoreSettings(form);
   await form.getByTestId("supplement-picker").getByText("Ansvarstillæg").click();
   await form.getByRole("button", { name: "Gem vagt" }).click();
   await expect(form).toHaveCount(0);

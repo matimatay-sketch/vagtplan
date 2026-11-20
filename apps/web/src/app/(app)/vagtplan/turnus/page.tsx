@@ -42,7 +42,7 @@ export default async function RotationsPage() {
           </Link>
         }
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
       />
       <Card className="mb-6">
         <CardContent>

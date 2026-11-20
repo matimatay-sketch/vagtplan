@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { Columns3, Lock, Star } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -69,7 +70,7 @@ export default async function ProfilesPage({
     <>
       <PageHeader
         title={t.title}
-        lead={t.lead}
+        help={t.lead}
         actions={
           list.length > 1 ? (
             <Button asChild variant="outline" size="sm">
@@ -145,9 +146,9 @@ export default async function ProfilesPage({
                   hasOrg(ctx.permissions, "settings.manage") ? (
                     <form action={setDefaultProfileAction}>
                       <input type="hidden" name="profile_id" value={selected.id} />
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm">
                         {t.makeDefault}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   ) : null}
                   <ArchiveProfileForm profileId={selected.id} />

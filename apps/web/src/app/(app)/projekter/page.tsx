@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { Download, Trash2 } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
 
       {canView ? (
         <section className="mb-8 grid gap-4" aria-labelledby="report-title">
@@ -92,9 +93,7 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projekt
                   <option value="registreret">{t.sources.actual}</option>
                 </NativeSelect>
               </label>
-              <Button type="submit" variant="outline">
-                {t.show}
-              </Button>
+              <SubmitButton variant="outline">{t.show}</SubmitButton>
               <Button asChild>
                 <a href={exportHref} download>
                   <Download /> {t.exportCsv}

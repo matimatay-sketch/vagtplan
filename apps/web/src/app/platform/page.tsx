@@ -30,7 +30,7 @@ export default async function PlatformPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-base">{t.newCustomer}</CardTitle>

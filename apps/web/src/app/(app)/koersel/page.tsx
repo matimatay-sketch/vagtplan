@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExpenseForm, TripForm } from "@/components/expenses/expense-forms";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { requireContext } from "@/lib/auth";
@@ -41,12 +42,14 @@ export default async function ExpensesPage() {
     .filter((d) => d.values.length > 0);
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t.tripsTitle}</CardTitle>
-            <CardDescription>{t.tripsLead}</CardDescription>
+            <CardTitle>
+              {t.tripsTitle}
+              <HelpTip>{t.tripsLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <TripForm today={today} posting={dims} />
@@ -54,8 +57,10 @@ export default async function ExpensesPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.expensesTitle}</CardTitle>
-            <CardDescription>{t.expensesLead}</CardDescription>
+            <CardTitle>
+              {t.expensesTitle}
+              <HelpTip>{t.expensesLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ExpenseForm

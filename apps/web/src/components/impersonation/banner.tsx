@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
+import { SubmitButton } from "@/components/form";
 import { UserRoundCog } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { IMPERSONATION_COOKIE, createClient } from "@/lib/supabase/server";
 import { stopImpersonationAction } from "@/lib/actions/impersonation";
 import { da } from "@/lib/i18n/da";
@@ -24,9 +24,9 @@ export async function ImpersonationBanner() {
           : da.impersonation.bannerEnded}
       </span>
       <form action={stopImpersonationAction}>
-        <Button type="submit" size="sm" variant="secondary">
+        <SubmitButton size="sm" variant="secondary">
           {da.impersonation.stop}
-        </Button>
+        </SubmitButton>
       </form>
     </div>
   );

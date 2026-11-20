@@ -17,7 +17,7 @@ export default async function PostingPage() {
   ]);
   return (
     <>
-      <PageHeader title={da.posting.title} lead={da.posting.lead} />
+      <PageHeader title={da.posting.title} help={da.posting.lead} />
       <PostingSettings dimensions={dimensions} departments={departments ?? []} />
     </>
   );

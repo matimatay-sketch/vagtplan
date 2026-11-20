@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
+import { SubmitButton } from "@/components/form";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ApiKeyForm, WebhookForm } from "@/components/integrations/forms";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -47,12 +48,14 @@ export default async function IntegrationsPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t.docsTitle}</CardTitle>
-            <CardDescription>{t.docsLead}</CardDescription>
+            <CardTitle>
+              {t.docsTitle}
+              <HelpTip>{t.docsLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 text-sm">
             <span>
@@ -70,8 +73,10 @@ export default async function IntegrationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t.keysTitle}</CardTitle>
-            <CardDescription>{t.keysLead}</CardDescription>
+            <CardTitle>
+              {t.keysTitle}
+              <HelpTip>{t.keysLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <ApiKeyForm />
@@ -98,9 +103,9 @@ export default async function IntegrationsPage() {
                   </span>
                   {k.revoked_at ? null : (
                     <form action={revokeApiKeyAction.bind(null, k.id)}>
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm">
                         {t.revoke}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                 </li>
@@ -111,8 +116,10 @@ export default async function IntegrationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t.webhooksTitle}</CardTitle>
-            <CardDescription>{t.webhooksLead}</CardDescription>
+            <CardTitle>
+              {t.webhooksTitle}
+              <HelpTip>{t.webhooksLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <WebhookForm />
@@ -139,14 +146,14 @@ export default async function IntegrationsPage() {
                     ) : (
                       <span className="flex gap-2">
                         <form action={pingWebhookAction.bind(null, h.id)}>
-                          <Button type="submit" variant="outline" size="sm">
+                          <SubmitButton variant="outline" size="sm">
                             {t.ping}
-                          </Button>
+                          </SubmitButton>
                         </form>
                         <form action={disableWebhookAction.bind(null, h.id)}>
-                          <Button type="submit" variant="ghost" size="sm">
+                          <SubmitButton variant="ghost" size="sm">
                             {t.disable}
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </span>
                     )}

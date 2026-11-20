@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { login, users } from "./helpers";
+import { login, users, openMoreSettings } from "./helpers";
 
 const local = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
 const plus = (date: string, days: number) => {
@@ -82,7 +82,7 @@ test("cost centres: set up, default per employee, posted on a shift, split in pa
   );
   const defaults = page.getByTestId("posting-defaults-employee");
   await defaults.getByLabel(dim).selectOption({ label: "1100 · Butik" });
-  await defaults.getByRole("button", { name: "Gem" }).click();
+  await defaults.getByRole("button", { name: "Gem standardkontering" }).click();
   await expect(page.getByText("Gemt.")).toBeVisible();
 
   // 3. A shift 08–16 with 3 hours on 1200; the rest falls back to the standard (1100).
@@ -94,6 +94,7 @@ test("cost centres: set up, default per employee, posted on a shift, split in pa
   await shift.getByLabel("Start").fill("08:00");
   await shift.getByLabel("Slut").fill("16:00");
   await shift.getByTestId("break-row").getByRole("button", { name: "Fjern pause" }).click();
+  await openMoreSettings(shift);
   const editor = shift.getByTestId("posting-editor");
   await editor.getByRole("button", { name: "Tilføj kontering" }).click();
   await editor.getByLabel(`${dim} 1`).selectOption({ label: "1200 · Lager" });

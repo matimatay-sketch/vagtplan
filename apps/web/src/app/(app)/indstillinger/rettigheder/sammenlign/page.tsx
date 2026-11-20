@@ -74,7 +74,7 @@ export default async function CompareProfilesPage({
     <>
       <PageHeader
         title={t.compare.title}
-        lead={t.compare.lead}
+        help={t.compare.lead}
         actions={
           <Button asChild variant="outline" size="sm">
             <Link href="/indstillinger/rettigheder">

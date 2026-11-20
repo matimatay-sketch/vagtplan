@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { balances, formatDays, planUsage, type Posting } from "./leave";
+import { balances, formatDays, planUsage, summarizeBalances, type Posting } from "./leave";
 
 const p = (over: Partial<Posting>): Posting => ({
   account: "vacation",
@@ -87,5 +87,52 @@ describe("formatDays", () => {
     expect(formatDays(2500)).toBe("25");
     expect(formatDays(-50)).toBe("−0,5");
     expect(formatDays(0)).toBe("0");
+  });
+});
+
+describe("summarizeBalances", () => {
+  const b = (account: string, periodStart: string, usableUntil: string, balance: number) => ({
+    account,
+    periodStart,
+    usableUntil,
+    earned: balance,
+    used: 0,
+    other: 0,
+    balance,
+  });
+
+  it("adds up what is left per account and ignores expired periods", () => {
+    const r = summarizeBalances(
+      [
+        b("vacation", "2025-09-01", "2026-12-31", 1664),
+        b("vacation", "2026-09-01", "2027-12-31", 416),
+        b("vacation", "2024-09-01", "2025-12-31", 300),
+        b("care_day", "2026-01-01", "2026-12-31", 200),
+      ],
+      "2026-11-20",
+    );
+    expect(r.map((x) => [x.account, x.left])).toEqual([
+      ["vacation", 2080],
+      ["care_day", 200],
+    ]);
+  });
+
+  it("warns about days that must be used soon (within three months)", () => {
+    const r = summarizeBalances(
+      [
+        b("vacation", "2025-09-01", "2026-12-31", 1664),
+        b("vacation", "2026-09-01", "2027-12-31", 416),
+      ],
+      "2026-11-20",
+    );
+    expect(r[0]!.expiring).toEqual({ amount: 1664, until: "2026-12-31" });
+    // Far from expiry, or nothing left in that period: no warning.
+    expect(
+      summarizeBalances([b("vacation", "2026-09-01", "2027-12-31", 416)], "2026-11-20")[0]!
+        .expiring,
+    ).toBeNull();
+    expect(
+      summarizeBalances([b("vacation", "2025-09-01", "2026-12-31", 0)], "2026-11-20")[0]!.expiring,
+    ).toBeNull();
   });
 });

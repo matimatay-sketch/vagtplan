@@ -51,3 +51,28 @@ export function payPeriodsFrom(
   }
   return periods;
 }
+
+type FocusRow = { groupId: string; start: IsoDate; end: IsoDate; status: "open" | "closed" };
+
+/**
+ * What the payroll page should put first. Per group: the oldest period that
+ * has ended but is not closed ("ready"), otherwise the running one. The list
+ * keeps the last three months and the next month; older periods are counted.
+ */
+export function periodFocus<T extends FocusRow>(
+  rows: readonly T[],
+  today: IsoDate,
+): { now: (T & { state: "ready" | "running" })[]; recent: T[]; older: number } {
+  const groups = [...new Set(rows.map((r) => r.groupId))];
+  const now = groups.flatMap((g): (T & { state: "ready" | "running" })[] => {
+    const mine = rows.filter((r) => r.groupId === g).sort((a, b) => a.start.localeCompare(b.start));
+    const ready = mine.find((r) => r.status === "open" && r.end < today);
+    if (ready) return [{ ...ready, state: "ready" as const }];
+    const running = mine.find((r) => r.status === "open" && r.start <= today && today <= r.end);
+    return running ? [{ ...running, state: "running" as const }] : [];
+  });
+  const from = addDays(today, -92);
+  const to = addDays(today, 31);
+  const recent = rows.filter((r) => r.end >= from && r.start <= to);
+  return { now, recent, older: rows.filter((r) => r.end < from).length };
+}

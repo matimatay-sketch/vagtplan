@@ -44,7 +44,7 @@ test("vacation request: the manager approves, the balance and the schedule follo
     .getByRole("navigation", { name: "Hovedmenu" })
     .getByRole("link", { name: "Fravær og ferie" })
     .click();
-  await expect(page.getByTestId("balances")).toBeVisible();
+  await expect(page.getByTestId("balance-cards")).toBeVisible();
   const form = page.getByTestId("absence-request-form");
   await form.getByLabel("Type").selectOption({ label: "Ferie" });
   await form.getByLabel("Fra").fill(week);
@@ -91,6 +91,8 @@ test("vacation request: the manager approves, the balance and the schedule follo
   await expect(mine).toContainText("Godkendt");
   await expect(mine).toContainText("5 dage");
   await expect(mine).toContainText("God ferie");
+  // The details (earned, used, transferred) are one click away.
+  await page.getByText("Se detaljer").click();
   await expect(
     page.getByTestId("balances").locator('tr[data-account="vacation"]').last(),
   ).toContainText("5");

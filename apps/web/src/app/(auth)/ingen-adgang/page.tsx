@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { getAppContext } from "@/lib/auth";
 import { signOutAction } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -25,9 +25,7 @@ export default async function NoAccessPage() {
       </div>
       <div className="flex flex-wrap gap-2">
         <form action={signOutAction}>
-          <Button type="submit" variant="outline">
-            {da.nav.signOut}
-          </Button>
+          <SubmitButton variant="outline">{da.nav.signOut}</SubmitButton>
         </form>
       </div>
     </div>

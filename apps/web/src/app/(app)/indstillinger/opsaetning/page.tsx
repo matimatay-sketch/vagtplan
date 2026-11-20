@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { ArrowRight, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatSupplementAmount } from "@/lib/domain/supplements";
@@ -77,12 +79,14 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t.noticeTitle}</CardTitle>
-            <CardDescription>{t.noticeLead}</CardDescription>
+            <CardTitle>
+              {t.noticeTitle}
+              <HelpTip>{t.noticeLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <NoticeForm
@@ -93,8 +97,10 @@ export default async function SettingsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.normTitle}</CardTitle>
-            <CardDescription>{t.normLead}</CardDescription>
+            <CardTitle>
+              {t.normTitle}
+              <HelpTip>{t.normLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <NormDefaultsForm
@@ -111,8 +117,10 @@ export default async function SettingsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.leaveTitle}</CardTitle>
-            <CardDescription>{t.leaveLead}</CardDescription>
+            <CardTitle>
+              {t.leaveTitle}
+              <HelpTip>{t.leaveLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <LeaveRulesForm rules={settings.leave_rules} />
@@ -120,8 +128,10 @@ export default async function SettingsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.rulesTitle}</CardTitle>
-            <CardDescription>{t.rulesLead}</CardDescription>
+            <CardTitle>
+              {t.rulesTitle}
+              <HelpTip>{t.rulesLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <Alert variant="warning">
@@ -132,8 +142,10 @@ export default async function SettingsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.supplementsTitle}</CardTitle>
-            <CardDescription>{t.supplementsLead}</CardDescription>
+            <CardTitle>
+              {t.supplementsTitle}
+              <HelpTip>{t.supplementsLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <SupplementTypeForm />
@@ -191,8 +203,10 @@ export default async function SettingsPage() {
         </Card>
         <Card data-testid="assistant-settings">
           <CardHeader>
-            <CardTitle>{da.assistant.settingsTitle}</CardTitle>
-            <CardDescription>{da.assistant.settingsLead}</CardDescription>
+            <CardTitle>
+              {da.assistant.settingsTitle}
+              <HelpTip>{da.assistant.settingsLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm">
             {!assistant.configured ? (
@@ -206,9 +220,9 @@ export default async function SettingsPage() {
               </span>
               <form action={setAssistantEnabledAction}>
                 <input type="hidden" name="enabled" value={String(!assistant.enabled)} />
-                <Button type="submit" variant="outline" size="sm">
+                <SubmitButton variant="outline" size="sm">
                   {assistant.enabled ? da.assistant.disable : da.assistant.enable}
-                </Button>
+                </SubmitButton>
               </form>
               <span className="text-muted-foreground">
                 {da.assistant.usage(assistantUsage ?? 0)}

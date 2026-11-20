@@ -36,7 +36,7 @@ export function ApproverForm({
           </NativeSelect>
         </div>
         <SubmitButton variant="outline" size="sm" className="h-9">
-          {da.common.save}
+          {da.common.saveApprover}
         </SubmitButton>
       </div>
       <FormMessage state={state} />

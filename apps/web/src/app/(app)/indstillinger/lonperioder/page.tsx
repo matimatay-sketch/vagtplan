@@ -26,7 +26,7 @@ export default async function PayPeriodGroupsPage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader title={t.title} help={t.lead} />
       <Card className="mb-6">
         <CardContent>
           <PayPeriodGroupForm defaultMonday={addDays(today, 1 - isoWeekday(today))} />

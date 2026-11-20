@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
 import { redirect } from "next/navigation";
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AbsenceRequestForm } from "@/components/absence/request-form";
 import { AbsenceList } from "@/components/absence/absence-list";
 import { PostingForm } from "@/components/absence/posting-form";
@@ -71,7 +72,7 @@ export default async function AbsenceAdminPage() {
 
   return (
     <>
-      <PageHeader title={t.approveTitle} lead={t.approveLead} />
+      <PageHeader title={t.approveTitle} help={t.approveLead} />
       <div className="grid gap-8">
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">{t.pending}</h2>
@@ -89,8 +90,10 @@ export default async function AbsenceAdminPage() {
         {manageable.length ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t.register}</CardTitle>
-              <CardDescription>{t.registerLead}</CardDescription>
+              <CardTitle className="text-base">
+                {t.register}
+                <HelpTip>{t.registerLead}</HelpTip>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <AbsenceRequestForm
@@ -172,8 +175,10 @@ export default async function AbsenceAdminPage() {
         {manageable.length ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t.addPosting}</CardTitle>
-              <CardDescription>{t.postingLead}</CardDescription>
+              <CardTitle className="text-base">
+                {t.addPosting}
+                <HelpTip>{t.postingLead}</HelpTip>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <PostingForm

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
-import { login, users } from "./helpers";
+import { login, users, openMoreSettings } from "./helpers";
 
 function mondayIn(weeks: number): string {
   const d = new Date();
@@ -59,6 +59,7 @@ test("projects: create, allocate on a shift, see hours and export CSV", async ({
   await shift.getByLabel("Start").fill("08:00");
   await shift.getByLabel("Slut").fill("16:00");
   // Projects are values of the "Projekt" posting dimension.
+  await openMoreSettings(shift);
   const editor = shift.getByTestId("posting-editor");
   await editor.getByRole("button", { name: "Tilføj kontering" }).click();
   await editor.getByRole("button", { name: "Tilføj kontering" }).click();

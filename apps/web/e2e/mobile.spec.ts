@@ -34,3 +34,11 @@ test("approval filters fold away on a phone", async ({ page }) => {
   await flags.getByText("Flere filtre").click();
   await expect(flags.getByText("Afviger fra plan")).toBeVisible();
 });
+
+test("help explanations open with a tap on a phone", async ({ page }) => {
+  await login(page, users.employee);
+  await page.goto("/fravaer");
+  await page.getByTestId("help-toggle").filter({ visible: true }).click();
+  await page.getByRole("button", { name: "Forklaring: Fravær og ferie" }).tap();
+  await expect(page.getByTestId("help-content")).toContainText("Søg om ferie og fri");
+});

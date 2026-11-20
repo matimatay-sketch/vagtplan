@@ -1,4 +1,5 @@
 import { Logo } from "@/components/brand/logo";
+import { HelpToggle } from "@/components/help/help";
 import { Nav } from "@/components/shell/nav";
 import { UserMenu } from "@/components/shell/user-menu";
 import { requireContext } from "@/lib/auth";
@@ -46,10 +47,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <ImpersonationBanner />
         <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-background/85 px-4 py-2 backdrop-blur md:hidden">
           <Logo />
-          <div className="w-44">
-            <UserMenu {...menu} tone="light" />
+          <div className="flex items-center gap-2">
+            <HelpToggle />
+            <div className="w-44">
+              <UserMenu {...menu} tone="light" />
+            </div>
           </div>
         </header>
+        {/* Desktop: the "?" sits in the top-right corner of the page. */}
+        <div className="fixed top-3 right-4 z-30 hidden md:block">
+          <HelpToggle />
+        </div>
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 py-1.5 backdrop-blur md:hidden">
           <Nav

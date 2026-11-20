@@ -74,7 +74,7 @@ export function PostingDefaultsForm({
           </Field>
         ))}
         <Button variant="outline" disabled={pending}>
-          {da.common.save}
+          {da.common.saveDefaults}
         </Button>
       </div>
     </form>

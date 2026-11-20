@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
+import { SubmitButton } from "@/components/form";
 import { Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { archiveExpenseSetupAction } from "@/lib/actions/expenses";
@@ -18,9 +19,9 @@ function ArchiveButton({ table, id, label }: { table: string; id: string; label:
     <form action={archiveExpenseSetupAction}>
       <input type="hidden" name="table" value={table} />
       <input type="hidden" name="id" value={id} />
-      <Button type="submit" variant="ghost" size="icon" className="size-7" aria-label={label}>
+      <SubmitButton variant="ghost" size="icon" className="size-7" aria-label={label}>
         <Trash2 />
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
@@ -35,12 +36,14 @@ export default async function ExpenseSettingsPage() {
   ]);
   return (
     <>
-      <PageHeader title={t.settingsTitle} lead={t.settingsLead} />
+      <PageHeader title={t.settingsTitle} help={t.settingsLead} />
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t.ratesTitle}</CardTitle>
-            <CardDescription>{t.ratesLead}</CardDescription>
+            <CardTitle>
+              {t.ratesTitle}
+              <HelpTip>{t.ratesLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <MileageRateForm />
@@ -80,8 +83,10 @@ export default async function ExpenseSettingsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t.categoriesTitle}</CardTitle>
-            <CardDescription>{t.categoriesLead}</CardDescription>
+            <CardTitle>
+              {t.categoriesTitle}
+              <HelpTip>{t.categoriesLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <ExpenseCategoryForm />

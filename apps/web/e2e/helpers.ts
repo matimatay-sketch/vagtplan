@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const users = {
   admin: "admin@demo.dk",
@@ -34,4 +34,9 @@ export async function latestLinkFor(email: string): Promise<string> {
     await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error(`No mail for ${email}`);
+}
+
+/** Opens "Flere indstillinger" in the shift dialog (rarely used fields fold away). */
+export async function openMoreSettings(form: Locator) {
+  await form.getByTestId("shift-more").evaluate((d) => ((d as HTMLDetailsElement).open = true));
 }

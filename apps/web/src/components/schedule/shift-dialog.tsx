@@ -1,6 +1,6 @@
 "use client";
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -137,6 +137,17 @@ function ShiftForm({
       setPostingRows(defaultPostingRows(tpl.postingValues));
   };
   const err = (k: string) => state.errors?.[k];
+  // Settings in use behind "Flere indstillinger" (counted so the fold shows they are there).
+  const advancedCount =
+    (values.label ? 1 : 0) +
+    (values.norm_percent ? 1 : 0) +
+    (values.norm_in_pay ? 1 : 0) +
+    (supplements.length ? 1 : 0) +
+    (postingRows.length ? 1 : 0);
+  const [moreOpen, setMoreOpen] = useState(advancedCount > 0);
+  const advancedError = Object.keys(state.errors ?? {}).some(
+    (k) => k === "label" || k === "norm_percent" || k.startsWith("posting_allocations"),
+  );
 
   return (
     <>
@@ -212,37 +223,64 @@ function ShiftForm({
               <option value="on_call">{t.kinds.on_call}</option>
             </NativeSelect>
           </Field>
-          <NormFields
-            kind={values.kind as "work" | "on_call"}
-            defaults={normDefaults}
-            percent={values.norm_percent}
-            inPay={values.norm_in_pay}
-            onPercent={(v) => setValues((x) => ({ ...x, norm_percent: v }))}
-            onInPay={(v) => setValues((x) => ({ ...x, norm_in_pay: v }))}
-            error={err("norm_percent")}
-          />
-          <Field label={`${t.label} (${da.common.optional})`} htmlFor="label" error={err("label")}>
-            <Input
-              id="label"
-              name="label"
-              placeholder={t.labelPlaceholder}
-              value={values.label}
-              onChange={set("label")}
-            />
-          </Field>
         </div>
         <BreaksEditor value={breaks} onChange={setBreaks} error={err("breaks")} />
-        <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
-        <PostingEditor
-          dimensions={posting}
-          value={postingRows}
-          onChange={setPostingRows}
-          error={
-            Object.entries(state.errors ?? {}).find(([k]) =>
-              k.startsWith("posting_allocations"),
-            )?.[1]
-          }
-        />
+        {/* The rarely used settings fold away; they open by themselves when in use. */}
+        <details
+          className="group/more rounded-lg border px-3 py-2"
+          open={moreOpen || advancedError}
+          onToggle={(e) => setMoreOpen(e.currentTarget.open)}
+          data-testid="shift-more"
+        >
+          <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm font-medium pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="size-4 transition-transform group-open/more:rotate-180" />
+            {t.moreSettings}
+            {advancedCount > 0 ? (
+              <span className="text-muted-foreground">{t.moreSettingsUsed(advancedCount)}</span>
+            ) : null}
+          </summary>
+          <div className="grid gap-4 pt-3 pb-1">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={`${t.label} (${da.common.optional})`}
+                htmlFor="label"
+                error={err("label")}
+              >
+                <Input
+                  id="label"
+                  name="label"
+                  placeholder={t.labelPlaceholder}
+                  value={values.label}
+                  onChange={set("label")}
+                />
+              </Field>
+              <NormFields
+                kind={values.kind as "work" | "on_call"}
+                defaults={normDefaults}
+                percent={values.norm_percent}
+                inPay={values.norm_in_pay}
+                onPercent={(v) => setValues((x) => ({ ...x, norm_percent: v }))}
+                onInPay={(v) => setValues((x) => ({ ...x, norm_in_pay: v }))}
+                error={err("norm_percent")}
+              />
+            </div>
+            <SupplementPicker
+              options={supplementTypes}
+              value={supplements}
+              onChange={setSupplements}
+            />
+            <PostingEditor
+              dimensions={posting}
+              value={postingRows}
+              onChange={setPostingRows}
+              error={
+                Object.entries(state.errors ?? {}).find(([k]) =>
+                  k.startsWith("posting_allocations"),
+                )?.[1]
+              }
+            />
+          </div>
+        </details>
         {s?.violations.length ? (
           <ul className="grid gap-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
             {s.violations.map((v, i) => (

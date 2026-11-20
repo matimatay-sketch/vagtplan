@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { HelpTip } from "@/components/help/help";
+import { SubmitButton } from "@/components/form";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { availablePosting } from "@/lib/domain/posting";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Plus, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,9 +151,9 @@ export default async function RotationPage({
         actions={
           <form action={archiveRotationAction}>
             <input type="hidden" name="id" value={rotation.id} />
-            <Button type="submit" variant="ghost" className="text-destructive">
+            <SubmitButton variant="ghost" className="text-destructive">
               <Trash2 /> {da.common.archive}
-            </Button>
+            </SubmitButton>
           </form>
         }
       />
@@ -198,9 +200,9 @@ export default async function RotationPage({
                 )}
               </NativeSelect>
             </div>
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               {t.copyWeek}
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}
@@ -242,9 +244,9 @@ export default async function RotationPage({
                   <input type="hidden" name="id" value={l.id} />
                   <input type="hidden" name="rotation_id" value={id} />
                   <Input name="name" defaultValue={l.name} aria-label={t.lineName} />
-                  <Button type="submit" variant="outline" size="sm" className="h-9">
+                  <SubmitButton variant="outline" size="sm" className="h-9">
                     {da.common.save}
-                  </Button>
+                  </SubmitButton>
                 </form>
                 {lineList.length > 1 ? (
                   <form action={removeLineAction}>
@@ -264,17 +266,19 @@ export default async function RotationPage({
             ))}
             <form action={addLineAction}>
               <input type="hidden" name="rotation_id" value={id} />
-              <Button type="submit" variant="outline" size="sm">
+              <SubmitButton variant="outline" size="sm">
                 <Plus /> {t.addLine}
-              </Button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>{t.rolloutTitle}</CardTitle>
-            <CardDescription>{t.rolloutLead}</CardDescription>
+            <CardTitle>
+              {t.rolloutTitle}
+              <HelpTip>{t.rolloutLead}</HelpTip>
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-6">
             <RolloutForm
