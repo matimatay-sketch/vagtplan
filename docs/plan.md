@@ -208,6 +208,13 @@ Acceptkriterier:
 
 - `/indstillinger/rettigheder/sammenlign` viser profilernes rettigheder side om side med omfang pr. profil. Rækker med forskelle fremhæves. Man vælger profiler og kan vise kun forskellene (valget ligger i URL'en). Logikken ligger i `src/lib/domain/profile-compare.ts`.
 
+### Fortryd og ret (ønsket 2026-11-21)
+
+- Primær afdeling vælges med stjernen på medarbejderen. Fjernes den primære, bliver en anden primær.
+- Godkendt tid og udlæg kan fortrydes, så længe lønperioden ikke er afsluttet. Derefter bruges rettelser.
+- Lønperiode-grupper kan omdøbes og slettes. Frekvens og start kan ændres, indtil en periode er beregnet eller afsluttet.
+- Kontrakter, vagtskabeloner, tillægstyper, opslag og rettighedsprofilers navn kan rettes. Webhooks kan slås til igen. Medarbejdere kan slettes (arkiveres, login fjernes), når kontrakten er afsluttet.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.

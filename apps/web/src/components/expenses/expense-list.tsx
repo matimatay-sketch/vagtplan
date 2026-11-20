@@ -1,11 +1,15 @@
 "use client";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Car, Receipt, Trash2 } from "lucide-react";
+import { Car, Receipt, Trash2, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { archiveExpenseItemAction, decideExpenseItemsAction } from "@/lib/actions/expenses";
+import {
+  archiveExpenseItemAction,
+  decideExpenseItemsAction,
+  reopenExpenseItemsAction,
+} from "@/lib/actions/expenses";
 import type { ExpenseItem } from "@/lib/expenses/load";
 import { formatKm } from "@/lib/domain/mileage";
 import { formatKroner } from "@/lib/domain/numbers";
@@ -135,6 +139,14 @@ export function ExpenseApproval({
         setNote("");
       } else toast.error(r.message);
     });
+  const reopen = (i: ExpenseItem) =>
+    start(async () => {
+      const r = await reopenExpenseItemsAction({
+        tripIds: i.kind === "trip" ? [i.id] : [],
+        expenseIds: i.kind === "expense" ? [i.id] : [],
+      });
+      (r.ok ? toast.success : toast.error)(r.message ?? "");
+    });
   return (
     <div className="grid gap-3" data-testid="expense-approval">
       <ul className="divide-y rounded-lg border">
@@ -163,7 +175,20 @@ export function ExpenseApproval({
               <ItemText item={i} />
               {i.decisionNote ? <span className="text-xs">“{i.decisionNote}”</span> : null}
             </div>
-            <Badge variant={statusVariant[i.status]}>{t.statuses[i.status]}</Badge>
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant={statusVariant[i.status]}>{t.statuses[i.status]}</Badge>
+              {i.status !== "pending" && can.has(key(i)) ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => reopen(i)}
+                  data-testid="reopen-expense"
+                >
+                  <Undo2 /> {t.reopen}
+                </Button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>

@@ -243,3 +243,25 @@ export async function decideExpenseItemsAction(input: {
     message: p.decision === "approved" ? t.approvedCount(data ?? 0) : t.rejectedCount(data ?? 0),
   };
 }
+
+/** Undo a decision: the items wait for approval again (not in a closed pay period). */
+export async function reopenExpenseItemsAction(input: {
+  tripIds: string[];
+  expenseIds: string[];
+}): Promise<ActionState> {
+  await requireContext();
+  const p = z
+    .object({ tripIds: z.array(z.guid()).max(500), expenseIds: z.array(z.guid()).max(500) })
+    .parse(input);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reopen_expense_items", {
+    p_trip_ids: p.tripIds,
+    p_expense_ids: p.expenseIds,
+  });
+  if (error)
+    return {
+      message: error.hint === "period_closed" ? da.time.periodClosed : dbErrorMessage(error),
+    };
+  revalidateExpenses();
+  return { ok: true, message: t.reopenedCount(data ?? 0) };
+}

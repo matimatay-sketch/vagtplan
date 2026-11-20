@@ -77,6 +77,33 @@ export async function createSupplementTypeAction(
   return { ok: true, message: da.common.saved };
 }
 
+/** Edits a supplement type; pay already calculated (closed periods) is not changed. */
+export async function updateSupplementTypeAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["settings.manage"]);
+  const values = formValues(formData);
+  const id = z.guid().safeParse(values.id);
+  const parsed = supplementTypeSchema.safeParse(values);
+  if (!id.success) return { message: da.common.unknownError, values };
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("supplement_type")
+    .update(parsed.data)
+    .eq("id", id.data)
+    .select("id");
+  if (error)
+    return {
+      message: dbErrorMessage(error, { "23505": "Der findes allerede et tillæg med det navn." }),
+      values,
+    };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidateSettings();
+  return { ok: true, message: da.common.saved };
+}
+
 export async function setSupplementSelectableAction(formData: FormData) {
   await requireContext(["settings.manage"]);
   const supabase = await createClient();

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { Megaphone, Pin, Trash2 } from "lucide-react";
+import { Megaphone, Pin, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/form";
-import { createPostAction, deletePostAction } from "@/lib/actions/bulletin";
+import { createPostAction, deletePostAction, updatePostAction } from "@/lib/actions/bulletin";
 import { da } from "@/lib/i18n/da";
 
 const t = da.dashboard;
@@ -18,6 +18,8 @@ export type BoardPost = {
   title: string;
   body: string;
   pinned: boolean;
+  departmentId: string | null;
+  expiresOn: string | null;
   departmentName: string | null;
   createdAt: string;
   author: string | null;
@@ -34,6 +36,8 @@ export function BulletinBoard({
   postTo: { id: string | null; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  // The post being edited (null = a new post).
+  const [editing, setEditing] = useState<string | null>(null);
   const [dept, setDept] = useState(postTo[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -45,7 +49,17 @@ export function BulletinBoard({
     setBody("");
     setPinned(false);
     setExpiresOn("");
+    setEditing(null);
     setOpen(false);
+  };
+  const edit = (p: BoardPost) => {
+    setEditing(p.id);
+    setDept(p.departmentId ?? "");
+    setTitle(p.title);
+    setBody(p.body);
+    setPinned(p.pinned);
+    setExpiresOn(p.expiresOn ?? "");
+    setOpen(true);
   };
   return (
     <div className="grid gap-3" data-testid="bulletin-board">
@@ -91,13 +105,16 @@ export function BulletinBoard({
                 disabled={busy || !title.trim()}
                 onClick={() =>
                   start(async () => {
-                    const r = await createPostAction({
+                    const input = {
                       departmentId: dept || null,
                       title,
                       body,
                       pinned,
                       expiresOn: expiresOn || null,
-                    });
+                    };
+                    const r = editing
+                      ? await updatePostAction(editing, input)
+                      : await createPostAction(input);
                     if (r.ok) {
                       toast.success(r.message);
                       reset();
@@ -105,9 +122,9 @@ export function BulletinBoard({
                   })
                 }
               >
-                {t.publish}
+                {editing ? t.savePost : t.publish}
               </Button>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
+              <Button variant="ghost" onClick={reset}>
                 {da.common.cancel}
               </Button>
             </div>
@@ -134,21 +151,33 @@ export function BulletinBoard({
                 {p.title}
               </span>
               {p.canDelete ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  aria-label={`${da.common.archive} ${p.title}`}
-                  disabled={busy}
-                  onClick={() =>
-                    start(async () => {
-                      const r = await deletePostAction(p.id);
-                      if (!r.ok) toast.error(r.message);
-                    })
-                  }
-                >
-                  <Trash2 />
-                </Button>
+                <span className="flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    aria-label={`${t.editPost} ${p.title}`}
+                    disabled={busy}
+                    onClick={() => edit(p)}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    aria-label={`${da.common.archive} ${p.title}`}
+                    disabled={busy}
+                    onClick={() =>
+                      start(async () => {
+                        const r = await deletePostAction(p.id);
+                        if (!r.ok) toast.error(r.message);
+                      })
+                    }
+                  >
+                    <Trash2 />
+                  </Button>
+                </span>
               ) : null}
             </span>
             {p.body ? <span className="whitespace-pre-wrap">{p.body}</span> : null}

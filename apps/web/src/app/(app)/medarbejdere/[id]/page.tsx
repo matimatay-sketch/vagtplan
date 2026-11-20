@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { LazyDetails } from "@/components/lazy-details";
+import { DeleteEmployee } from "@/components/employees/delete-employee";
 import { HelpTip } from "@/components/help/help";
 import { SubmitButton } from "@/components/form";
 import Link from "next/link";
@@ -26,6 +28,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   addEmployeeDepartmentAction,
   removeEmployeeDepartmentAction,
+  setPrimaryDepartmentAction,
   updateEmployeeAction,
 } from "@/lib/actions/employees";
 import { ageOn } from "@/lib/domain/age";
@@ -53,7 +56,7 @@ export default async function EmployeePage({
   const { data: employee } = await supabase
     .from("employee")
     .select(
-      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, login_placeholder, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
+      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, login_placeholder, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement_id, local_agreement_id, pay_period_group_id, seniority_date, exemption_since, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -233,6 +236,20 @@ export default async function EmployeePage({
                           />
                         </div>
                       ) : null}
+                      {canManageContracts ? (
+                        <LazyDetails className="mt-3 text-sm" summary={tc.editContract}>
+                          <div className="mt-3">
+                            <NewContractForm
+                              employeeId={employee.id}
+                              agreements={(agreements ?? []).filter((a) => a.kind !== "local")}
+                              localAgreements={(agreements ?? []).filter((a) => a.kind === "local")}
+                              payPeriodGroups={payPeriodGroups ?? []}
+                              defaultValidFrom={defaultValidFrom}
+                              contract={c}
+                            />
+                          </div>
+                        </LazyDetails>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -265,11 +282,17 @@ export default async function EmployeePage({
             </CardHeader>
             <CardContent>
               {canEdit ? (
-                <EmployeeForm
-                  action={updateEmployeeAction}
-                  employee={employee}
-                  submitLabel={da.common.saveDetails}
-                />
+                <div className="grid gap-6">
+                  <EmployeeForm
+                    action={updateEmployeeAction}
+                    employee={employee}
+                    submitLabel={da.common.saveDetails}
+                  />
+                  <DeleteEmployee
+                    employeeId={employee.id}
+                    name={`${employee.first_name} ${employee.last_name}`}
+                  />
+                </div>
               ) : (
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   {[
@@ -310,6 +333,19 @@ export default async function EmployeePage({
                             className="size-3.5 fill-signal text-signal"
                             aria-label={t.primary}
                           />
+                        ) : canEdit ? (
+                          <form action={setPrimaryDepartmentAction}>
+                            <input type="hidden" name="employee_id" value={employee.id} />
+                            <input type="hidden" name="department_id" value={l.department_id} />
+                            <button
+                              type="submit"
+                              title={t.makePrimary}
+                              aria-label={`${t.makePrimary}: ${deptName.get(l.department_id)}`}
+                              className="grid size-6 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-signal pointer-coarse:size-9"
+                            >
+                              <Star className="size-3.5" />
+                            </button>
+                          </form>
                         ) : null}
                       </span>
                       {canEdit && employee.employee_department.length > 1 ? (

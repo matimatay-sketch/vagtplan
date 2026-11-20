@@ -359,6 +359,34 @@ export async function createTemplateAction(
   return { ok: true, message: da.common.saved };
 }
 
+/** Edits a template; shifts already made from it keep their own values. */
+export async function updateTemplateAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["schedule.manage"]);
+  const values = formValues(formData);
+  const id = z.guid().safeParse(values.id);
+  const parsed = templateFormSchema.safeParse(values);
+  if (!id.success) return { message: da.common.unknownError, values };
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shift_template")
+    .update({
+      ...parsed.data,
+      breaks: asJson(
+        parsed.data.breaks.map((b) => ({ start_time: b.start, minutes: b.minutes, paid: b.paid })),
+      ),
+    })
+    .eq("id", id.data)
+    .select("id");
+  if (error) return { message: dbErrorMessage(error), values };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidatePath("/vagtplan", "layout");
+  return { ok: true, message: da.common.saved };
+}
+
 export async function archiveTemplateAction(formData: FormData) {
   await requireContext(["schedule.manage"]);
   const supabase = await createClient();

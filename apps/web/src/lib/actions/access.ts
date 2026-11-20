@@ -49,6 +49,34 @@ export async function createProfileAction(
   return { ok: true, message: da.common.saved };
 }
 
+/** Renames a profile (the locked owner profile cannot change; the database checks). */
+export async function renameProfileAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["users.manage"]);
+  const values = formValues(formData);
+  const id = z.guid().safeParse(values.profile_id);
+  const parsed = profileNameSchema.safeParse(values);
+  if (!id.success) return { message: da.common.unknownError, values };
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("permission_profile")
+    .update(parsed.data)
+    .eq("id", id.data)
+    .eq("is_owner", false)
+    .select("id");
+  if (error)
+    return {
+      message: dbErrorMessage(error, { "23505": "Der findes allerede en profil med det navn." }),
+      values,
+    };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidateAccess();
+  return { ok: true, message: da.common.saved };
+}
+
 /** Replaces all grants of a profile with the submitted matrix. */
 export async function saveGrantsAction(
   _prev: ActionState,

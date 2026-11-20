@@ -223,3 +223,44 @@ export async function setTimeApproverAction(
   revalidatePath("/tid/godkend");
   return { ok: true, message: da.common.saved };
 }
+
+/** Makes one of the employee's departments the primary one (the database checks the right). */
+export async function setPrimaryDepartmentAction(formData: FormData) {
+  await requireContext(["employees.manage"]);
+  const input = z
+    .object({ employee_id: z.guid(), department_id: z.guid() })
+    .parse(Object.fromEntries(formData));
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_primary_department", {
+    p_employee_id: input.employee_id,
+    p_department_id: input.department_id,
+  });
+  if (error) throw new Error(dbErrorMessage(error));
+  revalidatePath(`/medarbejdere/${input.employee_id}`);
+  revalidatePath("/medarbejdere");
+}
+
+/**
+ * Deletes an employee: archived (history is kept) and the login removed.
+ * The database refuses while a contract is active, and for administrators.
+ */
+export async function archiveEmployeeAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["employees.manage"]);
+  const id = z.guid().safeParse(formData.get("employee_id"));
+  if (!id.success) return { message: da.common.unknownError };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("archive_employee", { p_id: id.data });
+  if (error)
+    return {
+      message:
+        error.code === "P0001" && error.hint
+          ? (da.employees.archiveRefused[error.hint as keyof typeof da.employees.archiveRefused] ??
+            dbErrorMessage(error))
+          : dbErrorMessage(error),
+    };
+  revalidatePath("/medarbejdere");
+  redirect("/medarbejdere");
+}

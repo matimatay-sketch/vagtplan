@@ -150,6 +150,17 @@ test("completed as planned, deviation with reason, approval and correction as a 
   await expect(page.getByText("1 registrering godkendt.")).toBeVisible();
   await expect(row).toContainText("Godkendt");
 
+  // The approval can be undone while the pay period is open, and given again. (When the
+  // payroll test has closed this period first, it is refused with a clear message.)
+  await row.getByRole("button", { name: "Fortryd godkendelse" }).click();
+  const outcome = page.getByText(/Godkendelsen er fortrudt\.|Lønperioden er afsluttet/);
+  await expect(outcome).toBeVisible();
+  if ((await outcome.textContent())?.startsWith("Godkendelsen")) {
+    await row.getByRole("checkbox").check();
+    await page.getByTestId("approve-selected").click();
+  }
+  await expect(row).toContainText("Godkendt");
+
   await row.getByRole("button", { name: "Ret godkendt tid" }).click();
   const correct = page.getByTestId("entry-form");
   await correct.getByLabel("Slut").fill("17:00");

@@ -1,5 +1,15 @@
 "use client";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import {
   createSupplementTypeAction,
+  updateSupplementTypeAction,
   saveLeaveRulesAction,
   saveNoticeAction,
   saveNormDefaultsAction,
@@ -116,29 +127,52 @@ export function RuleHandlingForm({ handling }: { handling: RuleHandlingMap }) {
   );
 }
 
-export function SupplementTypeForm() {
-  const [state, action] = useActionState(createSupplementTypeAction, initialActionState);
+export type EditableSupplement = {
+  id: string;
+  name: string;
+  pay_code: string;
+  amount_type: "per_hour" | "fixed" | "percent";
+  amount: number;
+  employee_selectable: boolean;
+};
+
+/** Creates a supplement type, or edits `supplement` (applies to pay calculated from now on). */
+export function SupplementTypeForm({
+  supplement,
+  onDone,
+}: {
+  supplement?: EditableSupplement;
+  onDone?: () => void;
+} = {}) {
+  const sp = supplement;
+  const [state, action] = useActionState(
+    sp ? updateSupplementTypeAction : createSupplementTypeAction,
+    initialActionState,
+  );
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (state.ok) ref.current?.reset();
-  }, [state]);
-  const f = (n: string, fb?: string) => fieldProps(n, state, fb);
+    if (state.ok && !sp) ref.current?.reset();
+    if (state.ok && sp) onDone?.();
+  }, [state, sp, onDone]);
+  const idp = sp ? `s-${sp.id}-` : "";
+  const f = (n: string, fb?: string) => ({ ...fieldProps(n, state, fb), id: `${idp}${n}` });
   return (
     <form
       ref={ref}
       action={action}
       className="grid gap-3 sm:grid-cols-[1.5fr_1fr_1fr_1fr_auto] sm:items-start"
       noValidate
-      data-testid="supplement-type-form"
+      data-testid={sp ? "edit-supplement-form" : "supplement-type-form"}
     >
-      <Field label={t.supplementName} htmlFor="name" error={state.errors?.name}>
-        <Input placeholder="Fx Ansvarstillæg" {...f("name")} />
+      {sp ? <input type="hidden" name="id" value={sp.id} /> : null}
+      <Field label={t.supplementName} htmlFor={`${idp}name`} error={state.errors?.name}>
+        <Input placeholder="Fx Ansvarstillæg" {...f("name", sp?.name)} />
       </Field>
-      <Field label={t.payCode} htmlFor="pay_code" error={state.errors?.pay_code}>
-        <Input placeholder="ANSVAR" {...f("pay_code")} />
+      <Field label={t.payCode} htmlFor={`${idp}pay_code`} error={state.errors?.pay_code}>
+        <Input placeholder="ANSVAR" {...f("pay_code", sp?.pay_code)} />
       </Field>
-      <Field label={t.amountType} htmlFor="amount_type">
-        <NativeSelect {...f("amount_type", "per_hour")}>
+      <Field label={t.amountType} htmlFor={`${idp}amount_type`}>
+        <NativeSelect {...f("amount_type", sp?.amount_type ?? "per_hour")}>
           {(["per_hour", "fixed", "percent"] as const).map((k) => (
             <option key={k} value={k}>
               {t.amountTypes[k]}
@@ -146,18 +180,49 @@ export function SupplementTypeForm() {
           ))}
         </NativeSelect>
       </Field>
-      <Field label={t.amount} htmlFor="amount" error={state.errors?.amount}>
-        <Input inputMode="decimal" placeholder="25,00" {...f("amount")} />
+      <Field label={t.amount} htmlFor={`${idp}amount`} error={state.errors?.amount}>
+        <Input
+          inputMode="decimal"
+          placeholder="25,00"
+          {...f("amount", sp ? (sp.amount / 100).toFixed(2).replace(".", ",") : undefined)}
+        />
       </Field>
       <div className="sm:pt-[22px]">
-        <SubmitButton>{t.newSupplement}</SubmitButton>
+        <SubmitButton>{sp ? t.saveSupplement : t.newSupplement}</SubmitButton>
       </div>
       <label className="flex items-center gap-2 text-sm sm:col-span-5">
-        <Checkbox name="employee_selectable" />
+        <Checkbox name="employee_selectable" defaultChecked={sp?.employee_selectable} />
         {t.employeeSelectable}
       </label>
       <div className="sm:col-span-5">{state.ok ? null : <FormMessage state={state} />}</div>
     </form>
+  );
+}
+
+/** "Ret" on a supplement type: the form in a dialog. */
+export function EditSupplementButton({ supplement }: { supplement: EditableSupplement }) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label={`${t.editSupplement} ${supplement.name}`}
+        >
+          <Pencil />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{t.editSupplement}</DialogTitle>
+          <DialogDescription>{t.editSupplementHelp}</DialogDescription>
+        </DialogHeader>
+        <SupplementTypeForm supplement={supplement} onDone={close} />
+      </DialogContent>
+    </Dialog>
   );
 }
 

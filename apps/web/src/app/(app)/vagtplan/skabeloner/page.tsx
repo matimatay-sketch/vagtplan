@@ -21,7 +21,7 @@ import { archiveTemplateAction } from "@/lib/actions/schedule";
 import { da } from "@/lib/i18n/da";
 import { normDefaultsFrom } from "@/lib/domain/norm-percent";
 import type { TemplateBreak } from "@/lib/domain/breaks";
-import { TemplateForm } from "./template-form";
+import { EditTemplateButton, TemplateForm } from "./template-form";
 
 export const metadata: Metadata = { title: "Vagtskabeloner" };
 
@@ -67,6 +67,12 @@ export default async function TemplatesPage() {
   const valueName = new Map(
     postingDimensions.flatMap((d) => d.values.map((v) => [v.id, `${v.code} · ${v.name}`] as const)),
   );
+  const supplementOptions = (supplementTypes ?? []).map((x) => ({
+    id: x.id,
+    name: x.name,
+    amountType: x.amount_type,
+    amount: x.amount,
+  }));
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const manageable = (departments ?? []).filter((d) =>
     canInDepartment(ctx.permissions, "schedule.manage", d.id, ctx.responsibleDepartmentIds),
@@ -90,12 +96,7 @@ export default async function TemplatesPage() {
             normDefaults={normDefaults}
             departments={manageable}
             allowOrgWide={orgWide}
-            supplementTypes={(supplementTypes ?? []).map((x) => ({
-              id: x.id,
-              name: x.name,
-              amountType: x.amount_type,
-              amount: x.amount,
-            }))}
+            supplementTypes={supplementOptions}
             posting={postingDimensions}
           />
         </CardContent>
@@ -156,7 +157,19 @@ export default async function TemplatesPage() {
                   <TableCell>
                     {tpl.department_id ? deptName.get(tpl.department_id) : t.allDepartments}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="flex justify-end text-right">
+                    <EditTemplateButton
+                      normDefaults={normDefaults}
+                      departments={manageable}
+                      allowOrgWide={orgWide}
+                      supplementTypes={supplementOptions}
+                      posting={postingDimensions}
+                      template={{
+                        ...tpl,
+                        breaks: tpl.breaks as unknown as TemplateBreak[],
+                        posting_values: (tpl.posting_values ?? {}) as Record<string, string>,
+                      }}
+                    />
                     <form action={archiveTemplateAction}>
                       <input type="hidden" name="id" value={tpl.id} />
                       <Button

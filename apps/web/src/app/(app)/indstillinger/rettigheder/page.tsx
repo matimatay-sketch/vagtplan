@@ -12,7 +12,7 @@ import { hasOrg, isPermissionKey, type Permissions } from "@/lib/permissions";
 import { setDefaultProfileAction } from "@/lib/actions/access";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
-import { ArchiveProfileForm, CreateProfileForm, GrantMatrix } from "./forms";
+import { ArchiveProfileForm, CreateProfileForm, GrantMatrix, RenameProfileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Rettighedsprofiler" };
 
@@ -152,6 +152,14 @@ export default async function ProfilesPage({
                     </form>
                   ) : null}
                   <ArchiveProfileForm profileId={selected.id} />
+                  <div className="w-full">
+                    <RenameProfileForm
+                      key={selected.id}
+                      profileId={selected.id}
+                      name={selected.name}
+                      description={selected.description}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>

@@ -1315,6 +1315,12 @@ isOneToOne: false
 "approve_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
+"archive_employee":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"archive_pay_period_group":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "can_impersonate":
 { Args: { "p_employee_id": string }; Returns: {
               "allowed": boolean,"email": string,"reason": string,"user_id": string
@@ -1417,8 +1423,14 @@ isOneToOne: false
               "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"end_at": string,"id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["shift_kind"],"label": string,"start_at": string
             }[]
                            },
+"reopen_expense_items":
+{ Args: { "p_expense_ids": (string)[],"p_trip_ids": (string)[] }; Returns: number
+                           },
 "save_pay_run":
 { Args: { "p_daily": Json,"p_employee_id": string,"p_engine_version": string,"p_lines": Json,"p_notes": Json,"p_pending": number,"p_period_id": string }; Returns: string
+                           },
+"set_primary_department":
+{ Args: { "p_department_id": string,"p_employee_id": string }; Returns: undefined
                            },
 "set_profile_grants":
 { Args: { "p_grants": Json,"p_profile_id": string }; Returns: undefined
@@ -1449,6 +1461,12 @@ isOneToOne: false
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "approved_at": string,"approved_by_email": string,"breaks": Json,"department_id": string,"department_name": string,"deviation_reason": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"entry_id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string,"offline": boolean,"plan_breaks": Json,"plan_end": string,"plan_start": string,"posting_allocations": Json,"project_allocations": Json,"row_kind": string,"shift_id": string,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"supplement_type_ids": (string)[],"version": number
             }[]
+                           },
+"unapprove_time_entries":
+{ Args: { "p_ids": (string)[] }; Returns: number
+                           },
+"update_pay_period_group":
+{ Args: { "p_anchor_date": string,"p_frequency": Database["public"]['Enums']["pay_frequency"],"p_id": string,"p_month_start_day": number,"p_name": string }; Returns: undefined
                            },
 "webhook_claim":
 { Args: { "p_limit"?: number }; Returns: {

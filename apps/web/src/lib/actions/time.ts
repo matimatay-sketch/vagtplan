@@ -217,6 +217,20 @@ export async function approveTimeEntriesAction(ids: string[]): Promise<ActionSta
   return { ok: true, message: da.time.approvedCount(data ?? 0) };
 }
 
+/** Undo an approval: back to "waiting for approval" (not in a closed pay period). */
+export async function unapproveTimeEntriesAction(ids: string[]): Promise<ActionState> {
+  await requireContext();
+  const parsed = z.array(z.guid()).min(1).max(500).parse(ids);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("unapprove_time_entries", { p_ids: parsed });
+  if (error)
+    return {
+      message: error.hint === "period_closed" ? da.time.periodClosed : dbErrorMessage(error),
+    };
+  revalidateTime();
+  return { ok: true, message: da.time.unapprovedCount(data ?? 0) };
+}
+
 /** Correction of an approved registration: a new version (needs approval again). */
 export async function correctTimeEntryAction(
   _prev: ActionState,

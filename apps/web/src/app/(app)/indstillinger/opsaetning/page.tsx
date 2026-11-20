@@ -26,6 +26,7 @@ import {
   NoticeForm,
   RuleHandlingForm,
   SupplementTypeForm,
+  EditSupplementButton,
 } from "./forms";
 
 export const metadata: Metadata = { title: "Opsætning" };
@@ -166,6 +167,7 @@ export default async function SettingsPage() {
                     </span>
                   </span>
                   <span className="ml-auto flex items-center gap-2">
+                    <EditSupplementButton supplement={s} />
                     <form action={setSupplementSelectableAction}>
                       <input type="hidden" name="id" value={s.id} />
                       <input

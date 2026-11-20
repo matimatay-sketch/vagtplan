@@ -33,6 +33,32 @@ export async function createPostAction(input: z.input<typeof schema>): Promise<A
   return { ok: true, message: da.dashboard.posted };
 }
 
+/** Edits a post (same rules as posting: the database checks the department). */
+export async function updatePostAction(
+  id: string,
+  input: z.input<typeof schema>,
+): Promise<ActionState> {
+  await requireContext(["bulletin.manage"]);
+  const p = schema.safeParse(input);
+  if (!p.success) return { message: p.error.issues[0]?.message ?? da.common.unknownError };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bulletin_post")
+    .update({
+      department_id: p.data.departmentId,
+      title: p.data.title,
+      body: p.data.body,
+      pinned: p.data.pinned,
+      expires_on: p.data.expiresOn,
+    })
+    .eq("id", z.guid().parse(id))
+    .select("id");
+  if (error) return { message: dbErrorMessage(error) };
+  if (!data?.length) return { message: da.common.notAllowed };
+  revalidatePath("/oversigt");
+  return { ok: true, message: da.common.saved };
+}
+
 export async function deletePostAction(id: string): Promise<ActionState> {
   await requireContext(["bulletin.manage"]);
   const supabase = await createClient();
