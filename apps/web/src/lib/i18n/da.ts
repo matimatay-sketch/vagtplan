@@ -458,6 +458,24 @@ export const da = {
     default: "Standard ved invitation",
     makeDefault: "Gør til standard",
     impliedNote: "At redigere eller invitere giver automatisk også adgang til at se.",
+    compareLink: "Sammenlign profiler",
+    compare: {
+      title: "Sammenlign rettighedsprofiler",
+      lead: "Se profilernes rettigheder side om side. Rækker, hvor profilerne er forskellige, er fremhævet.",
+      choose: "Vælg profiler",
+      onlyDifferences: "Vis kun forskelle",
+      permission: "Rettighed",
+      differs: "forskellig",
+      pickTwo: "Vælg mindst to profiler for at se forskellene.",
+      summary: (n: number) =>
+        n === 0
+          ? "Profilerne har de samme rettigheder."
+          : n === 1
+            ? "Profilerne er forskellige på 1 rettighed."
+            : `Profilerne er forskellige på ${n} rettigheder.`,
+      columnInfo: (perms: number, users: number) =>
+        `${perms === 1 ? "1 rettighed" : `${perms} rettigheder`} · ${users === 1 ? "1 bruger" : `${users} brugere`}`,
+    },
   },
   schedule: {
     title: "Vagtplan",

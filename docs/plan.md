@@ -204,6 +204,10 @@ Acceptkriterier:
 - Det vælges på vagten, om procenten også bruges, når lønnen finder overarbejde. Standarden for procent og løn sættes pr. vagttype under Opsætning.
 - Turnusvagter bruger standarden for vagttypen.
 
+### Sammenlign rettighedsprofiler (ønsket 2026-11-20)
+
+- `/indstillinger/rettigheder/sammenlign` viser profilernes rettigheder side om side med omfang pr. profil. Rækker med forskelle fremhæves. Man vælger profiler og kan vise kun forskellene (valget ligger i URL'en). Logikken ligger i `src/lib/domain/profile-compare.ts`.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.

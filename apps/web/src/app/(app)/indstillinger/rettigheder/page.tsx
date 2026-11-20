@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Lock, Star } from "lucide-react";
+import { Columns3, Lock, Star } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,20 @@ export default async function ProfilesPage({
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader
+        title={t.title}
+        lead={t.lead}
+        actions={
+          list.length > 1 ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/indstillinger/rettigheder/sammenlign" data-testid="compare-profiles">
+                <Columns3 className="size-4" />
+                {t.compareLink}
+              </Link>
+            </Button>
+          ) : null
+        }
+      />
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <div className="grid content-start gap-3">
           <nav aria-label={t.title} className="grid gap-1.5">
