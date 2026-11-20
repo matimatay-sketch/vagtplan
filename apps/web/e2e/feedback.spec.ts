@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { login, users } from "./helpers";
+import { login, openMoreSettings, users } from "./helpers";
 
 function mondayIn(weeks: number): string {
   const d = new Date();
@@ -160,6 +160,7 @@ test("norm percent: on-call counts with the default for its kind or its own shar
     await form.getByLabel("Start").fill("08:00");
     await form.getByLabel("Slut").fill("16:30");
     await form.getByLabel("Type").selectOption("on_call");
+    await openMoreSettings(form);
     await expect(form.getByLabel("Tæller i timenorm (%)")).toHaveAttribute(
       "placeholder",
       "Standard: 50 %",
@@ -172,6 +173,7 @@ test("norm percent: on-call counts with the default for its kind or its own shar
 
     // Its own share wins over the default: 25 % of 8 hours = 2 hours.
     await c.getByTestId("shift-card").click();
+    await openMoreSettings(form);
     await form.getByLabel("Tæller i timenorm (%)").fill("25");
     await form.getByLabel("Bruges, når lønnen finder overarbejde").selectOption("true");
     await form.getByRole("button", { name: "Gem vagt" }).click();

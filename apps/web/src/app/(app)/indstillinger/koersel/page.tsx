@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { archiveExpenseSetupAction } from "@/lib/actions/expenses";
@@ -18,9 +18,9 @@ function ArchiveButton({ table, id, label }: { table: string; id: string; label:
     <form action={archiveExpenseSetupAction}>
       <input type="hidden" name="table" value={table} />
       <input type="hidden" name="id" value={id} />
-      <Button type="submit" variant="ghost" size="icon" className="size-7" aria-label={label}>
+      <SubmitButton variant="ghost" size="icon" className="size-7" aria-label={label}>
         <Trash2 />
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

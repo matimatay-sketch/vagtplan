@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -99,12 +100,18 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/medarb
             ))}
           </NativeSelect>
         </div>
-        <Button type="submit" variant="outline">
-          Filtrér
-        </Button>
+        <SubmitButton variant="outline">Filtrér</SubmitButton>
       </form>
       {rows.length === 0 ? (
-        <EmptyState>{t.empty}</EmptyState>
+        <EmptyState
+          action={
+            hasAny(ctx.permissions, ["employees.manage"])
+              ? { href: "/medarbejdere/ny", label: da.employees.new }
+              : null
+          }
+        >
+          {t.empty}
+        </EmptyState>
       ) : (
         <Card className="py-0">
           <Table>

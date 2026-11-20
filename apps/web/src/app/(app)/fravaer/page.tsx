@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AbsenceRequestForm } from "@/components/absence/request-form";
 import { AbsenceList } from "@/components/absence/absence-list";
 import { BalanceTable } from "@/components/absence/balance-table";
+import { BalanceCards } from "@/components/absence/balance-cards";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
@@ -35,7 +38,18 @@ export default async function MyAbsencePage() {
 
   return (
     <>
-      <PageHeader title={t.title} lead={t.lead} />
+      <PageHeader
+        title={t.title}
+        lead={t.leadSimple}
+        actions={
+          <Button asChild>
+            <a href="#soeg">
+              <Plus />
+              {t.requestCta}
+            </a>
+          </Button>
+        }
+      />
       <div className="grid gap-6">
         {mine.mainHoliday && !mine.mainHoliday.ok ? (
           <Alert data-testid="main-holiday-warning">
@@ -50,10 +64,18 @@ export default async function MyAbsencePage() {
           </Alert>
         ) : null}
         <section className="grid gap-3">
-          <h2 className="text-lg font-semibold">{t.balances}</h2>
-          <BalanceTable balances={mine.balances} labels={labels} today={today} />
+          <h2 className="text-lg font-semibold">{t.myBalances}</h2>
+          <BalanceCards balances={mine.balances} labels={labels} today={today} />
+          <details className="group text-sm">
+            <summary className="flex min-h-11 w-fit cursor-pointer items-center text-muted-foreground underline-offset-4 hover:underline">
+              {t.balanceDetails}
+            </summary>
+            <div className="mt-2">
+              <BalanceTable balances={mine.balances} labels={labels} today={today} />
+            </div>
+          </details>
         </section>
-        <Card>
+        <Card id="soeg" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">{t.request}</CardTitle>
           </CardHeader>

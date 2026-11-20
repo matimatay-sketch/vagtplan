@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ShieldCheck, Star, X } from "lucide-react";
@@ -266,7 +267,7 @@ export default async function EmployeePage({
                 <EmployeeForm
                   action={updateEmployeeAction}
                   employee={employee}
-                  submitLabel={da.common.save}
+                  submitLabel={da.common.saveDetails}
                 />
               ) : (
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -341,9 +342,7 @@ export default async function EmployeePage({
                       ))}
                     </NativeSelect>
                   </div>
-                  <Button type="submit" variant="outline">
-                    {t.addDepartment}
-                  </Button>
+                  <SubmitButton variant="outline">{t.addDepartment}</SubmitButton>
                 </form>
               ) : null}
             </CardContent>
@@ -450,9 +449,7 @@ export default async function EmployeePage({
                             ))}
                         </NativeSelect>
                       </div>
-                      <Button type="submit" variant="outline">
-                        {da.common.save}
-                      </Button>
+                      <SubmitButton variant="outline">{da.common.makeResponsible}</SubmitButton>
                     </form>
                   ) : null}
                 </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
@@ -254,9 +255,9 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
                   <span className="text-muted-foreground tabular">({flagCounts[flag]})</span>
                 </label>
               ))}
-              <Button type="submit" variant="outline" size="sm">
+              <SubmitButton variant="outline" size="sm">
                 {t.show}
-              </Button>
+              </SubmitButton>
               {filtered && (
                 <Link
                   href={`/tid/godkend?${new URLSearchParams({ uge: weekStart, ...(departmentId ? { afdeling: departmentId } : {}) })}`}

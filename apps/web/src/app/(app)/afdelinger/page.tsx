@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { X } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { requireContext } from "@/lib/auth";
 import { hasOrg } from "@/lib/permissions";
@@ -149,9 +149,7 @@ export default async function DepartmentsPage() {
                           ))}
                         </NativeSelect>
                       </div>
-                      <Button type="submit" variant="outline">
-                        {da.common.save}
-                      </Button>
+                      <SubmitButton variant="outline">{da.common.save}</SubmitButton>
                     </form>
                   ) : null}
                 </CardContent>

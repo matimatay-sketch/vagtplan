@@ -23,7 +23,7 @@ test("a personal approver approves one employee's time without a time permission
   await approver
     .getByLabel("Godkendes af")
     .selectOption({ label: "Mads Medarbejder (medarbejder@demo.dk)" });
-  await approver.getByRole("button", { name: "Gem" }).click();
+  await approver.getByRole("button", { name: "Gem godkender" }).click();
   await expect(approver.getByText("Gemt")).toBeVisible();
   await page.context().clearCookies();
 
@@ -64,6 +64,6 @@ test("a personal approver approves one employee's time without a time permission
     .first()
     .click();
   await page.getByTestId("approver-form").getByLabel("Godkendes af").selectOption("");
-  await page.getByTestId("approver-form").getByRole("button", { name: "Gem" }).click();
+  await page.getByTestId("approver-form").getByRole("button", { name: "Gem godkender" }).click();
   await expect(page.getByTestId("approver-form").getByText("Gemt")).toBeVisible();
 });

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { availablePosting } from "@/lib/domain/posting";
 import Link from "next/link";
@@ -149,9 +150,9 @@ export default async function RotationPage({
         actions={
           <form action={archiveRotationAction}>
             <input type="hidden" name="id" value={rotation.id} />
-            <Button type="submit" variant="ghost" className="text-destructive">
+            <SubmitButton variant="ghost" className="text-destructive">
               <Trash2 /> {da.common.archive}
-            </Button>
+            </SubmitButton>
           </form>
         }
       />
@@ -198,9 +199,9 @@ export default async function RotationPage({
                 )}
               </NativeSelect>
             </div>
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm">
               {t.copyWeek}
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}
@@ -242,9 +243,9 @@ export default async function RotationPage({
                   <input type="hidden" name="id" value={l.id} />
                   <input type="hidden" name="rotation_id" value={id} />
                   <Input name="name" defaultValue={l.name} aria-label={t.lineName} />
-                  <Button type="submit" variant="outline" size="sm" className="h-9">
+                  <SubmitButton variant="outline" size="sm" className="h-9">
                     {da.common.save}
-                  </Button>
+                  </SubmitButton>
                 </form>
                 {lineList.length > 1 ? (
                   <form action={removeLineAction}>
@@ -264,9 +265,9 @@ export default async function RotationPage({
             ))}
             <form action={addLineAction}>
               <input type="hidden" name="rotation_id" value={id} />
-              <Button type="submit" variant="outline" size="sm">
+              <SubmitButton variant="outline" size="sm">
                 <Plus /> {t.addLine}
-              </Button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>

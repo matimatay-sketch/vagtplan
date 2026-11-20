@@ -9,6 +9,7 @@ import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { loadTimeOverview } from "@/lib/time/load";
 import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
+import { stampPostingFor } from "@/lib/time/stamp-context";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Tid" };
@@ -35,20 +36,7 @@ export default async function TimePage() {
     loadSupplementOptions(supabase, ctx.organization.id),
   ]);
   const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
-  // Only values available in all of the employee's departments, so a stamp is never rejected.
-  const { data: ownDepartments } = await supabase
-    .from("employee_department")
-    .select("department_id")
-    .eq("employee_id", ctx.employee.id);
-  const deptIds = (ownDepartments ?? []).map((d) => d.department_id);
-  const stampPosting = posting
-    .map((d) => ({
-      ...d,
-      values: d.values.filter(
-        (v) => v.departmentIds.length === 0 || deptIds.every((x) => v.departmentIds.includes(x)),
-      ),
-    }))
-    .filter((d) => d.values.length > 0);
+  const stampPosting = await stampPostingFor(supabase, ctx.employee.id, posting);
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
 
   return (

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { ArrowRight, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -206,9 +207,9 @@ export default async function SettingsPage() {
               </span>
               <form action={setAssistantEnabledAction}>
                 <input type="hidden" name="enabled" value={String(!assistant.enabled)} />
-                <Button type="submit" variant="outline" size="sm">
+                <SubmitButton variant="outline" size="sm">
                   {assistant.enabled ? da.assistant.disable : da.assistant.enable}
-                </Button>
+                </SubmitButton>
               </form>
               <span className="text-muted-foreground">
                 {da.assistant.usage(assistantUsage ?? 0)}

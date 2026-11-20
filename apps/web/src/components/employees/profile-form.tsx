@@ -32,7 +32,7 @@ export function MemberProfileForm({
           </NativeSelect>
         </div>
         <SubmitButton variant="outline" size="sm" className="h-9">
-          {da.common.save}
+          {da.common.changeProfile}
         </SubmitButton>
       </div>
       {state.ok ? null : <FormMessage state={state} />}

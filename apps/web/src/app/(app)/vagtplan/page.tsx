@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutTemplate, Repeat } from "lucide-react";
@@ -54,7 +55,9 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
     return (
       <>
         <PageHeader title={t.title} />
-        <EmptyState>{t.noDepartments}</EmptyState>
+        <EmptyState action={{ href: "/afdelinger", label: da.nav.departments }}>
+          {t.noDepartments}
+        </EmptyState>
       </>
     );
   }
@@ -145,9 +148,9 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
               ))}
             </NativeSelect>
           </div>
-          <Button type="submit" variant="outline" size="sm" className="h-9">
+          <SubmitButton variant="outline" size="sm" className="h-9">
             {da.common.show}
-          </Button>
+          </SubmitButton>
         </form>
         <div className="flex items-center rounded-lg border bg-card p-0.5">
           <Button asChild variant="ghost" size="icon" className="size-8" aria-label={t.previous}>

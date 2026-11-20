@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 
 export function PageHeader({
   title,
@@ -23,10 +24,25 @@ export function PageHeader({
   );
 }
 
-export function EmptyState({ children }: { children: React.ReactNode }) {
+/** An empty list says what is missing and, where possible, what to do next. */
+export function EmptyState({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: { href: string; label: string } | null;
+}) {
   return (
-    <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-      {children}
+    <div className="grid justify-items-center gap-3 rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+      <div>{children}</div>
+      {action ? (
+        <Link
+          href={action.href}
+          className="inline-flex min-h-9 items-center rounded-md border bg-card px-4 font-medium text-foreground shadow-xs transition-colors hover:bg-muted pointer-coarse:min-h-11"
+        >
+          {action.label}
+        </Link>
+      ) : null}
     </div>
   );
 }

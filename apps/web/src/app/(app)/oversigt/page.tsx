@@ -25,6 +25,9 @@ import { findActiveContract } from "@/lib/domain/contracts";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { localParts, timeRange, zonedTime } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
+import { StampCard } from "@/components/time/stamp-card";
+import { loadTimeOverview } from "@/lib/time/load";
+import { stampPostingFor } from "@/lib/time/stamp-context";
 
 export const metadata: Metadata = { title: "Oversigt" };
 
@@ -78,6 +81,19 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
   }).length;
   // Dashboard: own shifts, approvals waiting, bulletin board and celebrations.
   const nowIso = new Date().toISOString();
+  // "I dag": the employee can stamp right from the overview (the most common task).
+  const stamping = ctx.employee
+    ? await (async () => {
+        const id = ctx.employee!.id;
+        const [overview, posting] = await Promise.all([
+          loadTimeOverview(supabase, ctx, { from: addDays(today, -1), to: today, onlyMine: true }),
+          stampPostingFor(supabase, id),
+        ]);
+        if (overview.exempt.has(id)) return null;
+        const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
+        return { employeeId: id, openSince: open?.start ?? null, posting };
+      })()
+    : null;
   const in14 = new Date(zonedTime(addDays(today, 15))).toISOString();
   const approves = can(["time.approve"]) || ctx.timeApproverOf.length > 0;
   const head = { count: "exact" as const, head: true };
@@ -247,6 +263,16 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
         title={t.greeting(firstName)}
         lead={ctx.profile.name}
       />
+      {stamping ? (
+        <section className="mb-6" aria-label={da.dashboard.todayTitle} data-testid="today">
+          <StampCard
+            organizationId={ctx.organization.id}
+            employeeId={stamping.employeeId}
+            openSince={stamping.openSince}
+            posting={stamping.posting}
+          />
+        </section>
+      ) : null}
       {adgang === "nej" ? (
         <Alert variant="destructive" className="mb-6">
           <AlertDescription>{da.common.notAllowed}</AlertDescription>
@@ -281,7 +307,15 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
               </CardHeader>
               <CardContent className="grid gap-2 text-sm">
                 {myShifts.length === 0 ? (
-                  <p className="text-muted-foreground">{da.dashboard.noShifts}</p>
+                  <p className="text-muted-foreground">
+                    {da.dashboard.noShifts}{" "}
+                    <Link
+                      href="/min-vagtplan"
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      {da.dashboard.seeSchedule}
+                    </Link>
+                  </p>
                 ) : (
                   myShifts.map((p) => (
                     <Link
@@ -383,7 +417,11 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           </CardContent>
         </Card>
       </div>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="shortcuts">
+      {/* On phones the bottom bar already holds these shortcuts. */}
+      <div
+        className="mt-8 hidden gap-3 sm:grid-cols-2 md:grid lg:grid-cols-3"
+        data-testid="shortcuts"
+      >
         {shortcuts.map(({ href, icon: Icon, title, text }) => (
           <Link
             key={href}

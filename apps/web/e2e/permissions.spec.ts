@@ -55,7 +55,10 @@ test("admin creates a custom profile and assigns it to a user", async ({ page })
 
   await page.goto(MADS);
   await page.getByTestId("member-profile-form").getByRole("combobox").selectOption({ label: name });
-  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
+  await page
+    .getByTestId("member-profile-form")
+    .getByRole("button", { name: "Skift profil" })
+    .click();
   await page.reload();
   await expect(
     page.getByTestId("member-profile-form").getByRole("combobox").locator("option:checked"),
@@ -76,7 +79,10 @@ test("admin creates a custom profile and assigns it to a user", async ({ page })
     .getByTestId("member-profile-form")
     .getByRole("combobox")
     .selectOption({ label: "Medarbejder" });
-  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
+  await page
+    .getByTestId("member-profile-form")
+    .getByRole("button", { name: "Skift profil" })
+    .click();
   await page.reload();
   await expect(
     page.getByTestId("member-profile-form").getByRole("combobox").locator("option:checked"),
@@ -90,7 +96,10 @@ test("the last administrator cannot be demoted", async ({ page }) => {
     .getByTestId("member-profile-form")
     .getByRole("combobox")
     .selectOption({ label: "Medarbejder" });
-  await page.getByTestId("member-profile-form").getByRole("button", { name: "Gem" }).click();
+  await page
+    .getByTestId("member-profile-form")
+    .getByRole("button", { name: "Skift profil" })
+    .click();
   await expect(page.getByText("Der skal altid være mindst én administrator.")).toBeVisible();
 });
 
@@ -101,7 +110,7 @@ test("admin makes an employee responsible for a department on the employee page"
   await page.goto(MADS);
   const box = page.getByTestId("responsible-departments");
   await box.getByLabel("Gør ansvarlig for afdeling").selectOption({ label: "Café" });
-  await box.getByRole("button", { name: "Gem" }).click();
+  await box.getByRole("button", { name: "Gør ansvarlig" }).click();
   await expect(box.getByText("Café")).toBeVisible();
   await box.getByRole("button", { name: "Fjern Café" }).click();
   await expect(box.getByText("Ingen")).toBeVisible();

@@ -93,3 +93,35 @@ export function formatDays(hundredths: number): string {
     .replace(/0+$/, "");
   return `${sign}${whole}${frac ? `,${frac}` : ""}`;
 }
+
+export type BalanceSummary = {
+  account: string;
+  /** Hundredths of a day left across the periods that can still be used. */
+  left: number;
+  /** Days in the earliest period that must be used within three months. */
+  expiring: { amount: number; until: string } | null;
+};
+
+/** Days to warn about before a period runs out. */
+const EXPIRY_WARNING_DAYS = 92;
+
+/** What an employee needs to know per account: how much is left, and what runs out soon. */
+export function summarizeBalances(list: readonly Balance[], today: string): BalanceSummary[] {
+  const warnUntil = new Date(`${today}T00:00:00Z`);
+  warnUntil.setUTCDate(warnUntil.getUTCDate() + EXPIRY_WARNING_DAYS);
+  const limit = warnUntil.toISOString().slice(0, 10);
+  const out = new Map<string, BalanceSummary>();
+  const usable = list
+    .filter((b) => b.usableUntil >= today)
+    .sort((a, b) => a.usableUntil.localeCompare(b.usableUntil));
+  for (const b of usable) {
+    const s = out.get(b.account) ?? { account: b.account, left: 0, expiring: null };
+    s.left += b.balance;
+    if (!s.expiring && b.balance > 0 && b.usableUntil <= limit)
+      s.expiring = { amount: b.balance, until: b.usableUntil };
+    out.set(b.account, s);
+  }
+  // Keep the accounts in the order they were given.
+  const order = [...new Set(list.map((b) => b.account))];
+  return order.flatMap((a) => (out.has(a) ? [out.get(a)!] : []));
+}

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/form";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ApiKeyForm, WebhookForm } from "@/components/integrations/forms";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -98,9 +98,9 @@ export default async function IntegrationsPage() {
                   </span>
                   {k.revoked_at ? null : (
                     <form action={revokeApiKeyAction.bind(null, k.id)}>
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm">
                         {t.revoke}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                 </li>
@@ -139,14 +139,14 @@ export default async function IntegrationsPage() {
                     ) : (
                       <span className="flex gap-2">
                         <form action={pingWebhookAction.bind(null, h.id)}>
-                          <Button type="submit" variant="outline" size="sm">
+                          <SubmitButton variant="outline" size="sm">
                             {t.ping}
-                          </Button>
+                          </SubmitButton>
                         </form>
                         <form action={disableWebhookAction.bind(null, h.id)}>
-                          <Button type="submit" variant="ghost" size="sm">
+                          <SubmitButton variant="ghost" size="sm">
                             {t.disable}
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </span>
                     )}
