@@ -106,3 +106,40 @@ test("admin makes an employee responsible for a department on the employee page"
   await box.getByRole("button", { name: "Fjern Café" }).click();
   await expect(box.getByText("Ingen")).toBeVisible();
 });
+
+test("profiles can be compared side by side, also only the differences", async ({ page }) => {
+  await login(page, users.admin);
+  await page.goto("/indstillinger/rettigheder");
+  await page.getByTestId("compare-profiles").click();
+  await expect(page).toHaveURL(/\/indstillinger\/rettigheder\/sammenlign/);
+
+  const table = page.getByTestId("compare-table");
+  const header = table.locator("thead");
+  await expect(header).toContainText("Administrator");
+  await expect(header).toContainText("Leder");
+  await expect(page.getByTestId("compare-summary")).toContainText("forskellige på");
+
+  // Administrator has every permission for the whole company; Leder only for own departments.
+  const row = table.locator('[data-permission="employees.manage"]');
+  await expect(row).toHaveAttribute("data-differs", "true");
+  await expect(row).toContainText("Hele virksomheden");
+  await expect(row).toContainText("Egne afdelinger");
+
+  // Only the differences: every row shown differs.
+  const all = await table.getByTestId("compare-row").count();
+  await page.getByLabel("Vis kun forskelle").check();
+  await expect(page).toHaveURL(/forskelle=1/);
+  await expect.poll(async () => table.getByTestId("compare-row").count()).toBeLessThanOrEqual(all);
+  await expect(table.locator('[data-testid="compare-row"]:not([data-differs])')).toHaveCount(0);
+
+  // Two profiles only: the columns follow the choice.
+  const controls = page.getByTestId("compare-controls");
+  const names = await controls.locator("fieldset label").allTextContents();
+  for (const name of names)
+    if (name !== "Administrator" && name !== "Leder") await controls.getByLabel(name).uncheck();
+  await expect(header.locator("th")).toHaveCount(3);
+  await controls.getByLabel("Leder").uncheck();
+  await expect(page.getByTestId("compare-summary")).toHaveText(
+    "Vælg mindst to profiler for at se forskellene.",
+  );
+});
