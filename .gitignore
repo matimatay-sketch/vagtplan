@@ -27,3 +27,6 @@ coverage/
 # Ruflo local state (written by ruflo doctor and the harness)
 .claude/proven-config.json
 .claude/.proven-config-version
+
+# Python bytecode (UI/UX Pro Max skill scripts)
+__pycache__/
