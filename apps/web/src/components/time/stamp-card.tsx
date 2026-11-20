@@ -202,11 +202,22 @@ export function StampCard({
           </div>
         ) : null}
         {state.in ? (
-          <Button size="lg" variant="outline" disabled={disabled} onClick={() => stamp("out")}>
+          <Button
+            size="lg"
+            className="w-full sm:w-auto pointer-coarse:h-14 pointer-coarse:text-base"
+            variant="outline"
+            disabled={disabled}
+            onClick={() => stamp("out")}
+          >
             <LogOut /> {t.stampOut}
           </Button>
         ) : (
-          <Button size="lg" disabled={disabled} onClick={() => stamp("in")}>
+          <Button
+            size="lg"
+            className="w-full sm:w-auto pointer-coarse:h-14 pointer-coarse:text-base"
+            disabled={disabled}
+            onClick={() => stamp("in")}
+          >
             <LogIn /> {t.stampIn}
           </Button>
         )}

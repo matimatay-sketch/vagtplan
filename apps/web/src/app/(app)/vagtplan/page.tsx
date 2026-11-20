@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutTemplate, Repeat } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { loadWeek } from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { isPhoneRequest } from "@/lib/domain/device";
 
 export const metadata: Metadata = { title: "Vagtplan" };
 
@@ -59,7 +61,10 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
   const department = visible.find((d) => d.id === str(sp.afdeling)) ?? visible[0]!;
   const weekStart = weekStartOf(isValidIsoDate(str(sp.uge)) ? str(sp.uge) : today);
   const dates = weekDates(weekStart);
-  const view = str(sp.visning) === "dag" ? "dag" : "uge";
+  // Without a choice in the URL, phones start in the day view (seven columns do not fit).
+  const requested = str(sp.visning);
+  const view =
+    requested === "dag" || (requested !== "uge" && isPhoneRequest(await headers())) ? "dag" : "uge";
   const day =
     isValidIsoDate(str(sp.dag)) && dates.includes(str(sp.dag))
       ? str(sp.dag)
@@ -181,7 +186,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
               aria-selected={view === v}
               href={href({ visning: v, ...(v === "dag" ? { dag: day } : {}) })}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium",
+                "rounded-md px-3 py-1.5 text-sm font-medium pointer-coarse:py-2.5",
                 view === v
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted",
@@ -229,7 +234,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
                   d === day
                     ? "border-primary bg-secondary font-medium"
                     : "bg-card text-muted-foreground hover:bg-muted",
-                  d === today && "text-signal",
+                  d === today && "text-accent-foreground",
                 )}
               >
                 {dayTab(d)}
@@ -243,7 +248,9 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
           <WeekBoard board={board} dates={dates} today={today} />
           {board.canManage ? (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CalendarDays className="size-3.5" /> {t.dragHint}
+              <CalendarDays className="size-3.5" />
+              <span className="pointer-coarse:hidden">{t.dragHint}</span>
+              <span className="hidden pointer-coarse:inline">{t.touchHint}</span>
             </p>
           ) : null}
         </>

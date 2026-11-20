@@ -125,7 +125,7 @@ function Cell({
             type="button"
             onClick={onCreate}
             aria-label={da.schedule.newShift}
-            className="mt-auto flex h-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/cell:opacity-100 hover:bg-muted focus-visible:opacity-100"
+            className="mt-auto flex h-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/cell:opacity-100 hover:bg-muted focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:border pointer-coarse:border-dashed pointer-coarse:opacity-100"
           >
             <Plus className="size-3.5" />
           </button>
@@ -224,7 +224,12 @@ export function WeekBoard({
         delete document.body.dataset.scheduleBusy;
       }}
     >
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <div
+        className="overflow-x-auto rounded-xl border bg-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        tabIndex={0}
+        role="region"
+        aria-label={da.common.scrollRegion}
+      >
         <table className="w-full min-w-[960px] border-collapse text-sm" data-testid="week-board">
           <thead>
             <tr className="border-b">
@@ -236,7 +241,7 @@ export function WeekBoard({
                   key={d}
                   className={cn(
                     "border-l px-2 py-2 text-left text-xs font-medium capitalize",
-                    d === today ? "text-signal" : "text-muted-foreground",
+                    d === today ? "text-accent-foreground" : "text-muted-foreground",
                   )}
                 >
                   {dayFormat.format(new Date(`${d}T00:00:00Z`))}

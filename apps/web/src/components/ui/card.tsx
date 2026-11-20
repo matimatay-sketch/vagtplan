@@ -22,9 +22,10 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     />
   );
 }
-function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
+/** Rendered as h2: cards sit directly under the page's h1, so levels do not skip. */
+function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
-    <h3
+    <h2
       data-slot="card-title"
       className={cn("text-base leading-none font-semibold", className)}
       {...props}

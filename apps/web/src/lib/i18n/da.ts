@@ -4,6 +4,8 @@
  */
 export const da = {
   common: {
+    scrollRegion: "Tabel, der kan rulles vandret",
+    actions: "Handlinger",
     save: "Gem",
     show: "Vis",
     cancel: "Annullér",
@@ -43,6 +45,7 @@ export const da = {
     expenseSettings: "Km-satser og udlæg",
     integrations: "Integrationer",
     myProfile: "Min profil",
+    more: "Mere",
     signOut: "Log ud",
   },
   auth: {
@@ -567,6 +570,7 @@ export const da = {
     permanentlyOverriddenTitle: "Tilsidesat permanent (opsætning)",
     dragHint: "Træk en vagt til en anden dag eller medarbejder. Hold Alt nede for at kopiere.",
     resizeHint: "Træk i kanten af en vagt for at ændre start eller slut (15 min.).",
+    touchHint: "Tryk på en vagt for at ændre, flytte eller kopiere den. Tryk på + for en ny vagt.",
     noEmployees: "Ingen medarbejdere i afdelingen.",
     noDepartments: "Du har ikke adgang til nogen afdelingers vagtplan.",
     availability: {
@@ -892,6 +896,7 @@ export const da = {
       posting: "Kontering",
       allPosting: "Al kontering",
       search: "Navn eller medarbejdernr.",
+      moreFilters: (n: number) => (n ? `Flere filtre (${n})` : "Flere filtre"),
       flags: {
         warnings: "Advarsler",
         deviation: "Afviger fra plan",

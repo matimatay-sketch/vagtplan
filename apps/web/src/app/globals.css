@@ -27,11 +27,11 @@
   --accent-foreground: oklch(0.42 0.13 35);
   --signal: oklch(0.7 0.17 38);
   --signal-foreground: oklch(0.2 0.04 30);
-  --destructive: oklch(0.57 0.21 25);
+  --destructive: oklch(0.52 0.2 25);
   --destructive-foreground: oklch(0.985 0 0);
   --warning: oklch(0.8 0.15 78);
   --warning-foreground: oklch(0.32 0.08 60);
-  --success: oklch(0.6 0.13 158);
+  --success: oklch(0.49 0.11 158);
   --success-foreground: oklch(0.985 0 0);
   --border: oklch(0.905 0.012 80);
   --input: oklch(0.88 0.015 80);
@@ -61,11 +61,11 @@
     --accent-foreground: oklch(0.88 0.08 40);
     --signal: oklch(0.74 0.16 40);
     --signal-foreground: oklch(0.18 0.04 30);
-    --destructive: oklch(0.65 0.2 25);
-    --destructive-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.72 0.17 25);
+    --destructive-foreground: oklch(0.17 0.03 25);
     --warning: oklch(0.8 0.14 78);
-    --warning-foreground: oklch(0.22 0.05 60);
-    --success: oklch(0.68 0.13 158);
+    --warning-foreground: oklch(0.88 0.11 82);
+    --success: oklch(0.74 0.13 158);
     --success-foreground: oklch(0.15 0.03 158);
     --border: oklch(0.3 0.04 274);
     --input: oklch(0.34 0.045 274);
@@ -134,5 +134,17 @@
   }
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respect "reduce motion": no animations or smooth transitions (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
