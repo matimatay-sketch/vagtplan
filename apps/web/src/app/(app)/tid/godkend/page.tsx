@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -20,6 +20,8 @@ import { loadPostingDimensions } from "@/lib/posting/load";
 import { loadPayPreviews } from "@/lib/payroll/preview";
 import { loadPeriodAbsences } from "@/lib/absence/load";
 import { Checkbox } from "@/components/ui/checkbox";
+import { headers } from "next/headers";
+import { isPhoneRequest } from "@/lib/domain/device";
 import { Input } from "@/components/ui/input";
 import {
   FLAG_FILTERS,
@@ -41,6 +43,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   )
     redirect("/oversigt?adgang=nej");
   const sp = await searchParams;
+  const phone = isPhoneRequest(await headers());
   const t = da.time;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   const supabase = await createClient();
@@ -229,26 +232,41 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
               className="w-48"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            {FLAG_FILTERS.map((flag) => (
-              <label key={flag} className="flex items-center gap-1.5" data-flag={flag}>
-                <Checkbox name="vis" value={flag} defaultChecked={filters.flags.includes(flag)} />
-                {f.flags[flag]}
-                <span className="text-muted-foreground tabular">({flagCounts[flag]})</span>
-              </label>
-            ))}
-            <Button type="submit" variant="outline" size="sm">
-              {t.show}
-            </Button>
-            {filtered && (
-              <Link
-                href={`/tid/godkend?${new URLSearchParams({ uge: weekStart, ...(departmentId ? { afdeling: departmentId } : {}) })}`}
-                className="text-muted-foreground underline"
-              >
-                {f.clear}
-              </Link>
-            )}
-          </div>
+          {/* On phones the eight flags fold away; on larger screens they are always shown. */}
+          <details
+            className="group text-sm"
+            open={!phone || filters.flags.length > 0}
+            data-testid="flag-filters"
+          >
+            <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border bg-card px-3 font-medium md:hidden">
+              <SlidersHorizontal className="size-4" />
+              {f.moreFilters(filters.flags.length)}
+            </summary>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 md:mt-0">
+              {FLAG_FILTERS.map((flag) => (
+                <label
+                  key={flag}
+                  className="flex min-h-8 cursor-pointer items-center gap-1.5 pointer-coarse:min-h-11"
+                  data-flag={flag}
+                >
+                  <Checkbox name="vis" value={flag} defaultChecked={filters.flags.includes(flag)} />
+                  {f.flags[flag]}
+                  <span className="text-muted-foreground tabular">({flagCounts[flag]})</span>
+                </label>
+              ))}
+              <Button type="submit" variant="outline" size="sm">
+                {t.show}
+              </Button>
+              {filtered && (
+                <Link
+                  href={`/tid/godkend?${new URLSearchParams({ uge: weekStart, ...(departmentId ? { afdeling: departmentId } : {}) })}`}
+                  className="text-muted-foreground underline"
+                >
+                  {f.clear}
+                </Link>
+              )}
+            </div>
+          </details>
         </form>
         <div className="flex items-center gap-1">
           <Button asChild variant="ghost" size="icon" aria-label="Forrige uge">

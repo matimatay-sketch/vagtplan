@@ -56,7 +56,12 @@ export function RotationGrid({
   const t = da.turnus;
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <div
+        className="overflow-x-auto rounded-xl border bg-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        tabIndex={0}
+        role="region"
+        aria-label={da.common.scrollRegion}
+      >
         <table className="w-full min-w-[900px] border-collapse text-sm" data-testid="rotation-grid">
           <thead>
             <tr className="border-b">

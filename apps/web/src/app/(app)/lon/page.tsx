@@ -52,7 +52,9 @@ export default async function PayrollPage() {
                 <TableHead>{t.group}</TableHead>
                 <TableHead>{t.period}</TableHead>
                 <TableHead>{t.status}</TableHead>
-                <TableHead />
+                <TableHead>
+                  <span className="sr-only">{da.common.actions}</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

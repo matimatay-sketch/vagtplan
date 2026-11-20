@@ -49,7 +49,9 @@ export default async function PayPeriodGroupsPage() {
                   {periods.map((p, i) => (
                     <li key={p.start} className={i === 0 ? "font-medium" : "text-muted-foreground"}>
                       {formatDate(p.start)} – {formatDate(p.end)}
-                      {i === 0 ? <span className="ml-2 text-xs text-signal">● nu</span> : null}
+                      {i === 0 ? (
+                        <span className="ml-2 text-xs text-accent-foreground">● nu</span>
+                      ) : null}
                     </li>
                   ))}
                 </ol>

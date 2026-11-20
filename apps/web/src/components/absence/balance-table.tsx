@@ -18,7 +18,12 @@ export function BalanceTable({
   const current = balances.filter((b) => b.usableUntil >= today);
   if (current.length === 0) return <p className="text-sm text-muted-foreground">{t.noBalances}</p>;
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
+    <div
+      className="overflow-x-auto rounded-xl border bg-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      tabIndex={0}
+      role="region"
+      aria-label={da.common.scrollRegion}
+    >
       <table className="w-full text-sm" data-testid="balances">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground uppercase">

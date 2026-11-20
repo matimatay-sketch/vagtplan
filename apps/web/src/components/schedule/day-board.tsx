@@ -178,7 +178,13 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border bg-card" data-testid="day-board">
+      <div
+        className="overflow-x-auto rounded-xl border bg-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        tabIndex={0}
+        role="region"
+        aria-label={da.common.scrollRegion}
+        data-testid="day-board"
+      >
         <div className="min-w-[900px]">
           <div className="grid grid-cols-[12rem_1fr] border-b text-[11px] text-muted-foreground">
             <div className="px-3 py-2 font-medium uppercase">{da.schedule.employee}</div>
@@ -243,7 +249,10 @@ export function DayBoard({ board, date }: { board: Board; date: string }) {
           })}
         </div>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">{da.schedule.resizeHint}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        <span className="pointer-coarse:hidden">{da.schedule.resizeHint}</span>
+        <span className="hidden pointer-coarse:inline">{da.schedule.touchHint}</span>
+      </p>
       <ShiftDialog
         draft={draft}
         onClose={() => setDraft(null)}

@@ -22,7 +22,16 @@ import {
   Car,
   Receipt,
   Plug,
+  Menu,
 } from "lucide-react";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { da } from "@/lib/i18n/da";
 import { hasAny, type PermissionKey, type Permissions } from "@/lib/permissions";
@@ -152,16 +161,16 @@ export function Nav({
       (i.anyOf.length === 0 || hasAny(permissions, i.anyOf) || (i.forApprovers && isApprover)) &&
       (!i.needsEmployee || hasEmployee),
   );
+  // Only the most specific matching item is active (e.g. /vagtplan/turnus, not /vagtplan).
+  const matches = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
+  const isActive = (href: string) =>
+    matches(href) && !visible.some((o) => o.href.length > href.length && matches(o.href));
+
+  if (variant === "bar") return <BottomBar items={visible} isActive={isActive} />;
   return (
-    <nav
-      aria-label="Hovedmenu"
-      className={variant === "sidebar" ? "grid gap-0.5" : "flex gap-1 overflow-x-auto px-2"}
-    >
+    <nav aria-label="Hovedmenu" className="grid gap-0.5">
       {visible.map(({ href, label, icon: Icon }) => {
-        // Only the most specific matching item is active (e.g. /vagtplan/turnus, not /vagtplan).
-        const matches = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
-        const active =
-          matches(href) && !visible.some((o) => o.href.length > href.length && matches(o.href));
+        const active = isActive(href);
         return (
           <Link
             key={href}
@@ -169,27 +178,100 @@ export function Nav({
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              variant === "sidebar"
-                ? active
-                  ? "bg-sidebar-accent text-white shadow-[inset_3px_0_0_var(--signal)]"
-                  : "text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-                : cn(
-                    "shrink-0 flex-col gap-1 px-3 py-1.5 text-[11px]",
-                    active ? "text-primary" : "text-muted-foreground",
-                  ),
+              active
+                ? "bg-sidebar-accent text-white shadow-[inset_3px_0_0_var(--signal)]"
+                : "text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
             )}
           >
-            <Icon
-              className={cn(
-                "size-4",
-                variant === "bar" && "size-5",
-                active && variant === "sidebar" && "text-signal",
-              )}
-            />
+            <Icon className={cn("size-4", active && "text-signal")} />
             {label}
           </Link>
         );
       })}
+    </nav>
+  );
+}
+
+/** The phone's daily destinations first; the rest goes under "Mere". */
+const BAR_PRIORITY = [
+  "/oversigt",
+  "/min-vagtplan",
+  "/tid",
+  "/vagtplan",
+  "/tid/godkend",
+  "/fravaer",
+];
+const BAR_SLOTS = 5;
+
+/**
+ * Bottom bar on phones: at most five targets of at least 44 px. With more
+ * items, four stay in the bar and the rest open in a sheet ("Mere").
+ */
+function BottomBar({ items, isActive }: { items: Item[]; isActive: (href: string) => boolean }) {
+  const [open, setOpen] = useState(false);
+  const rank = (href: string) => {
+    const i = BAR_PRIORITY.indexOf(href);
+    return i === -1 ? BAR_PRIORITY.length : i;
+  };
+  const ordered = [...items].sort((a, b) => rank(a.href) - rank(b.href));
+  const overflow = items.length > BAR_SLOTS;
+  const shown = overflow ? ordered.slice(0, BAR_SLOTS - 1) : ordered;
+  const rest = overflow ? items.filter((i) => !shown.includes(i)) : [];
+  const moreActive = rest.some((i) => isActive(i.href));
+  const cell =
+    "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-tight font-medium transition-colors";
+  return (
+    <nav aria-label="Hovedmenu" className="flex gap-1 px-2">
+      {shown.map(({ href, label, icon: Icon }) => {
+        const active = isActive(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn(cell, active ? "text-primary" : "text-muted-foreground")}
+          >
+            <Icon className="size-5" />
+            <span className="max-w-full truncate">{label}</span>
+          </Link>
+        );
+      })}
+      {overflow ? (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger
+            className={cn(cell, moreActive ? "text-primary" : "text-muted-foreground")}
+            aria-current={moreActive ? "page" : undefined}
+          >
+            <Menu className="size-5" />
+            {da.nav.more}
+          </DialogTrigger>
+          <DialogContent className="top-auto bottom-0 left-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none pb-[max(1.25rem,env(safe-area-inset-bottom))] data-[state=open]:slide-in-from-bottom-4 data-[state=open]:zoom-in-100">
+            <DialogHeader>
+              <DialogTitle>{da.nav.more}</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-1.5" data-testid="nav-more">
+              {rest.map(({ href, label, icon: Icon }) => {
+                const active = isActive(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      active ? "border-primary bg-secondary text-primary" : "hover:bg-muted",
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </nav>
   );
 }
