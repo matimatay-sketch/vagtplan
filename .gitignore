@@ -23,3 +23,7 @@ coverage/
 .claude-flow/data/
 .claude-flow/logs/
 .claude-flow/sessions/
+
+# Ruflo local state (written by ruflo doctor and the harness)
+.claude/proven-config.json
+.claude/.proven-config-version
