@@ -16,3 +16,14 @@ supabase/.temp/
 public/sw.js
 public/swe-worker-*.js
 coverage/
+
+# Ruflo local secrets and runtime data
+.env.local
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+
+# Ruflo local state (written by ruflo doctor and the harness)
+.claude/proven-config.json
+.claude/.proven-config-version
