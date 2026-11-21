@@ -175,6 +175,13 @@ export const PERMISSIONS = [
     scopes: ["departments", "organization"],
   },
   {
+    key: "messages.send",
+    group: "Beskeder",
+    label: "Hvem man kan skrive til (alle kan altid skrive til egne ledere og svare)",
+    scopes: ["departments", "organization"],
+    scopeLabels: { none: "Kun til ledere", departments: "Egne afdelinger", organization: "Alle" },
+  },
+  {
     key: "integrations.manage",
     group: "Integrationer",
     label: "Oprette API-nøgler og webhooks til andre systemer",
@@ -185,6 +192,8 @@ export const PERMISSIONS = [
   group: string;
   label: string;
   scopes: readonly PermissionScope[];
+  /** Labels for this permission's choices when the general ones do not fit. */
+  scopeLabels?: { none: string; departments: string; organization: string };
 }[];
 
 export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
@@ -194,6 +203,16 @@ export const SCOPE_LABELS: Record<PermissionScope, string> = {
   departments: "Egne afdelinger",
   organization: "Hele virksomheden",
 };
+
+export const NO_SCOPE_LABEL = "Ingen";
+
+/** Label of a choice in the profile editor ("" = not granted). */
+export function scopeLabel(key: PermissionKey, scope: PermissionScope | ""): string {
+  const p = PERMISSIONS.find((x) => x.key === key);
+  const custom = p && "scopeLabels" in p ? p.scopeLabels : undefined;
+  if (scope === "") return custom?.none ?? NO_SCOPE_LABEL;
+  return custom?.[scope] ?? SCOPE_LABELS[scope];
+}
 
 export function isPermissionKey(key: string): key is PermissionKey {
   return PERMISSIONS.some((p) => p.key === key);

@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { PERMISSIONS, SCOPE_LABELS, isPermissionKey, type Permissions } from "@/lib/permissions";
+import {
+  PERMISSIONS,
+  isPermissionKey,
+  scopeLabel,
+  type PermissionKey,
+  type Permissions,
+} from "@/lib/permissions";
 import { compareProfiles, type CompareScope } from "@/lib/domain/profile-compare";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
@@ -15,18 +21,17 @@ import { CompareControls } from "./controls";
 
 export const metadata: Metadata = { title: "Sammenlign rettighedsprofiler" };
 
-function ScopeCell({ scope }: { scope: CompareScope | null }) {
+function ScopeCell({ perm, scope }: { perm: PermissionKey; scope: CompareScope | null }) {
+  const label = scopeLabel(perm, scope ?? "");
   if (scope === null)
-    return (
-      <span className="text-muted-foreground" aria-label={da.profiles.none}>
+    return label === da.profiles.none ? (
+      <span className="text-muted-foreground" aria-label={label}>
         –
       </span>
+    ) : (
+      <span className="text-muted-foreground">{label}</span>
     );
-  return (
-    <Badge variant={scope === "organization" ? "default" : "secondary"}>
-      {SCOPE_LABELS[scope]}
-    </Badge>
-  );
+  return <Badge variant={scope === "organization" ? "default" : "secondary"}>{label}</Badge>;
 }
 
 export default async function CompareProfilesPage({
@@ -163,7 +168,7 @@ export default async function CompareProfilesPage({
                         </th>
                         {r.scopes.map((s, i) => (
                           <td key={chosen[i]!.id} className="px-3 py-2">
-                            <ScopeCell scope={s} />
+                            <ScopeCell perm={r.key as PermissionKey} scope={s} />
                           </td>
                         ))}
                       </tr>

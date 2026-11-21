@@ -350,8 +350,9 @@ export type Window = {
   to: string;
   started_at_or_before?: string | null;
   started_after?: string | null;
+  started_at_or_after?: string | null;
 };
-type StartCondition = "none" | "at_or_before" | "after";
+type StartCondition = "none" | "at_or_before" | "after" | "at_or_after";
 
 function DayButtons({
   label,
@@ -410,12 +411,16 @@ export function WindowsEditor<W extends Window>({
           ? "at_or_before"
           : w.started_after
             ? "after"
-            : "none";
-        const condTime = w.started_at_or_before ?? w.started_after ?? "00:00";
+            : w.started_at_or_after
+              ? "at_or_after"
+              : "none";
+        const condTime =
+          w.started_at_or_before ?? w.started_after ?? w.started_at_or_after ?? "00:00";
         const setCond = (c: StartCondition, time: string) =>
           set(i, {
             started_at_or_before: c === "at_or_before" ? time : null,
             started_after: c === "after" ? time : null,
+            started_at_or_after: c === "at_or_after" ? time : null,
           } as Partial<W>);
         return (
           <div key={i} className="grid gap-2 rounded-lg border p-2" data-testid="window">
@@ -449,7 +454,7 @@ export function WindowsEditor<W extends Window>({
                   value={cond}
                   onChange={(e) => setCond(e.target.value as StartCondition, condTime)}
                 >
-                  {(["none", "at_or_before", "after"] as const).map((c) => (
+                  {(["none", "at_or_before", "after", "at_or_after"] as const).map((c) => (
                     <option key={c} value={c}>
                       {t.startConditions[c]}
                     </option>
@@ -755,6 +760,275 @@ export function SupplementFields({
           label={t.excludeCallOut}
           checked={value.exclude_call_out ?? false}
           onChange={(v) => onChange({ ...value, exclude_call_out: v })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Overarbejde: trin, satser i tidsrum og betaling.
+// ---------------------------------------------------------------------------
+type OvertimeTier = { up_to_minutes: number | null; amount: Amount; pay_code: string };
+type OvertimeWindow = Window & {
+  when?: "any" | "before_planned" | "after_planned" | "day_off";
+  amount: Amount;
+  pay_code: string;
+};
+export type OvertimeParams = {
+  trigger: "outside_planned" | "daily_norm" | "weekly_norm" | "period_norm";
+  tiers: OvertimeTier[];
+  compensation?: "payout" | "time_off" | "payout_and_time_off";
+  time_off_factor_bp?: number;
+  time_off_pay_code?: string | null;
+  monthly_paid_includes_base?: boolean;
+  window_rates?: OvertimeWindow[];
+  exclude_holidays?: boolean;
+  tier_basis?: "overtime_minutes" | "since_planned_end";
+};
+
+export function OvertimeFields({
+  id,
+  value,
+  payCodes,
+  onChange,
+}: {
+  id: string;
+  value: OvertimeParams;
+  payCodes: readonly string[];
+  onChange: (p: OvertimeParams) => void;
+}) {
+  const compensation = value.compensation ?? "payout";
+  const tiers = value.tiers;
+  const setTier = (i: number, patch: Partial<OvertimeTier>) =>
+    onChange({ ...value, tiers: tiers.map((x, k) => (k === i ? { ...x, ...patch } : x)) });
+  return (
+    <div className="grid gap-3" data-testid="overtime-fields">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={t.overtimeTrigger} htmlFor={`${id}-trigger`}>
+          <NativeSelect
+            id={`${id}-trigger`}
+            value={value.trigger}
+            onChange={(e) =>
+              onChange({ ...value, trigger: e.target.value as OvertimeParams["trigger"] })
+            }
+          >
+            {(["outside_planned", "daily_norm", "weekly_norm", "period_norm"] as const).map((k) => (
+              <option key={k} value={k}>
+                {t.overtimeTriggers[k]}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label={t.compensation} htmlFor={`${id}-comp`}>
+          <NativeSelect
+            id={`${id}-comp`}
+            value={compensation}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                compensation: e.target.value as NonNullable<OvertimeParams["compensation"]>,
+              })
+            }
+          >
+            {(["payout", "time_off", "payout_and_time_off"] as const).map((k) => (
+              <option key={k} value={k}>
+                {t.compensations[k]}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label={t.tierBasis} htmlFor={`${id}-basis`} help={t.tierBasisHelp}>
+          <NativeSelect
+            id={`${id}-basis`}
+            value={value.tier_basis ?? "overtime_minutes"}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                tier_basis: e.target.value as NonNullable<OvertimeParams["tier_basis"]>,
+              })
+            }
+          >
+            {(["overtime_minutes", "since_planned_end"] as const).map((k) => (
+              <option key={k} value={k}>
+                {t.tierBases[k]}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      </div>
+      {compensation !== "payout" ? (
+        <div className="flex flex-wrap items-end gap-3">
+          <HoursAsMinutes
+            id={`${id}-factor`}
+            label={t.timeOffFactor}
+            minutes={((value.time_off_factor_bp ?? 10000) / 10000) * 60}
+            onChange={(m) =>
+              onChange({ ...value, time_off_factor_bp: Math.round((m / 60) * 10000) })
+            }
+          />
+          {compensation === "payout_and_time_off" ? (
+            <Field label={t.timeOffPayCode} htmlFor={`${id}-toc`}>
+              <Input
+                id={`${id}-toc`}
+                className="font-mono"
+                value={value.time_off_pay_code ?? ""}
+                onChange={(e) =>
+                  onChange({ ...value, time_off_pay_code: e.target.value.toUpperCase() || null })
+                }
+              />
+            </Field>
+          ) : null}
+        </div>
+      ) : null}
+      <fieldset className="grid gap-2">
+        <legend className="mb-1 text-sm font-medium">{t.overtimeTiers}</legend>
+        {tiers.map((tier, i) => {
+          const last = i === tiers.length - 1;
+          return (
+            <div key={i} className="grid gap-2 rounded-lg border p-2" data-testid="overtime-tier">
+              <div className="flex flex-wrap items-end gap-2">
+                {last ? (
+                  <p className="pb-2 text-sm text-muted-foreground">{t.restTier}</p>
+                ) : (
+                  <HoursAsMinutes
+                    id={`${id}-tier${i}-min`}
+                    label={t.tierMinutes}
+                    minutes={tier.up_to_minutes ?? 0}
+                    onChange={(m) => setTier(i, { up_to_minutes: m })}
+                  />
+                )}
+                <PayCodeField
+                  id={`${id}-tier${i}`}
+                  value={tier.pay_code}
+                  payCodes={payCodes}
+                  onChange={(pay_code) => setTier(i, { pay_code })}
+                />
+                {tiers.length > 1 ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={`${t.removeTier} ${i + 1}`}
+                    onClick={() => {
+                      const next = tiers.filter((_, k) => k !== i);
+                      next[next.length - 1] = { ...next[next.length - 1]!, up_to_minutes: null };
+                      onChange({ ...value, tiers: next });
+                    }}
+                  >
+                    <Trash2 />
+                  </Button>
+                ) : null}
+              </div>
+              <AmountFields
+                id={`${id}-tier${i}-amount`}
+                value={tier.amount}
+                onChange={(amount) => setTier(i, { amount })}
+              />
+            </div>
+          );
+        })}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="justify-self-start"
+          onClick={() =>
+            onChange({
+              ...value,
+              tiers: [
+                ...tiers.map((x, k) =>
+                  k === tiers.length - 1 ? { ...x, up_to_minutes: x.up_to_minutes ?? 120 } : x,
+                ),
+                { up_to_minutes: null, amount: { type: "ore_per_hour", ore: 0 }, pay_code: "" },
+              ],
+            })
+          }
+        >
+          <Plus /> {t.addTier}
+        </Button>
+      </fieldset>
+      <div className="grid gap-1">
+        <p className="text-sm font-medium">{t.overtimeWindows}</p>
+        <p className="text-xs text-muted-foreground">{t.overtimeWindowsHelp}</p>
+        {(value.window_rates ?? []).length ? (
+          <WindowsEditor<OvertimeWindow>
+            id={`${id}-ow`}
+            windows={value.window_rates ?? []}
+            onChange={(window_rates) => onChange({ ...value, window_rates })}
+            newWindow={() => ({
+              days: ["any"],
+              from: "06:00",
+              to: "18:00",
+              when: "any",
+              amount: { type: "ore_per_hour", ore: 0 },
+              pay_code: "",
+            })}
+            extra={(w, set, i) => (
+              <div className="grid gap-2 sm:grid-cols-[12rem_14rem_1fr]">
+                <Field label={t.when} htmlFor={`${id}-ow${i}-when`}>
+                  <NativeSelect
+                    id={`${id}-ow${i}-when`}
+                    value={w.when ?? "any"}
+                    onChange={(e) => set({ when: e.target.value as OvertimeWindow["when"] })}
+                  >
+                    {(["any", "before_planned", "after_planned", "day_off"] as const).map((k) => (
+                      <option key={k} value={k}>
+                        {t.whens[k]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <PayCodeField
+                  id={`${id}-ow${i}`}
+                  value={w.pay_code}
+                  payCodes={payCodes}
+                  onChange={(pay_code) => set({ pay_code })}
+                />
+                <AmountFields
+                  id={`${id}-ow${i}-amount`}
+                  value={w.amount}
+                  onChange={(amount) => set({ amount })}
+                />
+              </div>
+            )}
+          />
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="justify-self-start"
+            onClick={() =>
+              onChange({
+                ...value,
+                window_rates: [
+                  {
+                    days: ["sun", "holiday"],
+                    from: "00:00",
+                    to: "24:00",
+                    when: "any",
+                    amount: { type: "ore_per_hour", ore: 0 },
+                    pay_code: "",
+                  },
+                ],
+              })
+            }
+          >
+            <Plus /> {t.addWindow}
+          </Button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-4">
+        <Check
+          label={t.excludeHolidays}
+          checked={value.exclude_holidays ?? true}
+          onChange={(v) => onChange({ ...value, exclude_holidays: v })}
+        />
+        <Check
+          label={t.monthlyIncludesBase}
+          checked={value.monthly_paid_includes_base ?? true}
+          onChange={(v) => onChange({ ...value, monthly_paid_includes_base: v })}
         />
       </div>
     </div>

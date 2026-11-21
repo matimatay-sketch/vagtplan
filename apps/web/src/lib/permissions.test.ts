@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { PERMISSIONS, canInDepartment, hasAny, normalizeGrants, scopeOf } from "./permissions";
+import {
+  PERMISSIONS,
+  canInDepartment,
+  hasAny,
+  normalizeGrants,
+  scopeLabel,
+  scopeOf,
+} from "./permissions";
 
 describe("permission catalog", () => {
   it("matches the database catalog (supabase/migrations/*permission_profiles.sql)", () => {
@@ -33,6 +40,7 @@ describe("permission catalog", () => {
       "payroll.manage",
       "bulletin.manage",
       "assistant.use",
+      "messages.send",
       "integrations.manage",
     ]);
   });
@@ -91,5 +99,12 @@ describe("normalizeGrants", () => {
       "employees.invite": "departments",
       "employees.view": "departments",
     });
+  });
+
+  it("uses the permission's own words for its choices", () => {
+    expect(scopeLabel("messages.send", "")).toBe("Kun til ledere");
+    expect(scopeLabel("messages.send", "organization")).toBe("Alle");
+    expect(scopeLabel("employees.view", "")).toBe("Ingen");
+    expect(scopeLabel("employees.view", "departments")).toBe("Egne afdelinger");
   });
 });

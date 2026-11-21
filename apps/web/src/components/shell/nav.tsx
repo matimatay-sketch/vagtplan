@@ -23,6 +23,7 @@ import {
   Receipt,
   Plug,
   Menu,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -59,6 +60,13 @@ const items: Item[] = [
     group: "overview",
     label: da.nav.overview,
     icon: LayoutDashboard,
+    anyOf: [],
+  },
+  {
+    href: "/beskeder",
+    group: "overview",
+    label: da.nav.messages,
+    icon: MessageSquare,
     anyOf: [],
   },
   {
@@ -207,11 +215,14 @@ export function Nav({
   permissions,
   hasEmployee,
   isApprover = false,
+  messageCount = 0,
   variant,
 }: {
   permissions: Permissions;
   hasEmployee: boolean;
   isApprover?: boolean;
+  /** Unread messages and items waiting for the user, shown on "Beskeder". */
+  messageCount?: number;
   variant: "sidebar" | "bar";
 }) {
   const pathname = usePathname();
@@ -225,7 +236,9 @@ export function Nav({
   const isActive = (href: string) =>
     matches(href) && !visible.some((o) => o.href.length > href.length && matches(o.href));
 
-  if (variant === "bar") return <BottomBar items={visible} isActive={isActive} />;
+  const badge = (href: string) =>
+    href === "/beskeder" && messageCount > 0 ? <CountBadge n={messageCount} /> : null;
+  if (variant === "bar") return <BottomBar items={visible} isActive={isActive} badge={badge} />;
   return (
     <nav aria-label="Hovedmenu" className="grid gap-4">
       {sectionsOf(visible).map(({ group, items: section }) => (
@@ -251,12 +264,25 @@ export function Nav({
               >
                 <Icon className={cn("size-4", active && "text-signal")} />
                 {label}
+                {badge(href)}
               </Link>
             );
           })}
         </div>
       ))}
     </nav>
+  );
+}
+
+function CountBadge({ n }: { n: number }) {
+  return (
+    <span
+      className="ml-auto min-w-5 rounded-full bg-signal px-1.5 text-center text-[11px] leading-5 font-semibold text-sidebar tabular"
+      data-testid="message-count"
+      aria-label={da.messages.unread(n)}
+    >
+      {n > 99 ? "99+" : n}
+    </span>
   );
 }
 
@@ -276,6 +302,7 @@ const BAR_PRIORITY = [
   "/min-vagtplan",
   "/tid",
   "/vagtplan",
+  "/beskeder",
   "/tid/godkend",
   "/fravaer",
 ];
@@ -285,7 +312,15 @@ const BAR_SLOTS = 5;
  * Bottom bar on phones: at most five targets of at least 44 px. With more
  * items, four stay in the bar and the rest open in a sheet ("Mere").
  */
-function BottomBar({ items, isActive }: { items: Item[]; isActive: (href: string) => boolean }) {
+function BottomBar({
+  items,
+  isActive,
+  badge,
+}: {
+  items: Item[];
+  isActive: (href: string) => boolean;
+  badge: (href: string) => React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const rank = (href: string) => {
     const i = BAR_PRIORITY.indexOf(href);
@@ -307,10 +342,11 @@ function BottomBar({ items, isActive }: { items: Item[]; isActive: (href: string
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={cn(cell, active ? "text-primary" : "text-muted-foreground")}
+            className={cn(cell, "relative", active ? "text-primary" : "text-muted-foreground")}
           >
             <Icon className="size-5" />
             <span className="max-w-full truncate">{label}</span>
+            {badge(href) ? <span className="absolute top-0 right-1/4">{badge(href)}</span> : null}
           </Link>
         );
       })}
@@ -320,7 +356,15 @@ function BottomBar({ items, isActive }: { items: Item[]; isActive: (href: string
             className={cn(cell, moreActive ? "text-primary" : "text-muted-foreground")}
             aria-current={moreActive ? "page" : undefined}
           >
-            <Menu className="size-5" />
+            <span className="relative">
+              <Menu className="size-5" />
+              {rest.some((i) => badge(i.href)) ? (
+                <span
+                  className="absolute -top-1 -right-1.5 size-2 rounded-full bg-signal"
+                  aria-hidden
+                />
+              ) : null}
+            </span>
             {da.nav.more}
           </DialogTrigger>
           <DialogContent className="top-auto bottom-0 left-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none pb-[max(1.25rem,env(safe-area-inset-bottom))] data-[state=open]:slide-in-from-bottom-4 data-[state=open]:zoom-in-100">
@@ -351,6 +395,7 @@ function BottomBar({ items, isActive }: { items: Item[]; isActive: (href: string
                         >
                           <Icon className="size-4 shrink-0" />
                           {label}
+                          {badge(href)}
                         </Link>
                       );
                     })}

@@ -98,7 +98,7 @@ export const ShiftCard = React.forwardRef<
             className="rounded bg-destructive px-1 text-[10px] font-medium text-white no-underline"
             data-testid="uncovered-badge"
           >
-            {da.absence.uncovered}
+            {shift.cancelled ? da.cancellation.badge : da.absence.uncovered}
           </span>
         ) : null}
         {shift.proposalId ? (

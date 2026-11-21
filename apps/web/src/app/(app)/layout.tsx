@@ -5,9 +5,17 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { requireContext } from "@/lib/auth";
 import { fullName } from "@/lib/format";
 import { ImpersonationBanner } from "@/components/impersonation/banner";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const ctx = await requireContext();
+  // Badge on "Beskeder": unread messages plus swaps and afbud waiting for the user.
+  const supabase = await createClient();
+  const [{ data: unread }, { data: waiting }] = await Promise.all([
+    supabase.rpc("unread_message_count", { p_org: ctx.organization.id }),
+    supabase.rpc("waiting_items", { p_org: ctx.organization.id }),
+  ]);
+  const messageCount = (unread ?? 0) + (waiting ?? []).length;
   const name = ctx.employee ? fullName(ctx.employee) : ctx.email;
   const menu = {
     name,
@@ -35,6 +43,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               permissions={ctx.permissions}
               hasEmployee={Boolean(ctx.employee)}
               isApprover={ctx.timeApproverOf.length > 0}
+              messageCount={messageCount}
               variant="sidebar"
             />
           </div>
@@ -64,6 +73,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             permissions={ctx.permissions}
             hasEmployee={Boolean(ctx.employee)}
             isApprover={ctx.timeApproverOf.length > 0}
+            messageCount={messageCount}
             variant="bar"
           />
         </div>

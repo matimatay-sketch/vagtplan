@@ -65,6 +65,8 @@ export type BoardShift = {
   violations: BoardViolation[];
   /** The employee has approved absence on the shift's date (vagten er udækket). */
   uncovered: boolean;
+  /** The employee has reported that they cannot come (open afbud). */
+  cancelled: boolean;
 };
 
 export type BoardEmployee = {
@@ -198,6 +200,7 @@ export async function loadWeek(
     { data: absences },
     agreements,
     postingDimensions,
+    { data: openCancellations },
     { data: settings },
   ] = await Promise.all([
     supabase
@@ -241,6 +244,11 @@ export async function loadWeek(
       .gte("to_date", weekStart),
     loadAgreements(supabase),
     loadPostingDimensions(supabase),
+    supabase
+      .from("shift_cancellation")
+      .select("shift_id")
+      .eq("department_id", departmentId)
+      .eq("status", "open"),
     supabase
       .from("organization_settings")
       .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
@@ -297,6 +305,7 @@ export async function loadWeek(
   }
 
   const normDefaults = normDefaultsFrom(settings);
+  const cancelledShifts = new Set((openCancellations ?? []).map((c) => c.shift_id));
   const boardShifts: BoardShift[] = visibleShifts.map((s) => ({
     id: s.id,
     employeeId: s.employee_id,
@@ -315,7 +324,9 @@ export async function loadWeek(
     changed: s.status === "draft" && s.published !== null && s.archived_at === null,
     removed: s.archived_at !== null,
     violations: byShift.get(s.id) ?? [],
-    uncovered: s.archived_at === null && absentOn(s.employee_id, s.start_at),
+    uncovered:
+      s.archived_at === null && (absentOn(s.employee_id, s.start_at) || cancelledShifts.has(s.id)),
+    cancelled: s.archived_at === null && cancelledShifts.has(s.id),
   }));
 
   const employees: BoardEmployee[] = [...employeeMap.values()]

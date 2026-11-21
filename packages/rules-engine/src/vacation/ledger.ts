@@ -44,8 +44,13 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
     if (!firstValid) continue;
     const c = { ...original, validFrom: later(original.validFrom, firstValid) };
     if (c.validFrom > upTo || (c.validTo !== null && c.validTo < c.validFrom)) continue;
-    const employment = { employedFrom: c.validFrom, employedTo: c.validTo };
     const vacation = ctx.rule(c.validFrom, "vacation");
+    const extraMonths = vacation?.params.extra_days?.min_seniority_months ?? null;
+    const employment = {
+      employedFrom: c.validFrom,
+      employedTo: c.validTo,
+      extraEligibleFrom: extraMonths === null ? null : ctx.seniorityReached(extraMonths),
+    };
     if (vacation) {
       for (const e of vacationAccrual(vacation.params, employment, upTo)) {
         if (e.kind === "extra" && vacation.params.extra_days?.accrual === "upfront") {
@@ -69,6 +74,9 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
     for (const t of absence?.params.types ?? []) {
       const ent = t.entitlement;
       if (!ent) continue;
+      // Granted only from the day the required seniority is reached.
+      const eligible =
+        ent.min_seniority_months == null ? null : ctx.seniorityReached(ent.min_seniority_months);
       const yearStart =
         ent.period === "calendar_year" ? "01-01" : (vacation?.params.holiday_year_start ?? "09-01");
       const last = c.validTo && c.validTo < upTo ? c.validTo : upTo;
@@ -80,7 +88,10 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
         const end = P(start).add({ years: 1 }).subtract({ days: 1 }).toString();
         if (ent.accrual === "upfront") {
           const key = `${t.code}|${start}`;
-          const date = later(start, c.validFrom);
+          const date = eligible
+            ? later(later(start, c.validFrom), eligible)
+            : later(start, c.validFrom);
+          if (date > end) continue;
           if (granted.has(key) || date > last) continue;
           granted.add(key);
           // Optionally a share for the months left of the period (from the starting month).
@@ -107,7 +118,9 @@ export function leaveAccruals(input: EngineInput, upTo: IsoDate): LeavePosting[]
               extra_days: null,
             },
             {
-              employedFrom: later(start, c.validFrom),
+              employedFrom: eligible
+                ? later(later(start, c.validFrom), eligible)
+                : later(start, c.validFrom),
               employedTo: c.validTo && c.validTo < end ? c.validTo : end,
             },
             last,

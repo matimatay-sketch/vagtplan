@@ -22,6 +22,8 @@ export type ContractFacts = {
   weeklyNormMinutes: number;
   staffGroup: string | null;
   payStep: string | null;
+  /** Anciennitetsdato: counts seniority from here (default: the earliest contract's start). */
+  seniorityDate?: IsoDate | null;
 };
 
 export type BreakInput = {

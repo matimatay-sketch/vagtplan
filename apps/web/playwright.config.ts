@@ -35,6 +35,9 @@ export default defineConfig({
         ANTHROPIC_BASE_URL: "http://127.0.0.1:4545",
         // The webhook receiver in the mock is on http://127.0.0.1.
         WEBHOOK_ALLOW_INSECURE: "1",
+        // Notification e-mails go to the local Mailpit.
+        SMTP_URL: "smtp://127.0.0.1:54325",
+        EMAIL_FROM: "Turnus <no-reply@turnus.test>",
       },
     },
   ],

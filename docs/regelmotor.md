@@ -58,6 +58,17 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 - **`on_call`**: `rate_windows` (andre satser i tidsrum, første match), `exclude_holidays`, `rounding` pr. rådighedsvagt og sats, `monthly_tiers` (ekstra i % af satsen over N minutter i kalendermåneden – rådigheds- og udkaldsminutter tæller, kun rådighed får ekstra; tag hele måneden med i input), `call_out_pay` (beløb, lønart, pr. påbegyndt `unit_minutes`, loft `max_rate_ore`).
 - **`time_off_accrual`** (ny): frihed som linjer med enheden `time_off_minutes` (beløb 0). `worked_in_windows` giver `earn_minutes` pr. `per_minutes` arbejde i tidsrummene (eksakt brøk, fx 3/37). `holiday_work` giver `earn_minutes` pr. søgnehelligdag med arbejde.
 
+### Overarbejde efter klokkeslæt, normreduktion og anciennitet (2026-11-21)
+
+Tilføjet for at kunne sætte Industriens Overenskomst op (`docs/konfigurationer/industriens-overenskomst-2025`). Alle er generelle og har standardværdier, der giver samme resultat som før.
+
+- **`overtime.window_rates`**: satser i tidsrum, der tjekkes før trinene (første match). `when` begrænser til overarbejde `before_planned` (arbejdet ind i vagten eller tidligere samme dag), `after_planned` (fortsat fra vagten eller senere samme dag), `day_off` (dag uden planlagt vagt) eller `any`. `exclude_holidays` gælder tidsrummenes dagvalg.
+- **`overtime.tier_basis`**: `overtime_minutes` (som før: trin tælles i overarbejdsminutter pr. dag) eller `since_planned_end` (trin i klokketimer fra vagtens slut, også hen over midnat og når overarbejdet begynder senere).
+- **`overtime.compensation: "payout_and_time_off"`**: tillægget udbetales, og overarbejdstimerne optjenes også som afspadsering (linje med `time_off_minutes`, lønart `time_off_pay_code`).
+- **`norm.holiday_reduction: "one_fifth_on_weekdays"`**: en helligdag mandag–fredag nedsætter ugenormen med 1/5 (eller dagsnormen med dagens norm).
+- **Tidsrum `started_at_or_after`**: som `started_after`, men en vagt, der starter præcis på klokkeslættet, tæller med ("kl. 24 eller derefter").
+- **Anciennitet**: `ContractFacts.seniorityDate` (kontraktens anciennitetsdato, ellers første kontrakts start). `absence.types[].paid_from_seniority_months` (før da ingen løn og noten `ABSENCE_UNPAID_SENIORITY`), `absence.types[].entitlement.min_seniority_months` og `vacation.extra_days.min_seniority_months` (fra den dag ancienniteten nås, også i et år, hvor den nås før årets slut).
+
 ### Normprocent (`normPercent`)
 
 Et interval kan have `normPercent` (0 eller mere; over 100 tæller mere end den faktiske tid), som er den andel af intervallet, der tæller med i normen, når overarbejde findes (udløserne `daily_norm`, `weekly_norm` og `period_norm`). Uden værdi tæller arbejde og tilkald 100 % og rådighed 0 %, som hidtil.

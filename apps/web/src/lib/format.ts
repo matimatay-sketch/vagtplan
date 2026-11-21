@@ -20,3 +20,16 @@ export function formatWeeklyHours(minutes: number): string {
 export function fullName(p: { first_name: string; last_name: string }): string {
   return `${p.first_name} ${p.last_name}`;
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat("da-DK", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Copenhagen",
+});
+
+/** An instant as "27. nov. 14.05" in Copenhagen time. */
+export function formatDateTime(iso: string): string {
+  return dateTimeFormat.format(new Date(iso));
+}

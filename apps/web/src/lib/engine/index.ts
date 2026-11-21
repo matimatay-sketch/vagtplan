@@ -49,11 +49,12 @@ export type EmployeeEngineRow = {
     weekly_norm_minutes: number;
     staff_group: string | null;
     pay_step: string | null;
+    seniority_date: string | null;
   }[];
 };
 
 export const EMPLOYEE_ENGINE_SELECT =
-  "id, birth_date, school_obligated, school_obligation_ends_on, contract (id, valid_from, valid_to, agreement_id, local_agreement_id, overrides, pay_form, weekly_norm_minutes, staff_group, pay_step)";
+  "id, birth_date, school_obligated, school_obligation_ends_on, contract (id, valid_from, valid_to, agreement_id, local_agreement_id, overrides, pay_form, weekly_norm_minutes, staff_group, pay_step, seniority_date)";
 
 export function engineInputFor(
   e: EmployeeEngineRow,
@@ -83,6 +84,7 @@ export function engineInputFor(
         weeklyNormMinutes: c.weekly_norm_minutes,
         staffGroup: c.staff_group,
         payStep: c.pay_step,
+        seniorityDate: c.seniority_date,
       },
     ];
   });

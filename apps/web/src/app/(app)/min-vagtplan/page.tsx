@@ -24,6 +24,12 @@ import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
 import { AvailabilityForm } from "./availability-form";
+import {
+  CancellationButton,
+  SwapButton,
+  type Colleague,
+  type ColleagueShift,
+} from "@/components/messages/shift-actions";
 
 export const metadata: Metadata = { title: "Min vagtplan" };
 
@@ -62,6 +68,58 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
   ]);
   const list = shifts ?? [];
   const mine = list.filter((s) => s.is_mine);
+
+  // Swap and afbud: own shifts that have not started yet.
+  const now = new Date().toISOString();
+  const upcoming = mine.filter((s) => s.start_at > now);
+  const ids = upcoming.map((s) => s.id);
+  const firstByDepartment = new Map<string, string>();
+  for (const s of upcoming)
+    if (!firstByDepartment.has(s.department_id)) firstByDepartment.set(s.department_id, s.id);
+  const [{ data: openSwaps }, { data: openCancellations }, { data: ahead }, candidates] =
+    await Promise.all([
+      ids.length
+        ? supabase
+            .from("shift_swap")
+            .select("shift_id, target_employee_id")
+            .in("shift_id", ids)
+            .in("status", ["proposed", "accepted"])
+        : Promise.resolve({ data: [] }),
+      ids.length
+        ? supabase
+            .from("shift_cancellation")
+            .select("shift_id")
+            .in("shift_id", ids)
+            .eq("status", "open")
+        : Promise.resolve({ data: [] }),
+      // Colleagues' shifts the next four weeks, to swap with.
+      ids.length
+        ? supabase.rpc("published_shifts", {
+            p_from: now,
+            p_to: new Date(zonedTime(addDays(today, 29))).toISOString(),
+          })
+        : Promise.resolve({ data: [] }),
+      Promise.all(
+        [...firstByDepartment].map(async ([dept, shiftId]) => {
+          const { data } = await supabase.rpc("swap_candidates", { p_shift_id: shiftId });
+          return [dept, (data ?? []) as Colleague[]] as const;
+        }),
+      ),
+    ]);
+  const colleaguesIn = new Map(candidates);
+  const colleagueShifts: ColleagueShift[] = (ahead ?? [])
+    .filter((s) => !s.is_mine && s.employee_id)
+    .map((s) => ({
+      id: s.id,
+      employee_id: s.employee_id!,
+      start_at: s.start_at,
+      end_at: s.end_at,
+      department_id: s.department_id,
+    }));
+  const swapOf = new Map((openSwaps ?? []).map((w) => [w.shift_id, w.target_employee_id]));
+  const cancelled = new Set((openCancellations ?? []).map((c) => c.shift_id));
+  const colleagueName = (employeeId: string) =>
+    [...colleaguesIn.values()].flat().find((c) => c.employee_id === employeeId)?.name ?? "";
   const total = mine
     .filter((s) => s.kind === "work")
     .reduce(
@@ -147,9 +205,39 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
                           {s.label ? ` · ${s.label}` : ""}
                         </span>
                       </span>
-                      {s.kind === "on_call" ? (
-                        <PhoneCall className="size-4" aria-label={da.schedule.kinds.on_call} />
-                      ) : null}
+                      <span className="flex flex-wrap items-center justify-end gap-2">
+                        {s.kind === "on_call" ? (
+                          <PhoneCall className="size-4" aria-label={da.schedule.kinds.on_call} />
+                        ) : null}
+                        {s.is_mine && s.start_at > now ? (
+                          cancelled.has(s.id) ? (
+                            <span
+                              className="rounded bg-card px-2 py-0.5 text-xs font-medium text-destructive"
+                              data-testid="cancellation-reported"
+                            >
+                              {da.cancellation.reported}
+                            </span>
+                          ) : swapOf.has(s.id) ? (
+                            <span
+                              className="rounded bg-card px-2 py-0.5 text-xs font-medium text-foreground"
+                              data-testid="swap-pending"
+                            >
+                              {da.swap.pending(colleagueName(swapOf.get(s.id)!))}
+                            </span>
+                          ) : (
+                            <>
+                              <SwapButton
+                                shift={s}
+                                colleagues={colleaguesIn.get(s.department_id) ?? []}
+                                colleagueShifts={colleagueShifts.filter(
+                                  (c) => c.department_id === s.department_id,
+                                )}
+                              />
+                              <CancellationButton shift={s} />
+                            </>
+                          )
+                        ) : null}
+                      </span>
                     </div>
                   ))}
                 </CardContent>

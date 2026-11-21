@@ -13,7 +13,15 @@ export type VacationEntry = {
   note: string;
 };
 
-type Employment = { employedFrom: IsoDate; employedTo: IsoDate | null };
+type Employment = {
+  employedFrom: IsoDate;
+  employedTo: IsoDate | null;
+  /** The day the seniority required for extra days is reached (null = always eligible). */
+  extraEligibleFrom?: IsoDate | null;
+};
+type ExtraDays = Omit<NonNullable<ParamsOf<"vacation">["extra_days"]>, "min_seniority_months"> & {
+  min_seniority_months?: number | null;
+};
 
 const P = (d: IsoDate) => Temporal.PlainDate.from(d);
 const min = (a: Temporal.PlainDate, b: Temporal.PlainDate) =>
@@ -65,8 +73,10 @@ function monthlyPostings(
 export function vacationAccrual(
   rule: Pick<
     ParamsOf<"vacation">,
-    "days_per_month" | "holiday_year_start" | "usage_extends_months" | "extra_days"
-  >,
+    "days_per_month" | "holiday_year_start" | "usage_extends_months"
+  > & {
+    extra_days: ExtraDays | null;
+  },
   employment: Employment,
   upTo: IsoDate,
 ): VacationEntry[] {
@@ -87,7 +97,53 @@ export function vacationAccrual(
     });
   }
   const extra = rule.extra_days;
-  if (extra) {
+  const eligible = employment.extraEligibleFrom ?? null;
+  if (extra && eligible !== null) {
+    // Only from the day the seniority is reached; a year where it is reached
+    // before the year ends counts (e.g. 9 months by 31 August).
+    if (extra.accrual === "monthly") {
+      const from = eligible > employment.employedFrom ? eligible : employment.employedFrom;
+      for (const p of monthlyPostings(
+        extra.days_per_year / 12,
+        { ...employment, employedFrom: from },
+        upTo,
+      )) {
+        const year = yearStartContaining(p.date, extra.year_start);
+        entries.push({
+          kind: "extra",
+          date: p.date,
+          days: p.days,
+          holidayYear: year,
+          usableUntil: P(year).add({ years: 1 }).subtract({ days: 1 }).toString(),
+          note: "Optjente feriefridage",
+        });
+      }
+    } else {
+      for (
+        let year = P(yearStartContaining(employment.employedFrom, extra.year_start));
+        Temporal.PlainDate.compare(year, P(upTo)) <= 0;
+        year = year.add({ years: 1 })
+      ) {
+        const yearEnd = year.add({ years: 1 }).subtract({ days: 1 });
+        const date = max(max(year, P(employment.employedFrom)), P(eligible));
+        if (Temporal.PlainDate.compare(date, yearEnd) > 0) continue;
+        if (Temporal.PlainDate.compare(date, P(upTo)) > 0) break;
+        if (
+          employment.employedTo !== null &&
+          Temporal.PlainDate.compare(date, P(employment.employedTo)) > 0
+        )
+          break;
+        entries.push({
+          kind: "extra",
+          date: date.toString(),
+          days: extra.days_per_year,
+          holidayYear: year.toString(),
+          usableUntil: yearEnd.toString(),
+          note: "Feriefridage",
+        });
+      }
+    }
+  } else if (extra) {
     if (extra.accrual === "monthly") {
       for (const p of monthlyPostings(extra.days_per_year / 12, employment, upTo)) {
         const year = yearStartContaining(p.date, extra.year_start);

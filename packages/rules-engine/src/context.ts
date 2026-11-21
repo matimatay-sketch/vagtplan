@@ -1,3 +1,4 @@
+import { Temporal } from "temporal-polyfill";
 import { buildHolidayCalendar, type HolidayInfo } from "./calendar/holidays";
 import {
   resolveAgreement,
@@ -37,6 +38,31 @@ export class EngineContext {
       this.input.contracts.find(
         (c) => c.validFrom <= date && (c.validTo === null || date <= c.validTo),
       ) ?? null
+    );
+  }
+
+  /** The date seniority counts from: a contract's seniority date, else the first contract's start. */
+  seniorityStart(): IsoDate | null {
+    let out: IsoDate | null = null;
+    for (const c of this.input.contracts) {
+      const d = c.seniorityDate ?? c.validFrom;
+      if (out === null || d < out) out = d;
+    }
+    return out;
+  }
+
+  /** The day the employee reaches `months` of seniority (null without contracts). */
+  seniorityReached(months: number): IsoDate | null {
+    const start = this.seniorityStart();
+    return start === null ? null : Temporal.PlainDate.from(start).add({ months }).toString();
+  }
+
+  /** Whether the contract's agreement has a version on `date` (rules can be looked up). */
+  hasRules(date: IsoDate): boolean {
+    const c = this.contractOn(date);
+    if (!c) return false;
+    return (this.input.registry[c.agreementId] ?? []).some(
+      (v) => v.valid_from <= date && (v.valid_to === null || date <= v.valid_to),
     );
   }
 

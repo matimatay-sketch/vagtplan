@@ -58,6 +58,8 @@ export const windowSchema = z.object({
   to: hhmm,
   started_at_or_before: hhmmDay.nullable().default(null),
   started_after: hhmmDay.nullable().default(null),
+  /** Like started_after, but a shift starting exactly at the time counts (e.g. "kl. 24 eller derefter"). */
+  started_at_or_after: hhmmDay.nullable().default(null),
 });
 export type TimeWindow = z.output<typeof windowSchema>;
 
@@ -99,6 +101,11 @@ export const ruleSchemas = {
       }),
     ]),
     daily_minutes: minutes.nullable().default(null),
+    /**
+     * A public holiday (or agreement holiday) on Monday–Friday reduces the norm
+     * by 1/5 of the weekly norm (or the daily norm with the daily trigger).
+     */
+    holiday_reduction: z.enum(["none", "one_fifth_on_weekdays"]).default("none"),
     part_time_min_weekly_minutes: minutes.nullable().default(null),
     part_time_max_weekly_minutes: minutes.nullable().default(null),
   }),
@@ -115,11 +122,39 @@ export const ruleSchemas = {
         (t) => t.slice(0, -1).every((x) => x.up_to_minutes !== null),
         "only the last tier may be open-ended",
       ),
-    compensation: z.enum(["payout", "time_off"]).default("payout"),
+    /**
+     * payout: the supplement is paid. time_off: only time off. payout_and_time_off:
+     * the supplement is paid and the overtime hours are also earned as time off
+     * (afspadsering of the hours, the supplement in money).
+     */
+    compensation: z.enum(["payout", "time_off", "payout_and_time_off"]).default("payout"),
     /** Time off per overtime minute, in bp (15000 = 1.5 minutes). */
     time_off_factor_bp: bp.default(10000),
+    /** Pay code of the time-off line with payout_and_time_off (default: the tier's code). */
+    time_off_pay_code: payCode.nullable().default(null),
     /** Monthly paid staff get the hourly base on top of the supplement. */
     monthly_paid_includes_base: z.boolean().default(true),
+    /**
+     * Other rates in time windows, checked before the tiers (first match wins).
+     * `when` limits a rate to overtime before the planned shift (worked into it),
+     * after it, or on a day without a planned shift.
+     */
+    window_rates: z
+      .array(
+        windowSchema.extend({
+          when: z.enum(["any", "before_planned", "after_planned", "day_off"]).default("any"),
+          amount: amountSchema,
+          pay_code: payCode,
+        }),
+      )
+      .default([]),
+    /** Weekday/day selectors in window_rates do not match holiday time. */
+    exclude_holidays: z.boolean().default(true),
+    /**
+     * How tiers are counted: overtime minutes in the unit, or clock hours since
+     * the planned shift ended (overtime after the shift; e.g. "2. klokketime").
+     */
+    tier_basis: z.enum(["overtime_minutes", "since_planned_end"]).default("overtime_minutes"),
   }),
 
   /** Tidsvinduestillæg, e.g. evening/night/weekend/holiday supplements. */
@@ -274,11 +309,15 @@ export const ruleSchemas = {
           pay_code: payCode.nullable(),
           /** Absence minutes count towards the norm when finding overtime. */
           counts_towards_norm: z.boolean(),
+          /** Paid only from this seniority (months); before that unpaid with a note (e.g. sygedagpenge). */
+          paid_from_seniority_months: z.number().int().min(0).nullable().default(null),
           entitlement: z
             .object({
               days: z.number().min(0),
               period: z.enum(["calendar_year", "holiday_year"]),
               accrual: z.enum(["upfront", "monthly"]),
+              /** Granted only once the employee has this seniority (months). */
+              min_seniority_months: z.number().int().min(0).nullable().default(null),
             })
             .nullable()
             .default(null),
@@ -310,6 +349,11 @@ export const ruleSchemas = {
         days_per_year: z.number().min(0),
         year_start: monthDay,
         accrual: z.enum(["upfront", "monthly"]),
+        /**
+         * Granted only once the employee has this seniority (months): from the
+         * day it is reached, also in a year where it is reached before the year ends.
+         */
+        min_seniority_months: z.number().int().min(0).nullable().default(null),
       })
       .nullable()
       .default(null),
