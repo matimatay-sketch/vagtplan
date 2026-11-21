@@ -1,10 +1,10 @@
 "use client";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { CheckCheck, History, Pencil, Plus } from "lucide-react";
+import { CheckCheck, History, Pencil, Plus, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { approveTimeEntriesAction } from "@/lib/actions/time";
+import { approveTimeEntriesAction, unapproveTimeEntriesAction } from "@/lib/actions/time";
 import { formatHours } from "@/lib/domain/numbers";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
@@ -91,6 +91,17 @@ export function ApprovalTable({
     (rights[r.departmentId]?.approve === true || approverOf.includes(r.employeeId)) &&
     (!r.isMine || approveOwn);
   const approvableIds = rows.filter(approvable).map((r) => r.entryId!);
+  // The same people may undo an approval (the database refuses in a closed pay period).
+  const unapprovable = (r: TimeRow) =>
+    r.kind === "entry" &&
+    r.status === "approved" &&
+    (rights[r.departmentId]?.approve === true || approverOf.includes(r.employeeId)) &&
+    (!r.isMine || approveOwn);
+  const unapprove = (id: string) =>
+    start(async () => {
+      const r = await unapproveTimeEntriesAction([id]);
+      if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+    });
   const toggle = (id: string) =>
     setSelected((s) => {
       const n = new Set(s);
@@ -245,6 +256,17 @@ export function ApprovalTable({
                           onClick={() => setDraft({ mode: "edit", row: r })}
                         >
                           <Pencil />
+                        </Button>
+                      ) : null}
+                      {unapprovable(r) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={pending}
+                          onClick={() => unapprove(r.entryId!)}
+                          data-testid="unapprove"
+                        >
+                          <Undo2 /> {t.unapprove}
                         </Button>
                       ) : null}
                       {r.kind === "entry" && canManage && r.status === "approved" ? (

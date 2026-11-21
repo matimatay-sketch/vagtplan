@@ -95,6 +95,18 @@ export async function disableWebhookAction(id: string) {
   revalidate();
 }
 
+/** Turns a disabled endpoint on again. */
+export async function enableWebhookAction(id: string) {
+  await requireContext(["integrations.manage"]);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("webhook_endpoint")
+    .update({ disabled_at: null })
+    .eq("id", z.guid().parse(id));
+  if (error) throw new Error(dbErrorMessage(error));
+  revalidate();
+}
+
 /** Sends a ping event to the endpoint. */
 export async function pingWebhookAction(id: string) {
   await requireContext(["integrations.manage"]);

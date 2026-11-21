@@ -17,6 +17,7 @@ export function NormFields({
   onPercent,
   onInPay,
   error,
+  idPrefix = "",
 }: {
   kind: ShiftKind;
   defaults: NormDefaults | null;
@@ -25,13 +26,15 @@ export function NormFields({
   onPercent: (v: string) => void;
   onInPay: (v: string) => void;
   error?: string;
+  /** Keeps ids unique when two forms are on the page. */
+  idPrefix?: string;
 }) {
   const t = da.schedule;
   return (
     <>
-      <Field label={t.normPercent} htmlFor="norm_percent" error={error}>
+      <Field label={t.normPercent} htmlFor={`${idPrefix}norm_percent`} error={error}>
         <Input
-          id="norm_percent"
+          id={`${idPrefix}norm_percent`}
           name="norm_percent"
           type="number"
           inputMode="numeric"
@@ -43,9 +46,9 @@ export function NormFields({
           onChange={(e) => onPercent(e.target.value)}
         />
       </Field>
-      <Field label={t.normInPay} htmlFor="norm_in_pay">
+      <Field label={t.normInPay} htmlFor={`${idPrefix}norm_in_pay`}>
         <NativeSelect
-          id="norm_in_pay"
+          id={`${idPrefix}norm_in_pay`}
           name="norm_in_pay"
           value={inPay}
           onChange={(e) => onInPay(e.target.value)}

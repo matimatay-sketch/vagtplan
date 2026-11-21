@@ -133,6 +133,17 @@ export const da = {
     historyAs: (admin: string) => `(gjort af ${admin} som medarbejderen)`,
   },
   employees: {
+    makePrimary: "Gør til primær afdeling",
+    deleteEmployee: "Slet medarbejder",
+    deleteEmployeeHelp:
+      "Medarbejderen fjernes fra lister og vagtplaner, og et eventuelt login slettes. Historik (vagter, tid og løn) bevares.",
+    deleteEmployeeConfirm: (name: string) =>
+      `Slet ${name}? Medarbejderen fjernes fra lister, og login slettes. Historikken bevares.`,
+    archiveRefused: {
+      active_contract: "Afslut medarbejderens kontrakt først.",
+      self: "Du kan ikke slette dig selv.",
+      is_owner: "En administrator kan ikke slettes her. Skift først rettighedsprofil.",
+    },
     approver: "Godkendes af",
     approverLead:
       "Den bruger, der godkender medarbejderens tid, ud over dem der har godkendelse for afdelingen. Brug det fx til lederens egen leder.",
@@ -178,6 +189,10 @@ export const da = {
     search: "Søg navn eller nr.",
   },
   contracts: {
+    editContract: "Ret kontrakt",
+    saveContract: "Gem kontrakt",
+    closedPeriod:
+      "En afsluttet lønperiode har brugt kontrakten, så vilkårene kan ikke rettes. Afslut kontrakten og opret en ny fra den dato, ændringen gælder.",
     new: "Ny kontrakt",
     agreement: "Overenskomst",
     localAgreement: "Lokalaftale",
@@ -206,6 +221,16 @@ export const da = {
     exampleWarning: "Eksempel – fiktive satser",
   },
   payPeriodGroups: {
+    editGroup: "Ret eller slet",
+    saveGroup: "Gem gruppe",
+    editHelp:
+      "Navnet kan altid rettes. Frekvens og start kan kun ændres, så længe ingen periode er beregnet eller afsluttet.",
+    deleteGroup: "Slet gruppe",
+    deleteConfirm: (name: string) => `Slet lønperiode-gruppen ${name}?`,
+    deleted: "Gruppen er slettet.",
+    inUse:
+      "Gruppen har beregnede eller afsluttede perioder, så frekvens og start kan ikke ændres. Opret en ny gruppe og flyt kontrakterne.",
+    hasContracts: "Aktive kontrakter bruger gruppen. Flyt eller afslut dem først.",
     title: "Lønperioder",
     lead: "Lønperiode-grupper bestemmer hvor ofte der afregnes løn. Hver kontrakt peger på én gruppe.",
     name: "Navn",
@@ -481,6 +506,8 @@ export const da = {
     makeDefault: "Gør til standard",
     impliedNote: "At redigere eller invitere giver automatisk også adgang til at se.",
     compareLink: "Sammenlign profiler",
+    rename: "Ret navn og beskrivelse",
+    saveName: "Gem navn",
     compare: {
       title: "Sammenlign rettighedsprofiler",
       lead: "Se profilernes rettigheder side om side. Rækker, hvor profilerne er forskellige, er fremhævet.",
@@ -590,6 +617,8 @@ export const da = {
     dragHint: "Træk en vagt til en anden dag eller medarbejder. Hold Alt nede for at kopiere.",
     resizeHint: "Træk i kanten af en vagt for at ændre start eller slut (15 min.).",
     moreSettings: "Flere indstillinger",
+    editTemplate: "Ret skabelon",
+    saveTemplate: "Gem skabelon",
     moreSettingsUsed: (n: number) => (n === 1 ? "(1 i brug)" : `(${n} i brug)`),
     touchHint: "Tryk på en vagt for at ændre, flytte eller kopiere den. Tryk på + for en ny vagt.",
     noEmployees: "Ingen medarbejdere i afdelingen.",
@@ -814,6 +843,11 @@ export const da = {
     noViewPermission: "Du kan administrere projekter, men ikke se projekttimer.",
   },
   time: {
+    unapprove: "Fortryd godkendelse",
+    unapprovedCount: (n: number) =>
+      n === 1 ? "Godkendelsen er fortrudt." : `${n} godkendelser er fortrudt.`,
+    periodClosed:
+      "Lønperioden er afsluttet, så godkendelsen kan ikke fortrydes. Lav en rettelse i stedet.",
     title: "Tid",
     lead: "Stempl ind og ud, eller bekræft at en vagt blev gennemført som planlagt. Ret afvigelser, indtil tiden er godkendt.",
     stampIn: "Stempl ind",
@@ -935,6 +969,8 @@ export const da = {
   },
   dashboard: {
     todayTitle: "I dag",
+    editPost: "Ret opslag",
+    savePost: "Gem opslag",
     seeSchedule: "Se din vagtplan og angiv ønsker",
     myShifts: "Mine næste vagter",
     noShifts: "Ingen planlagte vagter de næste 14 dage.",
@@ -976,6 +1012,7 @@ export const da = {
     showCelebrationsHelp: "Kun dag og måned vises, ikke din alder.",
   },
   integrations: {
+    enable: "Slå til igen",
     title: "Integrationer",
     lead: "API-nøgler og webhooks, så lønsystem, stempelure, HR-system og rapportering kan tale med Turnus.",
     docsTitle: "API",
@@ -1075,6 +1112,9 @@ export const da = {
       n === 1 ? "1 forespørgsel de sidste 30 dage." : `${n} forespørgsler de sidste 30 dage.`,
   },
   expenses: {
+    reopen: "Fortryd beslutning",
+    reopenedCount: (n: number) =>
+      n === 1 ? "Beslutningen er fortrudt." : `${n} beslutninger er fortrudt.`,
     title: "Kørsel og udlæg",
     lead: "Registrér kørsel i egen bil og udlæg. Det godkendes af den samme som din tid og udbetales med lønnen.",
     lineHigh: "Kørsel, høj sats",
@@ -1432,6 +1472,10 @@ export const da = {
     inviteFailed: "Invitationen kunne ikke sendes.",
   },
   settings: {
+    editSupplement: "Ret tillæg",
+    saveSupplement: "Gem tillæg",
+    editSupplementHelp:
+      "Ændringen gælder løn, der beregnes fra nu af. Afsluttede lønperioder ændres ikke.",
     title: "Opsætning",
     lead: 'Virksomhedens generelle opsætning. Kun brugere med rettigheden "Lønperioder og indstillinger" kan se og ændre den (som standard administratorer).',
     more: "Andre indstillinger",

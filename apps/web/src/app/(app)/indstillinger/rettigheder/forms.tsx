@@ -2,7 +2,12 @@
 import { useActionState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
-import { archiveProfileAction, createProfileAction, saveGrantsAction } from "@/lib/actions/access";
+import {
+  archiveProfileAction,
+  createProfileAction,
+  renameProfileAction,
+  saveGrantsAction,
+} from "@/lib/actions/access";
 import { initialActionState } from "@/lib/actions/state";
 import {
   PERMISSIONS,
@@ -111,5 +116,48 @@ export function ArchiveProfileForm({ profileId }: { profileId: string }) {
       </SubmitButton>
       {state.ok ? null : <FormMessage state={state} />}
     </form>
+  );
+}
+
+/** Name and description of a profile (not the locked owner profile). */
+export function RenameProfileForm({
+  profileId,
+  name,
+  description,
+}: {
+  profileId: string;
+  name: string;
+  description: string | null;
+}) {
+  const [state, action] = useActionState(renameProfileAction, initialActionState);
+  return (
+    <details className="text-sm" data-testid="rename-profile">
+      <summary className="min-h-9 w-fit cursor-pointer font-medium text-primary pointer-coarse:min-h-11">
+        {da.profiles.rename}
+      </summary>
+      <form
+        action={action}
+        className="mt-3 grid gap-3 sm:grid-cols-[1fr_2fr_auto] sm:items-start"
+        noValidate
+      >
+        <input type="hidden" name="profile_id" value={profileId} />
+        <Field label={da.profiles.name} htmlFor="rename-name" error={state.errors?.name}>
+          <Input {...fieldProps("name", state, name)} id="rename-name" />
+        </Field>
+        <Field
+          label={da.profiles.description}
+          htmlFor="rename-description"
+          error={state.errors?.description}
+        >
+          <Input {...fieldProps("description", state, description)} id="rename-description" />
+        </Field>
+        <div className="sm:pt-[22px]">
+          <SubmitButton variant="outline">{da.profiles.saveName}</SubmitButton>
+        </div>
+        <div className="sm:col-span-3">
+          <FormMessage state={state} />
+        </div>
+      </form>
+    </details>
   );
 }

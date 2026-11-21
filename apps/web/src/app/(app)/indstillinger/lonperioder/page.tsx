@@ -8,7 +8,8 @@ import { payPeriodsFrom, type PayPeriodGroupSpec } from "@/lib/domain/pay-period
 import { addDays, isoWeekday, todayIn } from "@/lib/domain/civil-date";
 import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
-import { PayPeriodGroupForm } from "./form";
+import { LazyDetails } from "@/components/lazy-details";
+import { DeletePayPeriodGroup, PayPeriodGroupForm } from "./form";
 
 export const metadata: Metadata = { title: "Lønperioder" };
 
@@ -55,6 +56,20 @@ export default async function PayPeriodGroupsPage() {
                     </li>
                   ))}
                 </ol>
+                <LazyDetails
+                  className="mt-4 border-t pt-3 text-sm"
+                  summaryClassName="text-foreground"
+                  summary={t.editGroup}
+                >
+                  <div className="mt-3 grid gap-3">
+                    <PayPeriodGroupForm
+                      defaultMonday={addDays(today, 1 - isoWeekday(today))}
+                      group={g}
+                    />
+                    <p className="text-xs text-muted-foreground">{t.editHelp}</p>
+                    <DeletePayPeriodGroup id={g.id} name={g.name} />
+                  </div>
+                </LazyDetails>
               </CardContent>
             </Card>
           );

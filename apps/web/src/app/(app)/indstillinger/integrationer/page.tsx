@@ -9,6 +9,7 @@ import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   disableWebhookAction,
+  enableWebhookAction,
   pingWebhookAction,
   revokeApiKeyAction,
 } from "@/lib/actions/integrations";
@@ -142,7 +143,14 @@ export default async function IntegrationsPage() {
                       <span className="text-xs text-muted-foreground">{h.events.join(", ")}</span>
                     </span>
                     {h.disabled_at ? (
-                      <Badge variant="secondary">{t.disabled}</Badge>
+                      <span className="flex items-center gap-2">
+                        <Badge variant="secondary">{t.disabled}</Badge>
+                        <form action={enableWebhookAction.bind(null, h.id)}>
+                          <SubmitButton variant="outline" size="sm">
+                            {t.enable}
+                          </SubmitButton>
+                        </form>
+                      </span>
                     ) : (
                       <span className="flex gap-2">
                         <form action={pingWebhookAction.bind(null, h.id)}>

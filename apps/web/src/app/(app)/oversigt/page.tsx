@@ -196,6 +196,8 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
     title: p.title,
     body: p.body,
     pinned: p.pinned,
+    departmentId: p.department_id,
+    expiresOn: p.expires_on,
     departmentName: p.department_id ? (deptName.get(p.department_id) ?? null) : null,
     createdAt: formatDate(localParts(p.created_at).date),
     author: null,
