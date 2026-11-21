@@ -225,8 +225,8 @@ Acceptkriterier:
 
 ### Industriens Overenskomst som færdig base (ønsket 2026-11-21)
 
-- Industriens Overenskomst er en låst systemskabelon i alle baser. Kunden laver lokalaftaler og afvigelser ovenpå.
-- På `/platform` kan startpakken "Industriens Overenskomst" vælges, når kunden oprettes. Den sætter overenskomsten som standard for nye kontrakter og opretter lønperioden på 14 dage og tillægstyperne med dagens satser.
+- Startpakken "Industriens Overenskomst" vælges på `/platform`, når kunden oprettes, eller senere. Den lægger overenskomsten ind som kundens egen (konfigurerbar: nye versioner, lokalaftaler og sletning), sætter den som standard for nye kontrakter og opretter lønperioden på 14 dage og tillægstyperne med dagens satser.
+- Overenskomster kan slettes (arkiveres), når ingen aktive kontrakter eller lokalaftaler bruger dem.
 - Under Opsætning kan standardoverenskomsten ændres.
 
 ### Beslutning: opsætning af en ny kunde (2026-11-13)

@@ -107,8 +107,24 @@ test("a customer on Industriens Overenskomst gets a base set up for it", async (
   await admin.goto("/indstillinger/lonperioder");
   await expect(admin.getByText("Timelønnede (14 dage)").first()).toBeVisible();
 
-  // The agreement itself is a locked system template.
+  // The agreement is the customer's own: it can get new versions and be deleted.
   await admin.goto("/indstillinger/overenskomster");
-  await expect(admin.getByText("Industriens Overenskomst 2025–2028").first()).toBeVisible();
+  await admin
+    .getByRole("link", { name: /Industriens Overenskomst 2025–2028/ })
+    .first()
+    .click();
+  await expect(admin.getByText("Egen").first()).toBeVisible();
+  await expect(admin.getByTestId("agreement-versions").locator("tbody tr")).toHaveCount(3);
+  await expect(admin.getByRole("button", { name: "Ny version" })).toBeVisible();
+  admin.on("dialog", (d) => void d.accept());
+  await admin.getByTestId("delete-agreement").click();
+  await expect(admin).toHaveURL(/\/indstillinger\/overenskomster$/);
+  await expect(admin.getByRole("link", { name: /Industriens Overenskomst 2025–2028/ })).toHaveCount(
+    0,
+  );
+  await admin.goto("/indstillinger/opsaetning");
+  await expect(
+    admin.getByTestId("default-agreement-form").getByLabel("Overenskomst til nye kontrakter"),
+  ).toHaveValue("");
   await ctx.close();
 });

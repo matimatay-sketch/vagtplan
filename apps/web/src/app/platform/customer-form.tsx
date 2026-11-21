@@ -3,7 +3,11 @@ import { useActionState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
-import { createCustomerAction, inviteCustomerAdminAction } from "@/lib/actions/platform";
+import {
+  applyStarterKitAction,
+  createCustomerAction,
+  inviteCustomerAdminAction,
+} from "@/lib/actions/platform";
 import { initialActionState } from "@/lib/actions/state";
 import { da } from "@/lib/i18n/da";
 
@@ -73,6 +77,41 @@ export function InviteAdminForm({ organizationId }: { organizationId: string }) 
       {state.errors?.admin_email ? (
         <p className="text-xs font-medium text-destructive">{state.errors.admin_email}</p>
       ) : null}
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+/** Gives an existing customer a startpakke (its agreement as the customer's own, etc.). */
+export function ApplyStarterKitForm({
+  organizationId,
+  kits,
+}: {
+  organizationId: string;
+  kits: { key: string; name: string }[];
+}) {
+  const t = da.platform;
+  const [state, action] = useActionState(applyStarterKitAction, initialActionState);
+  return (
+    <form action={action} className="grid gap-2" data-testid="apply-starter-kit">
+      <input type="hidden" name="organization_id" value={organizationId} />
+      <div className="flex gap-2">
+        <NativeSelect
+          name="starter_kit"
+          aria-label={`${t.addStarterKit} – ${t.starterKit}`}
+          className="h-8"
+          defaultValue={kits[0]?.key}
+        >
+          {kits.map((k) => (
+            <option key={k.key} value={k.key}>
+              {k.name}
+            </option>
+          ))}
+        </NativeSelect>
+        <SubmitButton size="sm" variant="outline">
+          {t.addStarterKit}
+        </SubmitButton>
+      </div>
       <FormMessage state={state} />
     </form>
   );

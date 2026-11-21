@@ -75,7 +75,11 @@ export default async function EmployeePage({
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
-    supabase.from("agreement").select("id, name, kind, is_example").order("name"),
+    supabase
+      .from("agreement")
+      .select("id, name, kind, is_example")
+      .is("archived_at", null)
+      .order("name"),
     supabase
       .from("organization_settings")
       .select("default_agreement_id")

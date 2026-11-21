@@ -255,7 +255,14 @@ export const da = {
   },
   agreements: {
     title: "Overenskomster",
-    lead: "Overenskomster er versionerede regel-dokumenter. Systemskabeloner kan ikke ændres. Lav en egen kopi eller en lokalaftale, der arver fra dem. En ny version gælder kun fra sin startdato.",
+    lead: "Overenskomster er versionerede regel-dokumenter. Systemskabeloner kan ikke ændres. Lav en egen kopi eller en lokalaftale, der arver fra dem. Egne overenskomster rettes med en ny version, som kun gælder fra sin startdato, og kan slettes, når ingen kontrakter bruger dem.",
+    deleteAgreement: "Slet overenskomst",
+    deleteConfirm: (name: string) =>
+      `Slette ${name}? Den forsvinder fra listerne, men historik og tidligere lønberegninger bevares.`,
+    deleted: "Overenskomsten er slettet.",
+    inUse:
+      "Overenskomsten bruges af en aktiv kontrakt. Afslut kontrakten eller skift overenskomst først.",
+    hasLocals: "En lokalaftale bygger på overenskomsten. Slet lokalaftalen først.",
     name: "Navn",
     kind: "Type",
     kinds: { base: "Lovgrundlag", agreement: "Overenskomst", local: "Lokalaftale" },
@@ -1498,9 +1505,12 @@ export const da = {
     newCustomer: "Opret kunde",
     customerName: "Virksomhedens navn",
     starterKit: "Startpakke",
+    addStarterKit: "Tilføj startpakke",
+    starterKitAdded: "Startpakken er lagt ind.",
+    starterKitApplied: "Kunden har allerede overenskomsten fra startpakken.",
     noStarterKit: "Ingen (kun lovens minimum)",
     starterKitHelp:
-      "Sætter basen op til overenskomsten: den bliver standard for nye kontrakter, og overenskomstens lønperioder og tillægstyper oprettes. Overenskomsten er låst; kundens lokalaftaler og afvigelser lægges ovenpå.",
+      "Sætter basen op til overenskomsten: den lægges ind som kundens egen (kan rettes og slettes), bliver standard for nye kontrakter, og overenskomstens lønperioder og tillægstyper oprettes.",
     adminEmail: "Administrators e-mail",
     adminEmailHelp:
       "Personen får en invitation på e-mail. Findes brugeren allerede, får vedkommende adgang med det samme.",

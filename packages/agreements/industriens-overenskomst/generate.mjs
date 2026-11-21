@@ -586,9 +586,15 @@ const supplement = (name, pay_code, amount_type, key) => ({
 const starter = {
   key: "industriens-overenskomst",
   name: "Industriens Overenskomst",
-  agreement: "industriens-overenskomst",
+  // The customer gets its own copy (all versions) and can change it like any agreement.
+  agreement: {
+    key: "industriens-overenskomst",
+    name: "Industriens Overenskomst 2025–2028",
+    kind: "agreement",
+    versions: VERSIONS.map((v) => document(v)),
+  },
   description:
-    "Industriens Overenskomst som standardoverenskomst, lønperioder på 14 dage (§ 28) og tillæg, der betales pr. gang eller pr. time, når situationen opstår.",
+    "Industriens Overenskomst som kundens egen overenskomst (kan rettes og slettes) og standard for nye kontrakter, lønperioder på 14 dage (§ 28) og tillæg, der betales pr. gang eller pr. time, når situationen opstår.",
   pay_period_groups: [
     // § 28 stk. 1: two weeks from the start of the calendar week.
     { name: "Timelønnede (14 dage)", frequency: "biweekly", anchor_date: "2026-01-05" },

@@ -2,8 +2,9 @@
 
 Industriens Overenskomst (CO-industri og DI, udgave 31/7-2025) for timelønnede. Den er sat op som data, der arver lovens minimum (`basis-dk`). Fem nye generelle byggeklodser i regelmotoren var nødvendige (se nederst).
 
-- **Systemskabelon:** Overenskomsten ligger i alle kundebaser som en låst skabelon, ligesom lovens minimum. Kunden kan ikke rette i den. Lokalaftaler og afvigelser laves som en lokalaftale ovenpå eller på den enkelte kontrakt.
-- **Startpakke:** Når en platformsadministrator opretter kunden på `/platform`, kan startpakken "Industriens Overenskomst" vælges. Den gør tre ting:
+- **Kundens egen overenskomst:** Overenskomsten er ikke en systemskabelon. Startpakken lægger den ind i kundens base med alle tre versioner som kundens egen. Kunden kan rette den med nye versioner, lægge lokalaftaler ovenpå og slette den, når ingen kontrakter bruger den. Slettede overenskomster bevares i historikken.
+- **Startpakke:** Når en platformsadministrator opretter kunden på `/platform`, kan startpakken "Industriens Overenskomst" vælges. En eksisterende kunde kan få den med "Tilføj startpakke" på kundelisten. Den gør fire ting:
+  - Overenskomsten lægges ind som kundens egen.
   - Overenskomsten bliver standard for nye kontrakter. Feltet kan ændres under Opsætning.
   - Lønperioden "Timelønnede (14 dage)" oprettes (§ 28).
   - Tillægstyperne, der betales pr. gang eller pr. time, oprettes med de satser, der gælder på oprettelsesdagen. Se tabellen nedenfor. Kunden indtaster selv de senere satser.
@@ -11,7 +12,7 @@ Industriens Overenskomst (CO-industri og DI, udgave 31/7-2025) for timelønnede.
   1. Kør `node packages/agreements/industriens-overenskomst/generate.mjs`.
   2. Kør `pnpm --filter @vagtplan/agreements seed`.
   3. Kør `pnpm exec prettier --write packages/agreements`.
-     Workflowet `Deploy database` lægger skabelonen og startpakken op ved merge.
+     Workflowet `Deploy database` lægger startpakken op ved merge. Kunder, der allerede har overenskomsten, får ikke ændringerne automatisk, men skal lave en ny version.
 - **Personalegrupper** (feltet på kontrakten): `Dagarbejde`, `Forskudt tid`, `Skiftehold` og `Weekend`.
 - **Ugenorm** (på kontrakten):
   - 37 timer;

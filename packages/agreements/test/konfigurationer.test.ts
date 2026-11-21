@@ -10,7 +10,7 @@ import {
   type AgreementDocument,
   type EngineInput,
 } from "@vagtplan/rules-engine";
-import { starterKits, templateRegistry, templates } from "../index";
+import { industriensOverenskomst, starterKits, templateRegistry } from "../index";
 
 /**
  * Concrete agreements: the ones set up as data in docs/konfigurationer and the
@@ -31,7 +31,7 @@ function jsonFiles(dir: string): string[] {
 
 const docs: AgreementDocument[] = [
   ...jsonFiles(configDir).map((f) => parseAgreementDocument(JSON.parse(readFileSync(f, "utf8")))),
-  ...templates.filter((t) => t.id === "industriens-overenskomst"),
+  ...industriensOverenskomst,
 ];
 
 function registry() {
@@ -41,13 +41,12 @@ function registry() {
 }
 
 describe("docs/konfigurationer", () => {
-  it("the Industriens Overenskomst startpakke follows the agreement's rate dates", () => {
+  it("the Industriens Overenskomst startpakke holds the agreement and follows its rate dates", () => {
     const kit = starterKits.find((k) => k.key === "industriens-overenskomst")!;
-    expect(templates.some((t) => t.id === kit.agreement)).toBe(true);
-    const dates = templates
-      .filter((t) => t.id === kit.agreement)
-      .map((t) => t.valid_from)
-      .sort();
+    const versions = kit.agreement.versions.map(parseAgreementDocument);
+    expect(versions).toEqual(industriensOverenskomst);
+    expect(versions.every((v) => v.id === kit.agreement.key)).toBe(true);
+    const dates = versions.map((v) => v.valid_from).sort();
     for (const s of kit.supplement_types) {
       expect(s.amounts.map((a) => a.valid_from)).toEqual(dates);
       expect(s.pay_code).toMatch(/^[A-Z0-9_]{1,32}$/);

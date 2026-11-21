@@ -11,9 +11,15 @@ import industriV3 from "./industriens-overenskomst/v3.json" with { type: "json" 
 import industriStarter from "./industriens-overenskomst/startpakke.json" with { type: "json" };
 
 /** All bundled agreement templates, validated. */
-export const templates: AgreementDocument[] = [
-  basisDkV1,
-  eksempelDetailV1,
+export const templates: AgreementDocument[] = [basisDkV1, eksempelDetailV1].map(
+  parseAgreementDocument,
+);
+
+/**
+ * Industriens Overenskomst: not a system template but part of its startpakke,
+ * so the customer gets an own copy that can be changed and deleted.
+ */
+export const industriensOverenskomst: AgreementDocument[] = [
   industriV1,
   industriV2,
   industriV3,
@@ -26,7 +32,7 @@ export const templates: AgreementDocument[] = [
 export type StarterKit = {
   key: string;
   name: string;
-  agreement: string;
+  agreement: { key: string; name: string; kind: "agreement"; versions: unknown[] };
   description: string;
   pay_period_groups: { name: string; frequency: "weekly" | "biweekly"; anchor_date: string }[];
   supplement_types: {

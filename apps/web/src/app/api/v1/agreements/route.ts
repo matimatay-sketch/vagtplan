@@ -6,6 +6,7 @@ export const GET = apiRoute("employees.read", async (ctx) => {
     .from("agreement")
     .select("id, key, name, kind, is_example, organization_id")
     .or(`organization_id.is.null,organization_id.eq.${ctx.organizationId}`)
+    .is("archived_at", null)
     .order("name");
   if (error) throw dbError(error);
   return json({

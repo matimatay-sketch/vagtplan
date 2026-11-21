@@ -11,13 +11,9 @@ const DOLLAR_TAG = "$agreement_doc$";
 const sqlText = (s) => `'${String(s ?? "").replaceAll("'", "''")}'`;
 
 export function render() {
-  const docs = [
-    "basis-dk/v1.json",
-    "eksempel-detail/v1.json",
-    "industriens-overenskomst/v1.json",
-    "industriens-overenskomst/v2.json",
-    "industriens-overenskomst/v3.json",
-  ].map((f) => JSON.parse(readFileSync(join(root, f), "utf8")));
+  const docs = ["basis-dk/v1.json", "eksempel-detail/v1.json"].map((f) =>
+    JSON.parse(readFileSync(join(root, f), "utf8")),
+  );
   const kits = ["industriens-overenskomst/startpakke.json"].map((f) =>
     JSON.parse(readFileSync(join(root, f), "utf8")),
   );

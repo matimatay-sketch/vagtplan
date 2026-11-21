@@ -13,6 +13,7 @@ import {
   CopyAgreementButton,
   NewLocalForm,
   NewVersionForm,
+  DeleteAgreementButton,
 } from "@/components/agreements/agreement-actions";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -32,11 +33,11 @@ export default async function AgreementPage({
   const { data: a } = await supabase
     .from("agreement")
     .select(
-      "id, key, name, kind, is_example, organization_id, agreement_version (id, version, valid_from, valid_to, status, document)",
+      "id, key, name, kind, is_example, organization_id, archived_at, agreement_version (id, version, valid_from, valid_to, status, document)",
     )
     .eq("id", id)
     .maybeSingle();
-  if (!a) notFound();
+  if (!a || a.archived_at) notFound();
   const own = a.organization_id !== null;
   const versions = [...a.agreement_version].sort((x, y) => y.version - x.version);
   const draft = own ? versions.find((v) => v.status === "draft") : undefined;
@@ -96,9 +97,12 @@ export default async function AgreementPage({
         actions={
           !own ? (
             <CopyAgreementButton agreementId={a.id} />
-          ) : a.kind !== "local" ? (
-            <NewLocalForm parentId={a.id} />
-          ) : null
+          ) : (
+            <span className="flex flex-wrap items-center gap-2">
+              {a.kind !== "local" ? <NewLocalForm parentId={a.id} /> : null}
+              <DeleteAgreementButton agreementId={a.id} name={a.name} />
+            </span>
+          )
         }
       />
       <div className="grid gap-6">

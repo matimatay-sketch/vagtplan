@@ -2,10 +2,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  archiveAgreementAction,
   copyAgreementAction,
   createAgreementAction,
   createLocalAction,
@@ -138,5 +139,35 @@ export function NewVersionForm({
         <Plus /> {da.agreements.newVersion}
       </Button>
     </form>
+  );
+}
+
+export function DeleteAgreementButton({
+  agreementId,
+  name,
+}: {
+  agreementId: string;
+  name: string;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-destructive"
+      disabled={pending}
+      data-testid="delete-agreement"
+      onClick={() => {
+        if (!window.confirm(da.agreements.deleteConfirm(name))) return;
+        start(async () => {
+          const r = await archiveAgreementAction(agreementId);
+          if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+          if (r.ok) router.push("/indstillinger/overenskomster");
+        });
+      }}
+    >
+      <Trash2 /> {da.agreements.deleteAgreement}
+    </Button>
   );
 }

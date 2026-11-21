@@ -33,14 +33,14 @@ isOneToOne: false
                   ]
                 },"agreement": {
                   Row: {
-                    "created_at": string,"description": string | null,"id": string,"is_example": boolean,"key": string,"kind": Database["public"]['Enums']["agreement_kind"],"name": string,"organization_id": string | null
+                    "archived_at": string | null,"created_at": string,"description": string | null,"id": string,"is_example": boolean,"key": string,"kind": Database["public"]['Enums']["agreement_kind"],"name": string,"organization_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"description"?: string | null,"id"?: string,"is_example"?: boolean,"key": string,"kind": Database["public"]['Enums']["agreement_kind"],"name": string,"organization_id"?: string | null
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_example"?: boolean,"key": string,"kind": Database["public"]['Enums']["agreement_kind"],"name": string,"organization_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"description"?: string | null,"id"?: string,"is_example"?: boolean,"key"?: string,"kind"?: Database["public"]['Enums']["agreement_kind"],"name"?: string,"organization_id"?: string | null
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_example"?: boolean,"key"?: string,"kind"?: Database["public"]['Enums']["agreement_kind"],"name"?: string,"organization_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1521,6 +1521,9 @@ isOneToOne: false
 "approve_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
+"archive_agreement":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "archive_employee":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -1624,6 +1627,9 @@ isOneToOne: false
                            },
 "platform_add_owner":
 { Args: { "p_org": string,"p_user": string }; Returns: undefined
+                           },
+"platform_apply_starter_kit":
+{ Args: { "p_org": string,"p_starter_kit": string }; Returns: undefined
                            },
 "platform_create_organization":
 { Args: { "p_name": string,"p_starter_kit"?: string }; Returns: string

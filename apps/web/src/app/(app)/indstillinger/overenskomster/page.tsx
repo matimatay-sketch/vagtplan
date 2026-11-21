@@ -29,6 +29,7 @@ export default async function AgreementsPage() {
     .select(
       "id, name, kind, is_example, organization_id, description, agreement_version (version, valid_from, valid_to, status)",
     )
+    .is("archived_at", null)
     .order("kind")
     .order("name");
 
