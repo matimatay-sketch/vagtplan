@@ -107,3 +107,25 @@ describe("organizationLayerFrom – leave rules", () => {
     ).toBeNull();
   });
 });
+
+describe("organizationLayerFrom – holiday norm reduction", () => {
+  it("is merged into every norm rule", () => {
+    expect(
+      organizationLayerFrom({
+        notice_publish_hours: null,
+        notice_change_hours: null,
+        leave_rules: { holiday_norm_reduction: "planned_shift" },
+      }),
+    ).toEqual({
+      rules: [
+        {
+          id: "org-normtid",
+          primitive: "norm",
+          merge_into: "primitive",
+          source: "Virksomhedens opsætning",
+          params: { holiday_reduction: "planned_shift" },
+        },
+      ],
+    });
+  });
+});

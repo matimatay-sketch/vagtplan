@@ -126,12 +126,17 @@ test("the consultant's leave settings apply: payouts can be switched off", async
   await page.goto("/indstillinger/opsaetning");
   const rules = page.getByTestId("leave-rules-form");
   await rules.getByLabel("Udbetaling af ferie").selectOption("false");
+  // Holidays reduce the norm by the planned shift instead of the agreement's choice.
+  await rules.getByLabel("Helligdage nedsætter normen med").selectOption("planned_shift");
   await rules.getByRole("button", { name: "Gem" }).click();
   await expect(rules.getByText("Gemt")).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("leave-rules-form").getByLabel("Udbetaling af ferie")).toHaveValue(
     "false",
   );
+  await expect(
+    page.getByTestId("leave-rules-form").getByLabel("Helligdage nedsætter normen med"),
+  ).toHaveValue("planned_shift");
   await page.context().clearCookies();
 
   await login(page, users.manager);
@@ -152,6 +157,10 @@ test("the consultant's leave settings apply: payouts can be switched off", async
   await login(page, users.admin);
   await page.goto("/indstillinger/opsaetning");
   await page.getByTestId("leave-rules-form").getByLabel("Udbetaling af ferie").selectOption("");
+  await page
+    .getByTestId("leave-rules-form")
+    .getByLabel("Helligdage nedsætter normen med")
+    .selectOption("");
   await page.getByTestId("leave-rules-form").getByRole("button", { name: "Gem" }).click();
   await expect(page.getByTestId("leave-rules-form").getByText("Gemt")).toBeVisible();
 });

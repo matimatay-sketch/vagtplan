@@ -40,6 +40,8 @@ export type LeaveRules = {
   entitlement_proration?: "none" | "remaining_months";
   on_call_counts_as_rest?: boolean;
   leave_day_basis?: "weekdays" | "planned_days";
+  /** How a holiday reduces the norm: 1/5 of the week (½ on a half day) or the planned shift. */
+  holiday_norm_reduction?: "none" | "one_fifth_on_weekdays" | "planned_shift";
   transfer_allowed?: boolean;
   transfer_only_above_days?: number | null;
   payout_allowed?: boolean;
@@ -48,7 +50,7 @@ export type LeaveRules = {
 
 const ORG_SOURCE = "Virksomhedens opsætning";
 
-/** The organization layer for the rules engine: notice and leave settings. */
+/** The organization layer for the rules engine: notice, leave and holiday norm settings. */
 export function organizationLayerFrom(s: {
   notice_publish_hours: number | null;
   notice_change_hours: number | null;
@@ -77,6 +79,9 @@ export function organizationLayerFrom(s: {
   });
   merge("org-raadighed", "on_call", {
     ...(l.on_call_counts_as_rest !== undefined ? { counts_as_rest: l.on_call_counts_as_rest } : {}),
+  });
+  merge("org-normtid", "norm", {
+    ...(l.holiday_norm_reduction ? { holiday_reduction: l.holiday_norm_reduction } : {}),
   });
   merge("org-ferie", "vacation", {
     ...(l.leave_day_basis ? { leave_day_basis: l.leave_day_basis } : {}),

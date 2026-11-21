@@ -102,10 +102,13 @@ export const ruleSchemas = {
     ]),
     daily_minutes: minutes.nullable().default(null),
     /**
-     * A public holiday (or agreement holiday) on Monday–Friday reduces the norm
-     * by 1/5 of the weekly norm (or the daily norm with the daily trigger).
+     * How a holiday reduces the norm. one_fifth_on_weekdays: a holiday on
+     * Monday–Friday takes 1/5 of the weekly norm (or the daily norm with the
+     * daily trigger); a half day (a holiday from a time) takes half of that.
+     * planned_shift: the planned shift's paid time that falls in holiday time
+     * (any day; nothing when no shift is planned).
      */
-    holiday_reduction: z.enum(["none", "one_fifth_on_weekdays"]).default("none"),
+    holiday_reduction: z.enum(["none", "one_fifth_on_weekdays", "planned_shift"]).default("none"),
     part_time_min_weekly_minutes: minutes.nullable().default(null),
     part_time_max_weekly_minutes: minutes.nullable().default(null),
   }),

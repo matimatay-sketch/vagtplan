@@ -363,7 +363,7 @@ export const da = {
       "norm.period.weeks": "Antal uger",
       "norm.period.anchor": "Første periode starter",
       "norm.daily_minutes": "Daglig norm",
-      "norm.holiday_reduction": "Helligdage nedsætter normen",
+      "norm.holiday_reduction": "Helligdage nedsætter normen med",
       "norm.part_time_min_weekly_minutes": "Deltid: mindst pr. uge",
       "norm.part_time_max_weekly_minutes": "Deltid: højst pr. uge",
       "break.after_minutes": "Pause efter arbejde i",
@@ -442,7 +442,9 @@ export const da = {
       week: "Uge",
       weeks: "Flere uger",
       none: "Nej",
-      one_fifth_on_weekdays: "Ja, 1/5 af ugenormen på hverdage",
+      "norm.holiday_reduction:none": "Ingenting",
+      one_fifth_on_weekdays: "Den normale timenorm (1/5 af ugenormen, ½ på en halv dag)",
+      planned_shift: "Timerne fra den planlagte vagt i helligdagen",
       calendar_week: "Kalenderuge",
       rolling_7_days: "Løbende 7 døgn",
       "absence.types.payment:full": "Fuld løn",
@@ -1773,7 +1775,7 @@ export const da = {
     normOnCall: "Rådighed (%)",
     normInPayWork: "Arbejde: brug i lønnen",
     normInPayOnCall: "Rådighed: brug i lønnen",
-    leaveTitle: "Fravær, ferie og rådighed",
+    leaveTitle: "Fravær, ferie, helligdage og rådighed",
     leaveLead:
       'Valg, der gælder for hele virksomheden og går forud for overenskomsten. "Følg overenskomsten" bruger overenskomstens regel. Kontrollér selv, at valgene er i overensstemmelse med lov og overenskomst.',
     proration: "Omsorgsdage m.m. ved start midt i året",
@@ -1787,6 +1789,14 @@ export const da = {
     leaveDayBasisOptions: {
       weekdays: "Mandag–fredag (uden helligdage)",
       planned_days: "De dage, medarbejderen var planlagt",
+    },
+    holidayNorm: "Helligdage nedsætter normen med",
+    holidayNormHelp:
+      "Normen bruges til at finde overarbejde. En halv helligdag (fx grundlovsdag fra kl. 12) nedsætter med halvdelen af 1/5 af ugenormen eller med vagtens timer efter klokkeslættet.",
+    holidayNormOptions: {
+      one_fifth_on_weekdays: "Den normale timenorm (1/5 af ugenormen på hverdage)",
+      planned_shift: "Timerne fra den planlagte vagt",
+      none: "Ingenting",
     },
     transfer: "Overførsel af ferie",
     payout: "Udbetaling af ferie",

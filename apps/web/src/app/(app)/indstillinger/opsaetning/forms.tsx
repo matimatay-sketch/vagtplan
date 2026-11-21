@@ -268,7 +268,20 @@ export function LeaveRulesForm({ rules }: { rules: LeaveRules }) {
             <option value="planned_days">{t.leaveDayBasisOptions.planned_days}</option>
           </NativeSelect>
         </Field>
-        <span className="hidden sm:block" />
+        <Field label={t.holidayNorm} htmlFor="holiday_norm_reduction" help={t.holidayNormHelp}>
+          <NativeSelect
+            id="holiday_norm_reduction"
+            name="holiday_norm_reduction"
+            defaultValue={rules.holiday_norm_reduction ?? ""}
+          >
+            {follow}
+            {(["one_fifth_on_weekdays", "planned_shift", "none"] as const).map((k) => (
+              <option key={k} value={k}>
+                {t.holidayNormOptions[k]}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
         {(["transfer", "payout"] as const).map((k) => (
           <fieldset key={k} className="grid gap-3 rounded-lg border p-3">
             <legend className="px-1 text-sm font-medium">{t[k]}</legend>
