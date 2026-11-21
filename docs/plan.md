@@ -215,6 +215,14 @@ Acceptkriterier:
 - Lønperiode-grupper kan omdøbes og slettes. Frekvens og start kan ændres, indtil en periode er beregnet eller afsluttet.
 - Kontrakter, vagtskabeloner, tillægstyper, opslag og rettighedsprofilers navn kan rettes. Webhooks kan slås til igen. Medarbejdere kan slettes (arkiveres, login fjernes), når kontrakten er afsluttet.
 
+### Beskeder, vagtbytte og afbud (ønsket 2026-11-21)
+
+- `/beskeder`: samtaler med en eller flere personer, ulæste vises på menupunktet, og der opdateres live. Egne beskeder kan rettes og slettes. Samtaler kan skjules.
+- Rettigheden `messages.send` har tre niveauer: **Kun til ledere** (ingen tildeling), **Egne afdelinger** og **Alle**. Man kan altid skrive til sine ledere og svare på beskeder. Ledere kan altid skrive til folk i deres afdelinger.
+- Vagtbytte fra Min vagtplan: giv vagten væk eller byt med en af kollegaens vagter. Kollegaen accepterer, og en leder godkender, hvis afdelingen kræver det (standard). Regelmotoren tjekker begge medarbejdere, og kun nye blokerende brud stopper byttet. Byttet går direkte ind i den offentliggjorte plan.
+- Afbud fra Min vagtplan går til afdelingens ledere, og vagten vises som "Afbud" (udækket), indtil en leder giver den til en anden eller markerer afbuddet som håndteret.
+- Pr. afdeling: om bytte kræver godkendelse, og om nye beskeder også sendes på e-mail (`SMTP_URL`). E-mailen indeholder aldrig selve beskeden.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.

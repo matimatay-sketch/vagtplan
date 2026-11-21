@@ -9,12 +9,7 @@ import {
   saveGrantsAction,
 } from "@/lib/actions/access";
 import { initialActionState } from "@/lib/actions/state";
-import {
-  PERMISSIONS,
-  SCOPE_LABELS,
-  type PermissionScope,
-  type Permissions,
-} from "@/lib/permissions";
+import { PERMISSIONS, scopeLabel, type PermissionScope, type Permissions } from "@/lib/permissions";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
 
@@ -86,7 +81,7 @@ export function GrantMatrix({
                         disabled={!allowed}
                         defaultChecked={(grants[p.key] ?? "") === o}
                       />
-                      {o === "" ? da.profiles.none : SCOPE_LABELS[o]}
+                      {scopeLabel(p.key, o)}
                     </label>
                   );
                 })}

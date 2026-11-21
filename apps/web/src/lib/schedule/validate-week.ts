@@ -70,6 +70,14 @@ export async function validateWeek(
     weekStart: IsoDate;
     timezone: string;
     noticeFor?: NoticeShift[];
+    /**
+     * Read shifts from the table instead of shifts_for_validation. Only with
+     * the service client, after the database has confirmed the actor's right
+     * (shift swaps, where the employees cannot see each other's drafts).
+     */
+    trusted?: boolean;
+    /** Validate as if these shifts (id → employee id) belonged to someone else. */
+    reassign?: Readonly<Record<string, string>>;
   },
 ): Promise<EmployeeViolation[]> {
   const ids = [...new Set(opts.employeeIds)];
@@ -87,7 +95,15 @@ export async function validateWeek(
   ] = await Promise.all([
     loadAgreements(supabase),
     loadOrganizationSettings(supabase, opts.organizationId),
-    supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
+    opts.trusted
+      ? supabase
+          .from("shift")
+          .select("id, employee_id, department_id, start_at, end_at, breaks, kind, status")
+          .in("employee_id", ids)
+          .is("archived_at", null)
+          .lt("start_at", to)
+          .gt("end_at", from)
+      : supabase.rpc("shifts_for_validation", { p_employee_ids: ids, p_from: from, p_to: to }),
     supabase.from("employee").select(EMPLOYEE_ENGINE_SELECT).in("id", ids),
     // Approved absence is neutral in the 48-hour average.
     supabase
@@ -113,7 +129,9 @@ export async function validateWeek(
       handling: effectiveHandling(v.code, v.severity, settings.rule_handling),
     });
     if (input.contracts.length === 0) continue;
-    const own = (shifts ?? []).filter((s) => s.employee_id === e.id);
+    const owner = (s: { id: string; employee_id: string | null }) =>
+      opts.reassign?.[s.id] ?? s.employee_id;
+    const own = (shifts ?? []).filter((s) => owner(s) === e.id);
     const intervals = shiftsToIntervals(
       own.map((s) => ({
         id: s.id,

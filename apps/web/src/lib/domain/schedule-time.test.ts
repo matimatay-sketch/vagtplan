@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { barPosition, isoWeekNumber, localParts, weekDates, weekStartOf } from "./schedule-time";
+import {
+  barPosition,
+  isoWeekNumber,
+  localParts,
+  shiftWhen,
+  weekDates,
+  weekStartOf,
+} from "./schedule-time";
 
 describe("week helpers", () => {
   it("lists Monday–Sunday and finds the week start", () => {
@@ -54,5 +61,17 @@ describe("barPosition (day view)", () => {
 
   it("returns null for a shift on another day", () => {
     expect(barPosition("2026-01-06T07:00:00Z", "2026-01-06T15:00:00Z", "2026-01-05")).toBeNull();
+  });
+});
+
+describe("shiftWhen", () => {
+  it("shows the Copenhagen day and times, also across summer time", () => {
+    // 27 Nov 2026 is winter time (UTC+1); 26 Jun 2026 summer time (UTC+2).
+    expect(shiftWhen("2026-11-27T07:00:00Z", "2026-11-27T13:00:00Z")).toMatch(
+      /27\. nov\.? 08:00–14:00$/,
+    );
+    expect(shiftWhen("2026-06-26T20:00:00Z", "2026-06-27T04:00:00Z")).toMatch(
+      /26\. jun\.? 22:00–06:00 \(\+1\)$/,
+    );
   });
 });

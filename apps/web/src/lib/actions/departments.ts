@@ -86,3 +86,32 @@ export async function removeManagerAction(formData: FormData) {
   revalidatePath("/afdelinger");
   revalidatePath("/medarbejdere", "layout");
 }
+
+/** Per department: swap approval and e-mail notifications for messages. */
+export async function updateDepartmentMessagingAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireContext(["departments.manage"]);
+  const input = z
+    .object({
+      id: z.guid(),
+      swap_requires_approval: z.string().nullish(),
+      message_email: z.string().nullish(),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!input.success) return { message: da.common.unknownError };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("department")
+    .update({
+      swap_requires_approval: !!input.data.swap_requires_approval,
+      message_email: !!input.data.message_email,
+    })
+    .eq("id", input.data.id)
+    .select("id");
+  if (error) return { message: dbErrorMessage(error) };
+  if (!data?.length) return { message: da.common.notAllowed };
+  revalidatePath("/afdelinger");
+  return { ok: true, message: da.common.saved };
+}

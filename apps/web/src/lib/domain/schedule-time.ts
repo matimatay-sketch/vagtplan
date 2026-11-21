@@ -96,3 +96,15 @@ export function durationMinutes(startIso: string, endIso: string, breakMinutes =
     Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000) - breakMinutes
   );
 }
+
+const dayLabelFormat = new Intl.DateTimeFormat("da-DK", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: TZ,
+});
+
+/** "fre. 27. nov. 08:00–14:00" in Copenhagen time. */
+export function shiftWhen(startIso: string, endIso: string): string {
+  return `${dayLabelFormat.format(new Date(startIso))} ${timeRange(startIso, endIso)}`;
+}

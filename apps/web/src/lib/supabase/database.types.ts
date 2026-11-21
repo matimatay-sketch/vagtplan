@@ -279,16 +279,56 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
-                },"department": {
+                },"conversation": {
                   Row: {
-                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"posting_defaults": NonNullable<Json>
+                    "created_at": string,"created_by": string | null,"id": string,"last_message_at": string,"organization_id": string,"subject": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"posting_defaults"?: NonNullable<Json>
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id": string,"subject"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"posting_defaults"?: NonNullable<Json>
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id"?: string,"subject"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversation_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"conversation_participant": {
+                  Row: {
+                    "archived_at": string | null,"conversation_id": string,"joined_at": string,"last_read_at": string | null,"organization_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"conversation_id": string,"joined_at"?: string,"last_read_at"?: string | null,"organization_id": string,"user_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"conversation_id"?: string,"joined_at"?: string,"last_read_at"?: string | null,"organization_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversation_participant_organization_id_conversation_id_fkey"
+      columns: ["organization_id","conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"department": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"message_email": boolean,"name": string,"organization_id": string,"posting_defaults": NonNullable<Json>,"swap_requires_approval": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name": string,"organization_id": string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name"?: string,"organization_id"?: string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
                   }
                   Relationships: [
                     {
@@ -317,6 +357,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "department"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"email_outbox": {
+                  Row: {
+                    "attempts": number,"created_at": string,"id": string,"kind": string,"last_error": string | null,"next_attempt_at": string,"organization_id": string,"payload": NonNullable<Json>,"sent_at": string | null,"status": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"kind": string,"last_error"?: string | null,"next_attempt_at"?: string,"organization_id": string,"payload": NonNullable<Json>,"sent_at"?: string | null,"status"?: string,"user_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"kind"?: string,"last_error"?: string | null,"next_attempt_at"?: string,"organization_id"?: string,"payload"?: NonNullable<Json>,"sent_at"?: string | null,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "email_outbox_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"employee": {
@@ -556,6 +616,38 @@ isOneToOne: false
       columns: ["organization_id","profile_id"]
 isOneToOne: false
       referencedRelation: "permission_profile"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"message": {
+                  Row: {
+                    "archived_at": string | null,"body": string,"cancellation_id": string | null,"conversation_id": string,"created_at": string,"edited_at": string | null,"id": string,"kind": Database["public"]['Enums']["message_kind"],"organization_id": string,"sender_id": string | null,"swap_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"body"?: string,"cancellation_id"?: string | null,"conversation_id": string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["message_kind"],"organization_id": string,"sender_id"?: string | null,"swap_id"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"body"?: string,"cancellation_id"?: string | null,"conversation_id"?: string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["message_kind"],"organization_id"?: string,"sender_id"?: string | null,"swap_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_cancellation_fk"
+      columns: ["organization_id","cancellation_id"]
+isOneToOne: false
+      referencedRelation: "shift_cancellation"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "message_organization_id_conversation_id_fkey"
+      columns: ["organization_id","conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "message_swap_fk"
+      columns: ["organization_id","swap_id"]
+isOneToOne: false
+      referencedRelation: "shift_swap"
       referencedColumns: ["organization_id","id"]
     }
                   ]
@@ -1153,6 +1245,94 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
+                },"shift_cancellation": {
+                  Row: {
+                    "conversation_id": string,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string,"id": string,"organization_id": string,"reason": string,"resolved_at": string | null,"resolved_by": string | null,"shift_id": string,"status": Database["public"]['Enums']["cancellation_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "conversation_id": string,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id": string,"id"?: string,"organization_id": string,"reason": string,"resolved_at"?: string | null,"resolved_by"?: string | null,"shift_id": string,"status"?: Database["public"]['Enums']["cancellation_status"]
+                  }
+                  Update: {
+                    "conversation_id"?: string,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string,"id"?: string,"organization_id"?: string,"reason"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null,"shift_id"?: string,"status"?: Database["public"]['Enums']["cancellation_status"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shift_cancellation_organization_id_conversation_id_fkey"
+      columns: ["organization_id","conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_cancellation_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_cancellation_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_cancellation_organization_id_shift_id_fkey"
+      columns: ["organization_id","shift_id"]
+isOneToOne: false
+      referencedRelation: "shift"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"shift_swap": {
+                  Row: {
+                    "completed_at": string | null,"conversation_id": string,"created_at": string,"created_by": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"department_id": string,"id": string,"note": string | null,"organization_id": string,"requester_employee_id": string,"requires_approval": boolean,"responded_at": string | null,"shift_id": string,"status": Database["public"]['Enums']["swap_status"],"target_employee_id": string,"target_shift_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "completed_at"?: string | null,"conversation_id": string,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id": string,"id"?: string,"note"?: string | null,"organization_id": string,"requester_employee_id": string,"requires_approval": boolean,"responded_at"?: string | null,"shift_id": string,"status"?: Database["public"]['Enums']["swap_status"],"target_employee_id": string,"target_shift_id"?: string | null
+                  }
+                  Update: {
+                    "completed_at"?: string | null,"conversation_id"?: string,"created_at"?: string,"created_by"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"department_id"?: string,"id"?: string,"note"?: string | null,"organization_id"?: string,"requester_employee_id"?: string,"requires_approval"?: boolean,"responded_at"?: string | null,"shift_id"?: string,"status"?: Database["public"]['Enums']["swap_status"],"target_employee_id"?: string,"target_shift_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shift_swap_organization_id_conversation_id_fkey"
+      columns: ["organization_id","conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_swap_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_swap_organization_id_requester_employee_id_fkey"
+      columns: ["organization_id","requester_employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_swap_organization_id_shift_id_fkey"
+      columns: ["organization_id","shift_id"]
+isOneToOne: false
+      referencedRelation: "shift"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_swap_organization_id_target_employee_id_fkey"
+      columns: ["organization_id","target_employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "shift_swap_organization_id_target_shift_id_fkey"
+      columns: ["organization_id","target_shift_id"]
+isOneToOne: false
+      referencedRelation: "shift"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
                 },"shift_template": {
                   Row: {
                     "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"department_id": string | null,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"name": string,"norm_in_pay": boolean | null,"norm_percent": number | null,"organization_id": string,"posting_values": NonNullable<Json>,"project_id": string | null,"start_time": string,"supplement_type_ids": (string)[]
@@ -1301,7 +1481,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "add_leave_posting":
+            "accept_shift_swap":
+{ Args: { "p_actor": string,"p_id": string }; Returns: Database["public"]['Enums']["swap_status"]
+                           },
+"add_leave_posting":
 { Args: { "p_account": string,"p_employee_id": string,"p_hundredths": number,"p_kind": Database["public"]['Enums']["leave_posting_kind"],"p_note": string,"p_period_start": string,"p_usable_until": string }; Returns: string
                            },
 "api_key_lookup":
@@ -1311,6 +1494,9 @@ isOneToOne: false
                            },
 "api_stamp":
 { Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_employee_id": string,"p_organization_id": string }; Returns: string
+                           },
+"approve_shift_swap":
+{ Args: { "p_actor": string,"p_id": string,"p_note": string }; Returns: undefined
                            },
 "approve_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
@@ -1335,6 +1521,11 @@ isOneToOne: false
 "cancel_absence":
 { Args: { "p_id": string,"p_note": string }; Returns: undefined
                            },
+"cancellation_details":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "can_resolve": boolean,"conversation_id": string,"created_at": string,"department_name": string,"employee_name": string,"id": string,"is_mine": boolean,"reason": string,"shift_end": string,"shift_id": string,"shift_start": string,"status": Database["public"]['Enums']["cancellation_status"]
+            }[]
+                           },
 "celebrations":
 { Args: { "p_days"?: number,"p_from": string,"p_org": string }; Returns: {
               "department_name": string,"employee_id": string,"kind": string,"name": string,"on_date": string,"years": number
@@ -1343,8 +1534,19 @@ isOneToOne: false
 "close_pay_period":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"close_shift_cancellation":
+{ Args: { "p_action": string,"p_id": string }; Returns: undefined
+                           },
+"close_shift_swap":
+{ Args: { "p_action": string,"p_id": string,"p_note": string }; Returns: undefined
+                           },
 "complete_as_planned":
 { Args: { "p_shift_ids": (string)[] }; Returns: number
+                           },
+"conversation_people":
+{ Args: { "p_conversation_id": string }; Returns: {
+              "name": string,"user_id": string
+            }[]
                            },
 "correct_time_entry":
 { Args: { "p_breaks": Json,"p_end_at": string,"p_id": string,"p_posting_allocations"?: Json,"p_project_allocations": Json,"p_reason": string,"p_start_at": string,"p_supplement_type_ids"?: (string)[] }; Returns: string
@@ -1358,6 +1560,14 @@ isOneToOne: false
 "decide_expense_items":
 { Args: { "p_decision": string,"p_expense_ids": (string)[],"p_note"?: string,"p_trip_ids": (string)[] }; Returns: number
                            },
+"email_claim":
+{ Args: { "p_limit"?: number }; Returns: {
+              "attempts": number,"email": string,"id": string,"kind": string,"payload": Json
+            }[]
+                           },
+"email_result":
+{ Args: { "p_error": string,"p_id": string,"p_ok": boolean }; Returns: undefined
+                           },
 "end_impersonation":
 { Args: { "p_session": string }; Returns: undefined
                            },
@@ -1368,6 +1578,16 @@ isOneToOne: false
                            },
 "is_platform_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"message_recipients":
+{ Args: { "p_org": string }; Returns: {
+              "department_names": string,"is_leader": boolean,"name": string,"user_id": string
+            }[]
+                           },
+"my_conversations":
+{ Args: { "p_org": string }; Returns: {
+              "hidden": boolean,"id": string,"last_body": string,"last_kind": Database["public"]['Enums']["message_kind"],"last_message_at": string,"participant_names": string,"subject": string,"unread": number
+            }[]
                            },
 "my_permissions":
 { Args: { "org": string }; Returns: {
@@ -1412,6 +1632,9 @@ isOneToOne: false
               "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"employee_number": string,"end_at": string,"id": string,"posting_allocations": Json,"start_at": string,"status": Database["public"]['Enums']["time_entry_status"]
             }[]
                            },
+"propose_shift_swap":
+{ Args: { "p_note": string,"p_shift_id": string,"p_target_employee_id": string,"p_target_shift_id": string }; Returns: string
+                           },
 "publish_agreement_version":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -1425,6 +1648,9 @@ isOneToOne: false
                            },
 "reopen_expense_items":
 { Args: { "p_expense_ids": (string)[],"p_trip_ids": (string)[] }; Returns: number
+                           },
+"report_shift_cancellation":
+{ Args: { "p_reason": string,"p_shift_id": string }; Returns: string
                            },
 "save_pay_run":
 { Args: { "p_daily": Json,"p_employee_id": string,"p_engine_version": string,"p_lines": Json,"p_notes": Json,"p_pending": number,"p_period_id": string }; Returns: string
@@ -1446,8 +1672,21 @@ isOneToOne: false
 "stamp":
 { Args: { "p_action": string,"p_at": string,"p_client_id": string,"p_organization_id": string,"p_posting_allocations"?: Json }; Returns: string
                            },
+"start_conversation":
+{ Args: { "p_body": string,"p_org": string,"p_subject": string,"p_user_ids": (string)[] }; Returns: string
+                           },
 "start_impersonation":
 { Args: { "p_employee_id": string }; Returns: string
+                           },
+"swap_candidates":
+{ Args: { "p_shift_id": string }; Returns: {
+              "employee_id": string,"name": string
+            }[]
+                           },
+"swap_details":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "can_decide": boolean,"conversation_id": string,"created_at": string,"decision_note": string,"department_name": string,"id": string,"is_requester": boolean,"is_target": boolean,"note": string,"requester_name": string,"requires_approval": boolean,"shift_end": string,"shift_start": string,"status": Database["public"]['Enums']["swap_status"],"target_name": string,"target_shift_end": string,"target_shift_start": string
+            }[]
                            },
 "time_approvees":
 { Args: { "p_org": string }; Returns: string[]
@@ -1465,8 +1704,16 @@ isOneToOne: false
 "unapprove_time_entries":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
+"unread_message_count":
+{ Args: { "p_org": string }; Returns: number
+                           },
 "update_pay_period_group":
 { Args: { "p_anchor_date": string,"p_frequency": Database["public"]['Enums']["pay_frequency"],"p_id": string,"p_month_start_day": number,"p_name": string }; Returns: undefined
+                           },
+"waiting_items":
+{ Args: { "p_org": string }; Returns: {
+              "conversation_id": string,"created_at": string,"id": string,"kind": string
+            }[]
                            },
 "webhook_claim":
 { Args: { "p_limit"?: number }; Returns: {
@@ -1481,7 +1728,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
+            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","cancellation_status": "open"|"resolved"|"withdrawn","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","message_kind": "text"|"swap"|"cancellation"|"system","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","swap_status": "proposed"|"accepted"|"completed"|"declined"|"rejected"|"cancelled","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1597,7 +1844,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
+            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"cancellation_status": ["open", "resolved", "withdrawn"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"message_kind": ["text", "swap", "cancellation", "system"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"swap_status": ["proposed", "accepted", "completed", "declined", "rejected", "cancelled"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
           }
         }
 } as const

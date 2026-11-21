@@ -10,7 +10,8 @@ import { hasOrg } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
 import { da } from "@/lib/i18n/da";
-import { CreateDepartmentForm } from "./forms";
+import { CreateDepartmentForm, DepartmentMessagingForm } from "./forms";
+import { emailConfigured } from "@/lib/messages/email";
 import { PostingDefaultsForm } from "@/components/posting/posting-defaults";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import type { PostingValues } from "@/lib/domain/posting";
@@ -29,7 +30,7 @@ export default async function DepartmentsPage() {
     await Promise.all([
       supabase
         .from("department")
-        .select("id, name, posting_defaults")
+        .select("id, name, posting_defaults, swap_requires_approval, message_email")
         .eq("organization_id", ctx.organization.id)
         .is("archived_at", null)
         .order("name"),
@@ -116,6 +117,22 @@ export default async function DepartmentsPage() {
                       ))}
                     </div>
                   </div>
+                  {canCreate ? (
+                    <div>
+                      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        {t.messagingTitle}
+                      </p>
+                      <DepartmentMessagingForm
+                        id={d.id}
+                        name={d.name}
+                        swapRequiresApproval={d.swap_requires_approval}
+                        messageEmail={d.message_email}
+                      />
+                      {d.message_email && !emailConfigured() ? (
+                        <p className="mt-2 text-xs text-muted-foreground">{t.emailNotConfigured}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {canCreate && dimensions.length ? (
                     <div>
                       <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
