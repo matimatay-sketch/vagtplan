@@ -236,18 +236,25 @@ export async function newVersionAction(
 
 export type CheckResult = { ok: boolean; errors: string[]; warnings: ResolutionWarning[] };
 
-async function checkDraft(supabase: Client, versionId: string, document: unknown) {
+async function checkDraft(
+  supabase: Client,
+  versionId: string,
+  document: unknown,
+  status: "draft" | "published" = "draft",
+) {
   const { data: row } = await supabase
     .from("agreement_version")
-    .select("id, version, status, agreement:agreement_id (key)")
+    .select("id, version, status, valid_from, valid_to, agreement:agreement_id (key)")
     .eq("id", z.guid().parse(versionId))
     .maybeSingle();
-  if (!row || row.status !== "draft" || !row.agreement) return null;
-  // The document always carries the agreement's key and the row's version.
+  if (!row || row.status !== status || !row.agreement) return null;
+  // The document always carries the agreement's key and the row's version
+  // (and a published version keeps its validity).
   const doc = {
     ...(document as Record<string, unknown>),
     id: row.agreement.key,
     version: row.version,
+    ...(status === "published" ? { valid_from: row.valid_from, valid_to: row.valid_to } : {}),
   };
   const { registry } = await loadAgreements(supabase);
   return { row, doc, check: validateDocument(registry, doc) };
@@ -280,6 +287,46 @@ export async function saveDraftAction(
   if (error) return { message: dbErrorMessage(error), ok: false, errors: [], warnings: [] };
   revalidateAgreements();
   return { ...r.check, ok: true, message: da.agreements.saved };
+}
+
+export async function validatePublishedVersionAction(
+  versionId: string,
+  document: unknown,
+): Promise<CheckResult> {
+  await requireContext(["agreements.manage"]);
+  const supabase = await createClient();
+  const r = await checkDraft(supabase, versionId, document, "published");
+  return r ? r.check : { ok: false, errors: [da.common.notAllowed], warnings: [] };
+}
+
+/**
+ * Changes a published version of an own agreement in place. The database
+ * refuses when a closed pay period has used it (then a new version is the way).
+ */
+export async function savePublishedVersionAction(
+  versionId: string,
+  document: unknown,
+): Promise<CheckResult & { message?: string }> {
+  await requireContext(["agreements.manage"]);
+  const supabase = await createClient();
+  const r = await checkDraft(supabase, versionId, document, "published");
+  if (!r) return { message: da.common.notAllowed, ok: false, errors: [], warnings: [] };
+  if (!r.check.ok) return { ...r.check, message: da.agreements.invalid };
+  const doc = parseAgreementDocument(r.doc);
+  const { error } = await supabase.rpc("update_published_version", {
+    p_id: r.row.id,
+    p_document: asJson(doc),
+  });
+  if (error)
+    return {
+      message: error.hint === "period_closed" ? da.agreements.versionLocked : dbErrorMessage(error),
+      ok: false,
+      errors: [],
+      warnings: [],
+    };
+  revalidateAgreements();
+  revalidatePath("/", "layout");
+  return { ...r.check, ok: true, message: da.agreements.savedPublished };
 }
 
 /**

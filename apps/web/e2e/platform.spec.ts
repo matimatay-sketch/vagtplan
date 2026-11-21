@@ -117,6 +117,23 @@ test("a customer on Industriens Overenskomst gets a base set up for it", async (
   await expect(admin.getByTestId("agreement-versions").locator("tbody tr")).toHaveCount(3);
   await expect(admin.getByRole("button", { name: "Ny version" })).toBeVisible();
   admin.on("dialog", (d) => void d.accept());
+
+  // A published version opens with all its rules and is changed directly (no closed pay period yet).
+  await admin.getByRole("link", { name: "Åbn version 2" }).click();
+  const version = admin.getByTestId("agreement-editor");
+  const forskudt = version.locator('details[data-rule="forskudt-1"]');
+  await forskudt.locator("> summary").click();
+  await expect(forskudt.getByLabel("Kr. pr. time")).toHaveValue("32,60");
+  await forskudt.getByLabel("Kr. pr. time").fill("33,00");
+  await version.getByRole("button", { name: "Gem ændringer i versionen" }).click();
+  await expect(admin.getByText("Versionen er rettet.")).toBeVisible();
+  await admin.reload();
+  await admin.locator('details[data-rule="forskudt-1"] > summary').click();
+  await expect(
+    admin.locator('details[data-rule="forskudt-1"]').getByLabel("Kr. pr. time"),
+  ).toHaveValue("33,00");
+  await admin.getByRole("link", { name: "Industriens Overenskomst 2025–2028" }).click();
+
   await admin.getByTestId("delete-agreement").click();
   await expect(admin).toHaveURL(/\/indstillinger\/overenskomster$/);
   await expect(admin.getByRole("link", { name: /Industriens Overenskomst 2025–2028/ })).toHaveCount(
@@ -127,4 +144,54 @@ test("a customer on Industriens Overenskomst gets a base set up for it", async (
     admin.getByTestId("default-agreement-form").getByLabel("Overenskomst til nye kontrakter"),
   ).toHaveValue("");
   await ctx.close();
+});
+
+test("a platform administrator edits the Industriens Overenskomst starter kit", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(users.platform);
+  await page.getByLabel("Adgangskode").fill("Demo1234!");
+  await page.getByRole("button", { name: "Log ind", exact: true }).click();
+  await expect(page).toHaveURL(/\/platform/);
+  await page.getByTestId("starter-kits").getByRole("link", { name: "Ret startpakke" }).click();
+  await expect(page.getByTestId("kit-versions").locator("tbody tr")).toHaveCount(3);
+
+  // A rule in a version: the evening rate from 1 March 2027.
+  await page.getByRole("link", { name: "Åbn version 3" }).click();
+  const editor = page.getByTestId("agreement-editor");
+  const rule = editor.locator('details[data-rule="forskudt-1"]');
+  const rate = rule.getByLabel("Kr. pr. time");
+  const save = async (value: string) => {
+    if (!(await rule.evaluate((d) => (d as HTMLDetailsElement).open)))
+      await rule.locator("> summary").click();
+    await rate.fill(value);
+    await editor.getByRole("button", { name: "Gem i startpakken" }).click();
+    await expect(page.getByText("Startpakken er gemt.").first()).toBeVisible();
+  };
+  await save("34,00");
+  await page.reload();
+  await rule.locator("> summary").click();
+  await expect(rate).toHaveValue("34,00");
+  await save("33,75"); // back to the agreement's rate
+
+  // The supplement types that come with the kit, with a rate per date.
+  // A fresh page load, so the earlier toast is gone.
+  await page.goto("/platform/startpakker/industriens-overenskomst");
+  const extras = page.getByTestId("kit-extras");
+  const skift4 = extras
+    .locator('tr[data-kit-supplement="SKIFT_4"] input[inputmode="decimal"]')
+    .last();
+  const saveRate = async (value: string) => {
+    await skift4.fill(value);
+    await extras.getByRole("button", { name: "Gem tillægstyper og lønperioder" }).click();
+    await expect(
+      extras.getByRole("button", { name: "Gem tillægstyper og lønperioder" }),
+    ).toBeEnabled();
+    await page.reload();
+    await expect(skift4).toHaveValue(value);
+  };
+  const original = await skift4.inputValue();
+  await saveRate("36,00");
+  await saveRate(original === "36,00" ? "35,15" : original);
 });

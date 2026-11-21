@@ -1373,14 +1373,14 @@ isOneToOne: false
                   ]
                 },"starter_kit": {
                   Row: {
-                    "content": NonNullable<Json>,"created_at": string,"description": string,"key": string,"name": string
+                    "content": NonNullable<Json>,"created_at": string,"description": string,"edited_at": string | null,"edited_by": string | null,"key": string,"name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "content": NonNullable<Json>,"created_at"?: string,"description"?: string,"key": string,"name": string
+                    "content": NonNullable<Json>,"created_at"?: string,"description"?: string,"edited_at"?: string | null,"edited_by"?: string | null,"key": string,"name": string
                   }
                   Update: {
-                    "content"?: NonNullable<Json>,"created_at"?: string,"description"?: string,"key"?: string,"name"?: string
+                    "content"?: NonNullable<Json>,"created_at"?: string,"description"?: string,"edited_at"?: string | null,"edited_by"?: string | null,"key"?: string,"name"?: string
                   }
                   Relationships: [
                     
@@ -1506,6 +1506,9 @@ isOneToOne: false
                            },
 "add_leave_posting":
 { Args: { "p_account": string,"p_employee_id": string,"p_hundredths": number,"p_kind": Database["public"]['Enums']["leave_posting_kind"],"p_note": string,"p_period_start": string,"p_usable_until": string }; Returns: string
+                           },
+"agreement_version_editable":
+{ Args: { "p_id": string }; Returns: boolean
                            },
 "api_key_lookup":
 { Args: { "p_hash": string }; Returns: {
@@ -1639,6 +1642,9 @@ isOneToOne: false
               "archived_at": string,"created_at": string,"employee_count": number,"id": string,"member_count": number,"name": string,"owner_emails": (string)[]
             }[]
                            },
+"platform_save_starter_kit":
+{ Args: { "p_content": Json,"p_key": string }; Returns: undefined
+                           },
 "platform_set_archived":
 { Args: { "p_archived": boolean,"p_org": string }; Returns: undefined
                            },
@@ -1735,6 +1741,9 @@ isOneToOne: false
                            },
 "update_pay_period_group":
 { Args: { "p_anchor_date": string,"p_frequency": Database["public"]['Enums']["pay_frequency"],"p_id": string,"p_month_start_day": number,"p_name": string }; Returns: undefined
+                           },
+"update_published_version":
+{ Args: { "p_document": Json,"p_id": string }; Returns: undefined
                            },
 "waiting_items":
 { Args: { "p_org": string }; Returns: {

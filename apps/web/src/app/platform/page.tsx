@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ export default async function PlatformPage() {
   const supabase = await createClient();
   const [{ data: customers, error }, { data: kits }] = await Promise.all([
     supabase.rpc("platform_organizations"),
-    supabase.from("starter_kit").select("key, name").order("name"),
+    supabase.from("starter_kit").select("key, name, edited_at").order("name"),
   ]);
   if (error) throw new Error(error.message);
   const t = da.platform;
@@ -42,6 +43,29 @@ export default async function PlatformPage() {
           <CustomerForm kits={kits ?? []} />
         </CardContent>
       </Card>
+
+      {(kits ?? []).length ? (
+        <Card className="mb-8" data-testid="starter-kits">
+          <CardHeader>
+            <CardTitle className="text-base">{da.starterKits.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="grid gap-2">
+              {(kits ?? []).map((k) => (
+                <li key={k.key} className="flex flex-wrap items-center gap-3">
+                  <span className="font-medium">{k.name}</span>
+                  <Badge variant={k.edited_at ? "secondary" : "outline"}>
+                    {k.edited_at ? da.starterKits.edited : da.starterKits.notEdited}
+                  </Badge>
+                  <Button asChild variant="outline" size="sm" className="ml-auto">
+                    <Link href={`/platform/startpakker/${k.key}`}>{da.starterKits.open}</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <h2 className="mb-3 text-lg font-semibold">{t.customers}</h2>
       {(customers ?? []).length === 0 ? (

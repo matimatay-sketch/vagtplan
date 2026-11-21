@@ -40,7 +40,10 @@ export function render() {
       "",
     );
   }
-  lines.push("-- Startpakker (chosen when a platform administrator creates a customer).", "");
+  lines.push(
+    "-- Startpakker (chosen when a platform administrator creates a customer; kept once edited on /platform).",
+    "",
+  );
   for (const k of kits) {
     const json = JSON.stringify(k);
     if (json.includes(DOLLAR_TAG)) throw new Error("starter kit contains the SQL dollar tag");
@@ -48,7 +51,9 @@ export function render() {
       "insert into public.starter_kit (key, name, description, content)",
       `values (${sqlText(k.key)}, ${sqlText(k.name)}, ${sqlText(k.description)}, ${DOLLAR_TAG}${json}${DOLLAR_TAG}::jsonb)`,
       "on conflict (key) do update",
-      "set name = excluded.name, description = excluded.description, content = excluded.content;",
+      "set name = excluded.name, description = excluded.description, content = excluded.content",
+      // A kit a platform administrator has edited is kept as it is.
+      "where public.starter_kit.edited_at is null;",
       "",
     );
   }
