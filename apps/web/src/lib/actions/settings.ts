@@ -182,3 +182,24 @@ export async function saveNormDefaultsAction(
   revalidatePath("/lon", "layout");
   return { ok: true, message: da.common.saved };
 }
+
+/** The agreement preselected for new contracts (the database checks it is usable). */
+export async function saveDefaultAgreementAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireContext(["settings.manage"]);
+  const parsed = z
+    .union([z.guid(), z.literal("")])
+    .safeParse(formData.get("default_agreement_id") ?? "");
+  if (!parsed.success) return { message: da.common.unknownError };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organization_settings")
+    .update({ default_agreement_id: parsed.data || null })
+    .eq("organization_id", ctx.organization.id);
+  if (error) return { message: dbErrorMessage(error) };
+  revalidateSettings();
+  revalidatePath("/medarbejdere", "layout");
+  return { ok: true, message: da.common.saved };
+}

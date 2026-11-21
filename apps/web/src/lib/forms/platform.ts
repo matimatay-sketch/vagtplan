@@ -7,6 +7,12 @@ const email = z.string().trim().toLowerCase().pipe(z.email(v.invalidEmail));
 export const customerFormSchema = z.object({
   name: z.string().trim().min(1, v.required).max(200, v.tooLong),
   admin_email: email,
+  /** Startpakke key; empty = none. */
+  starter_kit: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((x) => x || null),
 });
 
 export const inviteAdminSchema = z.object({

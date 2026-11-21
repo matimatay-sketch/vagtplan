@@ -60,7 +60,7 @@ Enheder: penge i **øre**, procenter i **basispoint** (5000 = 50 %), varighed i 
 
 ### Overarbejde efter klokkeslæt, normreduktion og anciennitet (2026-11-21)
 
-Tilføjet for at kunne sætte Industriens Overenskomst op (`docs/konfigurationer/industriens-overenskomst-2025`). Alle er generelle og har standardværdier, der giver samme resultat som før.
+Tilføjet for at kunne sætte Industriens Overenskomst op (systemskabelonen `packages/agreements/industriens-overenskomst`). Alle er generelle og har standardværdier, der giver samme resultat som før.
 
 - **`overtime.window_rates`**: satser i tidsrum, der tjekkes før trinene (første match). `when` begrænser til overarbejde `before_planned` (arbejdet ind i vagten eller tidligere samme dag), `after_planned` (fortsat fra vagten eller senere samme dag), `day_off` (dag uden planlagt vagt) eller `any`. `exclude_holidays` gælder tidsrummenes dagvalg.
 - **`overtime.tier_basis`**: `overtime_minutes` (som før: trin tælles i overarbejdsminutter pr. dag) eller `since_planned_end` (trin i klokketimer fra vagtens slut, også hen over midnat og når overarbejdet begynder senere).

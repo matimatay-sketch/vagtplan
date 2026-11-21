@@ -223,6 +223,12 @@ Acceptkriterier:
 - Afbud fra Min vagtplan går til afdelingens ledere, og vagten vises som "Afbud" (udækket), indtil en leder giver den til en anden eller markerer afbuddet som håndteret.
 - Pr. afdeling: om bytte kræver godkendelse, og om nye beskeder også sendes på e-mail (`SMTP_URL`). E-mailen indeholder aldrig selve beskeden.
 
+### Industriens Overenskomst som færdig base (ønsket 2026-11-21)
+
+- Startpakken "Industriens Overenskomst" vælges på `/platform`, når kunden oprettes, eller senere. Den lægger overenskomsten ind som kundens egen (konfigurerbar: nye versioner, lokalaftaler og sletning), sætter den som standard for nye kontrakter og opretter lønperioden på 14 dage og tillægstyperne med dagens satser.
+- Overenskomster kan slettes (arkiveres), når ingen aktive kontrakter eller lokalaftaler bruger dem.
+- Under Opsætning kan standardoverenskomsten ændres.
+
 ### Beslutning: opsætning af en ny kunde (2026-11-13)
 
 En kunde bestiller en base (organisation). Den person, der konfigurerer den (fx en konsulent), får administratoradgang og sætter det hele op for kunden. Derfor oprettes administratoren **ikke** automatisk som medarbejder. Administratorer, der også arbejder i virksomheden, oprettes som medarbejdere på almindelig vis.

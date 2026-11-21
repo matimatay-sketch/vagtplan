@@ -27,6 +27,7 @@ import {
   RuleHandlingForm,
   SupplementTypeForm,
   EditSupplementButton,
+  DefaultAgreementForm,
 } from "./forms";
 
 export const metadata: Metadata = { title: "Opsætning" };
@@ -38,27 +39,41 @@ export default async function SettingsPage() {
   const since = new Date(
     `${addDays(todayIn(ctx.organization.timezone), -30)}T00:00:00Z`,
   ).toISOString();
-  const [settings, { data: supplements }, assistant, { count: assistantUsage }, { data: norm }] =
-    await Promise.all([
-      loadOrganizationSettings(supabase, ctx.organization.id),
-      supabase
-        .from("supplement_type")
-        .select("id, name, pay_code, amount_type, amount, employee_selectable")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      assistantState(supabase, ctx),
-      supabase
-        .from("assistant_request")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", ctx.organization.id)
-        .gte("created_at", since),
-      supabase
-        .from("organization_settings")
-        .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
-        .eq("organization_id", ctx.organization.id)
-        .maybeSingle(),
-    ]);
+  const [
+    settings,
+    { data: supplements },
+    assistant,
+    { count: assistantUsage },
+    { data: norm },
+    { data: agreements },
+  ] = await Promise.all([
+    loadOrganizationSettings(supabase, ctx.organization.id),
+    supabase
+      .from("supplement_type")
+      .select("id, name, pay_code, amount_type, amount, employee_selectable")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    assistantState(supabase, ctx),
+    supabase
+      .from("assistant_request")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organization.id)
+      .gte("created_at", since),
+    supabase
+      .from("organization_settings")
+      .select(
+        "norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call, default_agreement_id",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
+    supabase
+      .from("agreement")
+      .select("id, name")
+      .in("kind", ["agreement", "base"])
+      .eq("is_example", false)
+      .order("name"),
+  ]);
   const links = [
     { href: "/indstillinger/lonperioder", label: da.nav.payPeriodGroups, show: true },
     {
@@ -82,6 +97,20 @@ export default async function SettingsPage() {
     <>
       <PageHeader title={t.title} help={t.lead} />
       <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t.defaultAgreementTitle}
+              <HelpTip>{t.defaultAgreementLead}</HelpTip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DefaultAgreementForm
+              value={norm?.default_agreement_id ?? null}
+              agreements={agreements ?? []}
+            />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>

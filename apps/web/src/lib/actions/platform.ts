@@ -50,6 +50,7 @@ export async function createCustomerAction(
   const supabase = await createClient();
   const { data: orgId, error } = await supabase.rpc("platform_create_organization", {
     p_name: parsed.data.name,
+    ...(parsed.data.starter_kit ? { p_starter_kit: parsed.data.starter_kit } : {}),
   });
   if (error || !orgId) return { message: dbErrorMessage(error), values };
   revalidatePath("/platform");
@@ -71,6 +72,28 @@ export async function inviteCustomerAdminAction(
   if (problem) return { message: problem, values };
   revalidatePath("/platform");
   return { ok: true, message: da.platform.invited };
+}
+
+export async function applyStarterKitAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requirePlatformAdmin();
+  const p = z
+    .object({ organization_id: z.guid(), starter_kit: z.string().trim().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!p.success) return { message: da.common.unknownError };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_apply_starter_kit", {
+    p_org: p.data.organization_id,
+    p_starter_kit: p.data.starter_kit,
+  });
+  if (error)
+    return {
+      message: error.hint === "kit_applied" ? da.platform.starterKitApplied : dbErrorMessage(error),
+    };
+  revalidatePath("/platform");
+  return { ok: true, message: da.platform.starterKitAdded };
 }
 
 export async function setCustomerArchivedAction(formData: FormData) {

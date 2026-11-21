@@ -440,3 +440,23 @@ export async function simulateAction(
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }
+
+/** Deletes (archives) an own agreement; the database refuses while something uses it. */
+export async function archiveAgreementAction(id: string): Promise<ActionState> {
+  await requireContext(["agreements.manage"]);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("archive_agreement", { p_id: z.guid().parse(id) });
+  if (error)
+    return {
+      message:
+        error.hint === "agreement_in_use"
+          ? da.agreements.inUse
+          : error.hint === "agreement_has_locals"
+            ? da.agreements.hasLocals
+            : dbErrorMessage(error),
+    };
+  revalidateAgreements();
+  revalidatePath("/medarbejdere", "layout");
+  revalidatePath("/indstillinger/opsaetning");
+  return { ok: true, message: da.agreements.deleted };
+}

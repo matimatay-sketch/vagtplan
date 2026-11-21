@@ -17,14 +17,17 @@ import { setCustomerArchivedAction } from "@/lib/actions/platform";
 import { formatDate } from "@/lib/format";
 import { localParts } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
-import { CustomerForm, InviteAdminForm } from "./customer-form";
+import { ApplyStarterKitForm, CustomerForm, InviteAdminForm } from "./customer-form";
 
 export const metadata: Metadata = { title: "Kundeoversigt" };
 
 export default async function PlatformPage() {
   await requirePlatformAdmin();
   const supabase = await createClient();
-  const { data: customers, error } = await supabase.rpc("platform_organizations");
+  const [{ data: customers, error }, { data: kits }] = await Promise.all([
+    supabase.rpc("platform_organizations"),
+    supabase.from("starter_kit").select("key, name").order("name"),
+  ]);
   if (error) throw new Error(error.message);
   const t = da.platform;
 
@@ -36,7 +39,7 @@ export default async function PlatformPage() {
           <CardTitle className="text-base">{t.newCustomer}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomerForm />
+          <CustomerForm kits={kits ?? []} />
         </CardContent>
       </Card>
 
@@ -79,6 +82,9 @@ export default async function PlatformPage() {
                         <span className="text-sm text-destructive">{t.noAdmin}</span>
                       )}
                       {c.archived_at ? null : <InviteAdminForm organizationId={c.id} />}
+                      {c.archived_at || !(kits ?? []).length ? null : (
+                        <ApplyStarterKitForm organizationId={c.id} kits={kits ?? []} />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular">{c.member_count}</TableCell>
