@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgreementEditor } from "@/components/agreements/agreement-editor";
+import { inheritanceFor } from "@/lib/agreements/inherited";
 import { TestWeeks } from "@/components/agreements/test-weeks";
 import { runTestWeeks } from "@/lib/agreements/test-weeks";
 import { weekStartOf } from "@/lib/domain/schedule-time";
@@ -64,6 +65,10 @@ export default async function AgreementPage({
   ];
   const inherits = (latest?.document as { inherits_from?: string | null } | undefined)
     ?.inherits_from;
+
+  const shown = (own ? draft : latest)?.document as
+    { inherits_from?: string | null; valid_from: string } | undefined;
+  const inheritance = shown ? await inheritanceFor(supabase, shown) : { inherited: {} };
 
   return (
     <>
@@ -156,6 +161,7 @@ export default async function AgreementPage({
                   target={{ kind: "view" }}
                   document={latest.document as never}
                   defaultDate={today}
+                  {...inheritance}
                 />
               ) : null}
             </CardContent>
@@ -178,6 +184,7 @@ export default async function AgreementPage({
                 }))}
                 defaultDate={today}
                 staffGroups={staffGroups}
+                {...inheritance}
               />
             </CardContent>
           </Card>

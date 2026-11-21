@@ -6,7 +6,6 @@ import { CheckCircle2, Play, Plus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/form";
 import {
   publishVersionAction,
@@ -23,7 +22,9 @@ import { decimalHours } from "@/lib/domain/project-report";
 import { da } from "@/lib/i18n/da";
 import { formatKroner } from "@/lib/domain/numbers";
 import { cn } from "@/lib/utils";
-import { ParamsForm, type Json } from "./params-form";
+import { HelpTip } from "@/components/help/help";
+import { HolidayCalendarFields, SchemaForm, type Json } from "./params-form";
+import type { HolidayParams, InheritedRule, Schema } from "@/lib/domain/schema-form";
 import { ConditionSelect, RemarkFields } from "./remark-fields";
 import {
   AccrualFields,
@@ -52,7 +53,7 @@ import {
   type RemarkParams,
 } from "@/lib/domain/remarks";
 import { RULE_TYPES, newRule, payCodesUsed } from "@/lib/domain/rule-templates";
-import type { Primitive } from "@vagtplan/rules-engine";
+import { deepMerge, ruleSchemas, type Primitive } from "@vagtplan/rules-engine";
 
 type Rule = {
   id: string;
@@ -112,6 +113,8 @@ export function AgreementEditor({
   employees = [],
   defaultDate,
   staffGroups = [],
+  inherited = {},
+  inheritedName,
 }: {
   target: EditorTarget;
   document: Doc;
@@ -120,13 +123,15 @@ export function AgreementEditor({
   defaultDate: string;
   /** Staff groups in the organization's contracts, as suggestions. */
   staffGroups?: string[];
+  /** The parent's rules by id: a rule here with the same id changes the inherited one. */
+  inherited?: Record<string, InheritedRule>;
+  /** The name of the agreement the rules are inherited from. */
+  inheritedName?: string;
 }) {
   const readOnly = target.kind === "view";
   const t = da.agreements;
   const router = useRouter();
   const [doc, setDoc] = useState<Doc>(initial);
-  const [tab, setTab] = useState<"rules" | "json">("rules");
-  const [jsonText, setJsonText] = useState(() => JSON.stringify(initial, null, 2));
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [pending, start] = useTransition();
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? "");
@@ -167,24 +172,21 @@ export function AgreementEditor({
   const usedPayCodes = payCodesUsed(doc.rules);
   const knownPayCodes = [...new Set([...Object.keys(doc.pay_codes ?? {}), ...usedPayCodes])].sort();
 
-  const current = (): Doc | null => {
-    if (tab === "rules") return doc;
-    try {
-      return JSON.parse(jsonText) as Doc;
-    } catch {
-      toast.error(t.jsonInvalid);
-      return null;
-    }
-  };
-  const switchTab = (next: "rules" | "json") => {
-    if (next === tab) return;
-    if (next === "json") setJsonText(JSON.stringify(doc, null, 2));
-    else {
-      const d = current();
-      if (!d) return;
-      setDoc(d);
-    }
-    setTab(next);
+  const inheritedOnly = Object.entries(inherited).filter(
+    ([id]) => !doc.rules.some((r) => r.id === id),
+  );
+  /** Copies an inherited rule into this agreement (same id: it changes the inherited one). */
+  const customize = (id: string, rule: InheritedRule) => {
+    setDoc((d) => ({
+      ...d,
+      rules: [...d.rules, { id, params: structuredClone(rule.params) as Json }],
+    }));
+    toast.success(t.customized);
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLDetailsElement>(`details[data-rule="${id}"]`)
+        ?.setAttribute("open", ""),
+    );
   };
   const setRule = (i: number, patch: Partial<Rule>) =>
     setDoc((d) => ({ ...d, rules: d.rules.map((r, k) => (k === i ? { ...r, ...patch } : r)) }));
@@ -208,8 +210,7 @@ export function AgreementEditor({
               variant="outline"
               disabled={pending}
               onClick={() => {
-                const d = current();
-                if (d) start(async () => setCheck(await validateFor(target, d)));
+                start(async () => setCheck(await validateFor(target, doc)));
               }}
             >
               <CheckCircle2 /> {t.validate}
@@ -218,8 +219,7 @@ export function AgreementEditor({
               variant="outline"
               disabled={pending}
               onClick={() => {
-                const d = current();
-                if (!d) return;
+                const d = doc;
                 if (target.kind === "published" && !window.confirm(t.savePublishedConfirm)) return;
                 start(async () => {
                   const r = await saveFor(target, d);
@@ -284,178 +284,209 @@ export function AgreementEditor({
         </div>
       ) : null}
 
-      <div className="flex gap-1 border-b" role="tablist">
-        {(["rules", "json"] as const).map((k) => (
-          <button
-            key={k}
-            role="tab"
-            aria-selected={tab === k}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm",
-              tab === k ? "border-primary font-medium" : "border-transparent text-muted-foreground",
-            )}
-            onClick={() => switchTab(k)}
-          >
-            {k === "rules" ? t.rules : t.json}
-          </button>
-        ))}
-      </div>
-
-      {tab === "rules" ? (
+      {
         // A read-only version disables every field. Buttons that change the rule
         // are hidden; day toggles (aria-pressed) stay as they show the setting.
         <fieldset
           disabled={readOnly}
           className={cn("grid min-w-0 gap-3", readOnly && "[&_button:not([aria-pressed])]:hidden")}
         >
-          {doc.rules.map((r, i) => (
-            <details key={`${r.id}-${i}`} className="rounded-xl border bg-card" data-rule={r.id}>
-              <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-4 py-3">
-                <span className="font-medium">{r.label ?? r.id}</span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {r.id}
-                  {r.primitive ? ` · ${r.primitive}` : ""}
-                </span>
-                <span
-                  className="ml-auto rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
-                  data-testid="rule-applies-to"
-                >
-                  {t.ruleForms.appliesTo}: {appliesToText(r.applies_to as AppliesTo | undefined)}
-                </span>
-              </summary>
-              <div className="grid gap-3 border-t px-4 py-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label={t.label} htmlFor={`${i}-label`}>
-                    <Input
-                      id={`${i}-label`}
-                      value={r.label ?? ""}
-                      onChange={(e) => setRule(i, { label: e.target.value })}
-                    />
-                  </Field>
-                  <Field label={t.source} htmlFor={`${i}-source`}>
-                    <Input
-                      id={`${i}-source`}
-                      value={r.source ?? ""}
-                      onChange={(e) => setRule(i, { source: e.target.value })}
-                    />
-                  </Field>
-                  <Field label={t.severity} htmlFor={`${i}-severity`}>
-                    <NativeSelect
-                      id={`${i}-severity`}
-                      value={r.severity ?? ""}
-                      onChange={(e) => setRule(i, { severity: e.target.value || undefined })}
-                    >
-                      <option value="">–</option>
-                      {(["BLOCKING", "WARNING", "INFO"] as const).map((k) => (
-                        <option key={k} value={k}>
-                          {t.severities[k]}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </Field>
-                  <Field label={t.todoJura} htmlFor={`${i}-todo`}>
-                    <Input
-                      id={`${i}-todo`}
-                      value={r.todo_jura ?? ""}
-                      onChange={(e) => setRule(i, { todo_jura: e.target.value || null })}
-                    />
-                  </Field>
-                </div>
-                {r.primitive === "remark" ? (
-                  <>
-                    <p className="text-xs text-muted-foreground">{t.remarks.severityHelp}</p>
-                    <RemarkFields
-                      path={r.id}
-                      value={r.params as unknown as RemarkParams}
-                      onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                    />
-                  </>
-                ) : r.primitive === "time_window_supplement" ? (
-                  <SupplementFields
-                    id={r.id}
-                    value={r.params as unknown as SupplementParams}
-                    payCodes={knownPayCodes}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : r.primitive === "overtime" ? (
-                  <OvertimeFields
-                    id={r.id}
-                    value={r.params as unknown as OvertimeParams}
-                    payCodes={knownPayCodes}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : r.primitive === "on_call" ? (
-                  <OnCallFields
-                    id={r.id}
-                    value={r.params as unknown as OnCallParams}
-                    payCodes={knownPayCodes}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : r.primitive === "time_off_accrual" ? (
-                  <AccrualFields
-                    id={r.id}
-                    value={r.params as unknown as AccrualParams}
-                    payCodes={knownPayCodes}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : r.primitive === "rounding" ? (
-                  <StampRoundingFields
-                    id={r.id}
-                    value={r.params as unknown as StampRoundingParams}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : r.primitive === "pay_rate" ? (
-                  <PayRateFields
-                    id={r.id}
-                    value={r.params as unknown as PayRateParams}
-                    payCodes={knownPayCodes}
-                    staffGroups={allStaffGroups}
-                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
-                  />
-                ) : (
-                  <div className="grid gap-1">
-                    <div className="text-sm font-medium">{t.params}</div>
-                    <ParamsForm
-                      value={r.params ?? {}}
-                      path={r.id}
-                      onChange={(p) => setRule(i, { params: p })}
-                    />
-                  </div>
-                )}
-                {r.primitive && STACKABLE.includes(r.primitive) ? (
-                  <StackingFields
-                    id={`${r.id}-stacking`}
-                    stacking={r.stacking as Stacking | undefined}
-                    priority={r.priority as number | undefined}
-                    otherRules={doc.rules
-                      .filter(
-                        (x) => x.id !== r.id && x.primitive && STACKABLE.includes(x.primitive),
-                      )
-                      .map((x) => ({ id: x.id, label: x.label ?? x.id }))}
-                    onChange={(patch) => setRule(i, patch)}
-                  />
-                ) : null}
-                <AppliesToFields
-                  id={`${r.id}-applies`}
-                  value={r.applies_to as AppliesTo | undefined}
-                  staffGroups={allStaffGroups}
-                  onChange={(v) => setRule(i, { applies_to: v })}
-                />
-                <div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive"
-                    onClick={() =>
-                      setDoc((d) => ({ ...d, rules: d.rules.filter((_, k) => k !== i) }))
-                    }
+          {doc.rules.map((r, i) => {
+            const base = inherited[r.id];
+            const primitive = (r.primitive ?? base?.primitive) as Primitive | undefined;
+            // A rule that changes an inherited one is shown with the inherited values filled in.
+            const params = (
+              !r.primitive && base ? deepMerge(base.params, r.params ?? {}) : (r.params ?? {})
+            ) as Json;
+            const setParams = (p: unknown) => setRule(i, { params: p as Json });
+            return (
+              <details key={`${r.id}-${i}`} className="rounded-xl border bg-card" data-rule={r.id}>
+                <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-4 py-3">
+                  <span className="font-medium">{r.label ?? base?.label ?? r.id}</span>
+                  {!r.primitive && base ? (
+                    <span className="text-xs text-muted-foreground">{t.overridesInherited}</span>
+                  ) : null}
+                  <span
+                    className="ml-auto rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                    data-testid="rule-applies-to"
                   >
-                    <Trash2 /> {t.removeRule}
-                  </Button>
+                    {t.ruleForms.appliesTo}: {appliesToText(r.applies_to as AppliesTo | undefined)}
+                  </span>
+                </summary>
+                <div className="grid gap-3 border-t px-4 py-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label={t.label} htmlFor={`${i}-label`}>
+                      <Input
+                        id={`${i}-label`}
+                        value={r.label ?? ""}
+                        onChange={(e) => setRule(i, { label: e.target.value })}
+                      />
+                    </Field>
+                    <Field label={t.source} htmlFor={`${i}-source`}>
+                      <Input
+                        id={`${i}-source`}
+                        value={r.source ?? ""}
+                        onChange={(e) => setRule(i, { source: e.target.value })}
+                      />
+                    </Field>
+                    <Field label={t.severity} htmlFor={`${i}-severity`}>
+                      <NativeSelect
+                        id={`${i}-severity`}
+                        value={r.severity ?? ""}
+                        onChange={(e) => setRule(i, { severity: e.target.value || undefined })}
+                      >
+                        <option value="">–</option>
+                        {(["BLOCKING", "WARNING", "INFO"] as const).map((k) => (
+                          <option key={k} value={k}>
+                            {t.severities[k]}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                    <Field label={t.todoJura} htmlFor={`${i}-todo`}>
+                      <Input
+                        id={`${i}-todo`}
+                        value={r.todo_jura ?? ""}
+                        onChange={(e) => setRule(i, { todo_jura: e.target.value || null })}
+                      />
+                    </Field>
+                  </div>
+                  {primitive === "remark" ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">{t.remarks.severityHelp}</p>
+                      <RemarkFields
+                        path={r.id}
+                        value={params as unknown as RemarkParams}
+                        onChange={setParams}
+                      />
+                    </>
+                  ) : primitive === "time_window_supplement" ? (
+                    <SupplementFields
+                      id={r.id}
+                      value={params as unknown as SupplementParams}
+                      payCodes={knownPayCodes}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "overtime" ? (
+                    <OvertimeFields
+                      id={r.id}
+                      value={params as unknown as OvertimeParams}
+                      payCodes={knownPayCodes}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "on_call" ? (
+                    <OnCallFields
+                      id={r.id}
+                      value={params as unknown as OnCallParams}
+                      payCodes={knownPayCodes}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "time_off_accrual" ? (
+                    <AccrualFields
+                      id={r.id}
+                      value={params as unknown as AccrualParams}
+                      payCodes={knownPayCodes}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "rounding" ? (
+                    <StampRoundingFields
+                      id={r.id}
+                      value={params as unknown as StampRoundingParams}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "pay_rate" ? (
+                    <PayRateFields
+                      id={r.id}
+                      value={params as unknown as PayRateParams}
+                      payCodes={knownPayCodes}
+                      staffGroups={allStaffGroups}
+                      onChange={setParams}
+                    />
+                  ) : primitive === "holiday_calendar" ? (
+                    <HolidayCalendarFields
+                      id={r.id}
+                      value={params as unknown as HolidayParams}
+                      year={Number(doc.valid_from.slice(0, 4))}
+                      onChange={setParams}
+                    />
+                  ) : primitive && primitive in ruleSchemas ? (
+                    <SchemaForm
+                      schema={ruleSchemas[primitive] as unknown as Schema}
+                      value={params}
+                      path={r.id}
+                      labelPath={[primitive]}
+                      payCodes={knownPayCodes}
+                      onChange={setParams}
+                    />
+                  ) : null}
+                  {primitive && STACKABLE.includes(primitive) ? (
+                    <StackingFields
+                      id={`${r.id}-stacking`}
+                      stacking={r.stacking as Stacking | undefined}
+                      priority={r.priority as number | undefined}
+                      otherRules={doc.rules
+                        .filter(
+                          (x) => x.id !== r.id && x.primitive && STACKABLE.includes(x.primitive),
+                        )
+                        .map((x) => ({ id: x.id, label: x.label ?? x.id }))}
+                      onChange={(patch) => setRule(i, patch)}
+                    />
+                  ) : null}
+                  <AppliesToFields
+                    id={`${r.id}-applies`}
+                    value={r.applies_to as AppliesTo | undefined}
+                    staffGroups={allStaffGroups}
+                    onChange={(v) => setRule(i, { applies_to: v })}
+                  />
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() =>
+                        setDoc((d) => ({ ...d, rules: d.rules.filter((_, k) => k !== i) }))
+                      }
+                    >
+                      <Trash2 /> {t.removeRule}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </details>
-          ))}
+              </details>
+            );
+          })}
+          {inheritedOnly.length > 0 ? (
+            <section
+              className="grid gap-2 rounded-xl border bg-card p-4"
+              data-testid="inherited-rules"
+            >
+              <h3 className="flex items-center gap-1 font-medium">
+                {inheritedName ? t.inheritedFrom(inheritedName) : t.inheritedTitle}
+                <HelpTip>{t.inheritedHelp}</HelpTip>
+              </h3>
+              <ul className="grid divide-y">
+                {inheritedOnly.map(([id, rule]) => (
+                  <li
+                    key={id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2"
+                    data-inherited-rule={id}
+                  >
+                    <span className="text-sm">{rule.label ?? id}</span>
+                    {readOnly ? null : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        aria-label={t.customizeRule(rule.label ?? id)}
+                        onClick={() => customize(id, rule)}
+                      >
+                        {t.customize}
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           {readOnly ? null : (
             <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-rule">
               <div>
@@ -511,15 +542,7 @@ export function AgreementEditor({
             onChange={(pay_codes) => setDoc((d) => ({ ...d, pay_codes }))}
           />
         </fieldset>
-      ) : (
-        <Textarea
-          aria-label={t.json}
-          readOnly={readOnly}
-          className="min-h-[28rem] font-mono text-xs"
-          value={jsonText}
-          onChange={(e) => setJsonText(e.target.value)}
-        />
-      )}
+      }
 
       {readOnly || employees.length === 0 ? null : (
         <section className="grid gap-3 rounded-xl border bg-card p-4" data-testid="simulator">
@@ -552,8 +575,7 @@ export function AgreementEditor({
             <Button
               disabled={pending || !employeeId}
               onClick={() => {
-                const d = current();
-                if (d) start(async () => setSim(await simulateAction(d, employeeId, date)));
+                start(async () => setSim(await simulateAction(doc, employeeId, date)));
               }}
             >
               <Play /> {t.simulate}

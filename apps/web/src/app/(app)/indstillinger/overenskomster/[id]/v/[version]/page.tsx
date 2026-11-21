@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AgreementEditor, type EditorTarget } from "@/components/agreements/agreement-editor";
 import { NewVersionForm } from "@/components/agreements/agreement-actions";
+import { inheritanceFor } from "@/lib/agreements/inherited";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
@@ -68,6 +69,10 @@ export default async function AgreementVersionPage({
     ...new Set((groupRows ?? []).map((g) => g.staff_group).filter((g): g is string => Boolean(g))),
   ];
   const today = todayIn(ctx.organization.timezone);
+  const inheritance = await inheritanceFor(
+    supabase,
+    v.document as { inherits_from?: string | null; valid_from: string },
+  );
 
   return (
     <>
@@ -118,6 +123,7 @@ export default async function AgreementVersionPage({
           }))}
           defaultDate={today}
           staffGroups={staffGroups}
+          {...inheritance}
         />
       </div>
     </>

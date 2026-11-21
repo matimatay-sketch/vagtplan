@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { AgreementEditor } from "@/components/agreements/agreement-editor";
+import { inheritanceFor } from "@/lib/agreements/inherited";
 import { requirePlatformAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayIn } from "@/lib/domain/civil-date";
@@ -30,6 +31,7 @@ export default async function StarterKitVersionPage({
   const doc = content.agreement.versions.find((v) => v.version === Number(version));
   if (!doc) notFound();
   const t = da.agreements;
+  const inheritance = await inheritanceFor(supabase, doc);
 
   return (
     <>
@@ -58,6 +60,7 @@ export default async function StarterKitVersionPage({
         target={{ kind: "kit", kitKey: kit.key, version: doc.version }}
         document={doc as never}
         defaultDate={todayIn()}
+        {...inheritance}
       />
     </>
   );
