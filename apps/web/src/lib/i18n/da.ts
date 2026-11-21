@@ -348,7 +348,12 @@ export const da = {
       excludeOvertime: "Udbetales ikke for overarbejdstimer",
       excludeCallOut: "Udbetales ikke for udkald",
       startCondition: "Kun hvis vagten startede",
-      startConditions: { none: "Uanset start", at_or_before: "Senest kl.", after: "Efter kl." },
+      startConditions: {
+        none: "Uanset start",
+        at_or_before: "Senest kl.",
+        after: "Efter kl.",
+        at_or_after: "Kl. eller senere",
+      },
       startTime: "Klokkeslæt (samme dag)",
       rounding: "Afrunding pr. vagt",
       roundingModes: {
@@ -383,6 +388,42 @@ export const da = {
       callOutCap: "Højst kr. pr. time (0 = intet loft)",
       callOutMin: "Minimumsbetaling (timer)",
       countsAsRest: "Rådighed uden udkald tæller som hviletid",
+      overtimeTrigger: "Overarbejde er",
+      overtimeTriggers: {
+        outside_planned: "Tid uden for den planlagte vagt",
+        daily_norm: "Over dagsnormen",
+        weekly_norm: "Over ugenormen",
+        period_norm: "Over normen i normperioden",
+      },
+      compensation: "Betaling",
+      compensations: {
+        payout: "Tillæg udbetales",
+        time_off: "Kun afspadsering",
+        payout_and_time_off: "Tillæg udbetales, og timerne afspadseres",
+      },
+      timeOffFactor: "Afspadsering pr. overarbejdstime (timer)",
+      timeOffPayCode: "Lønart for afspadsering",
+      tierBasis: "Trinene tælles",
+      tierBases: {
+        overtime_minutes: "I overarbejdstimer",
+        since_planned_end: "I klokketimer efter vagtens slut",
+      },
+      tierBasisHelp:
+        "Klokketimer: overarbejde kl. 16–19 efter en vagt, der sluttede kl. 15, er 2.–4. klokketime, også selvom det begyndte senere.",
+      overtimeTiers: "Trin",
+      tierMinutes: "Timer i trinnet",
+      restTier: "Resten",
+      overtimeWindows: "Andre satser i tidsrum",
+      overtimeWindowsHelp:
+        "Bruges før trinene. Første tidsrum, der passer, bruges. Fx søn- og helligdage, overarbejde før vagten og på fridage.",
+      when: "Gælder for overarbejde",
+      whens: {
+        any: "Altid",
+        before_planned: "Før vagten",
+        after_planned: "Efter vagten",
+        day_off: "På dage uden vagt",
+      },
+      monthlyIncludesBase: "Månedslønnede får timelønnen med i overarbejdssatsen",
       accrualBasis: "Optjenes for",
       accrualTypes: {
         worked_in_windows: "Arbejdstimer i bestemte tidsrum",

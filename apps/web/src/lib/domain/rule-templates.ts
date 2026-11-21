@@ -93,7 +93,7 @@ function defaultParams(primitive: Primitive, name: string): Record<string, unkno
     case "rounding":
       return { unit_minutes: 1, start: "nearest", end: "nearest" };
     case "norm":
-      return { period: { type: "week" } };
+      return { period: { type: "week" }, holiday_reduction: "none" };
     case "break":
       return { after_minutes: 0, min_minutes: null, paid: false };
     case "rest":
@@ -133,6 +133,7 @@ function defaultParams(primitive: Primitive, name: string): Record<string, unkno
             payment: "none",
             pay_code: null,
             counts_towards_norm: false,
+            paid_from_seniority_months: null,
           },
         ],
       };

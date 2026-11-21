@@ -25,6 +25,7 @@ import { ConditionSelect, RemarkFields } from "./remark-fields";
 import {
   AccrualFields,
   OnCallFields,
+  OvertimeFields,
   AppliesToFields,
   PayCodesTable,
   PayRateFields,
@@ -35,6 +36,7 @@ import {
   appliesToText,
   type AccrualParams,
   type OnCallParams,
+  type OvertimeParams,
   type AppliesTo,
   type PayRateParams,
   type Stacking,
@@ -327,6 +329,13 @@ export function AgreementEditor({
                   <SupplementFields
                     id={r.id}
                     value={r.params as unknown as SupplementParams}
+                    payCodes={knownPayCodes}
+                    onChange={(p) => setRule(i, { params: p as unknown as Json })}
+                  />
+                ) : r.primitive === "overtime" ? (
+                  <OvertimeFields
+                    id={r.id}
+                    value={r.params as unknown as OvertimeParams}
                     payCodes={knownPayCodes}
                     onChange={(p) => setRule(i, { params: p as unknown as Json })}
                   />

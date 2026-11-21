@@ -103,7 +103,8 @@ type Segment = Span & {
   normPercent: number;
   date: IsoDate;
   holiday: boolean;
-  overtime: { rule: ResolvedRule & Rule<"overtime">; tier: number } | null;
+  /** window: index into the rule's window_rates (null = paid by tier). */
+  overtime: { rule: ResolvedRule & Rule<"overtime">; tier: number; window: number | null } | null;
 };
 
 type Candidate = {
@@ -168,6 +169,7 @@ function boundaryCuts(span: Span, ctx: EngineContext, plannedSpans: Span[]): Ins
   for (const d of [addDays(first, -1), first, addDays(first, 1), addDays(first, 2)]) {
     const windows = [
       ...ctx.rules(d, "time_window_supplement").flatMap((r) => r.params.windows),
+      ...ctx.rules(d, "overtime").flatMap((r) => r.params.window_rates),
       ...ctx
         .rules(d, "time_off_accrual")
         .flatMap((r) =>
@@ -215,6 +217,11 @@ function inWindows(
       )
         continue;
       if (w.started_after !== null && seg.shiftStart <= wallTime(d, w.started_after, ctx.tz))
+        continue;
+      if (
+        w.started_at_or_after !== null &&
+        seg.shiftStart < wallTime(d, w.started_at_or_after, ctx.tz)
+      )
         continue;
       const dow = WEEKDAY_KEYS[isoWeekday(d)]!;
       const holidayExcluded = excludeHolidays && seg.holiday;
@@ -377,11 +384,18 @@ function unitNorm(
   for (const d of dates) {
     const contract = ctx.contractOn(d);
     if (!contract) continue;
+    // A holiday on Monday–Friday takes 1/5 of the week (or the day's norm).
+    // Days before the agreement's first version have no rules to look up.
+    const normRule = ctx.hasRules(d) ? ctx.rule(d, "norm") : null;
+    const reduced =
+      normRule?.params.holiday_reduction === "one_fifth_on_weekdays" &&
+      isoWeekday(d) <= 5 &&
+      ctx.holiday(d) !== null;
     if (rule.params.trigger === "daily_norm") {
       const daily = ctx.rule(d, "norm")?.params.daily_minutes ?? null;
       if (daily === null) return null;
-      norm += daily;
-    } else norm += contract.weeklyNormMinutes / 7;
+      if (!reduced) norm += daily;
+    } else norm += contract.weeklyNormMinutes / 7 - (reduced ? contract.weeklyNormMinutes / 5 : 0);
   }
   // Absence that counts towards the norm is treated as if worked first.
   for (const a of absences) {
@@ -407,6 +421,67 @@ function splitAtMinute(seg: Segment, cumulativeBefore: number, at: number): Segm
   ];
 }
 
+/** Continuous stretches of work (segments that touch are one block). */
+function workBlocks(sorted: readonly Segment[]): Span[] {
+  const out: Span[] = [];
+  for (const s of sorted) {
+    const last = out[out.length - 1];
+    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    else out.push({ start: s.start, end: s.end });
+  }
+  return out;
+}
+
+type Situation =
+  { kind: "after_planned"; anchor: Instant } | { kind: "before_planned" | "day_off" | "none" };
+
+/**
+ * Where overtime lies relative to the planned shifts: after a shift (worked on
+ * from it, or later the same day), before one (worked into it, or earlier the
+ * same day), or on a day without a planned shift. "none" inside a planned shift.
+ */
+function situationOf(
+  seg: Segment,
+  blocks: readonly Span[],
+  planned: readonly Span[],
+  ctx: EngineContext,
+): Situation {
+  if (planned.some((p) => p.start < seg.end && seg.start < p.end)) return { kind: "none" };
+  const block = blocks.find((b) => b.start <= seg.start && seg.end <= b.end) ?? seg;
+  let prev: Span | null = null;
+  let next: Span | null = null;
+  for (const p of planned) {
+    if (p.end <= seg.start && (!prev || p.end > prev.end)) prev = p;
+    if (p.start >= seg.end && (!next || p.start < next.start)) next = p;
+  }
+  if (prev && prev.end >= block.start) return { kind: "after_planned", anchor: prev.end };
+  if (next && next.start <= block.end) return { kind: "before_planned" };
+  if (prev && localDate(prev.start, ctx.tz) === seg.date)
+    return { kind: "after_planned", anchor: prev.end };
+  if (next && localDate(next.start, ctx.tz) === seg.date) return { kind: "before_planned" };
+  return { kind: "day_off" };
+}
+
+/** Tiers by clock hours since the planned shift ended (e.g. hours 1–2, 3–4, then the rest). */
+function splitByClockHours(
+  seg: Segment,
+  anchor: Instant,
+  rule: ResolvedRule & Rule<"overtime">,
+): Segment[] {
+  const bounds: Instant[] = [];
+  let acc = 0;
+  for (const t of rule.params.tiers.slice(0, -1)) {
+    acc += t.up_to_minutes!;
+    bounds.push(anchor + acc * MINUTE);
+  }
+  return cutSpan(seg, bounds).map((part) => ({
+    ...seg,
+    start: part.start,
+    end: part.end,
+    overtime: { rule, tier: bounds.filter((b) => b <= part.start).length, window: null },
+  }));
+}
+
 function markOvertime(
   segments: Segment[],
   ctx: EngineContext,
@@ -421,6 +496,7 @@ function markOvertime(
   const ordered = [...rules.values()].sort((a, b) => b.priority - a.priority);
 
   let current = [...segments].sort((a, b) => a.start - b.start);
+  const blocks = workBlocks(current);
   for (const rule of ordered) {
     const next: Segment[] = [];
     const used = new Map<string, number>(); // unit → regular minutes counted
@@ -437,7 +513,7 @@ function markOvertime(
       let pieces: Segment[];
       if (rule.params.trigger === "outside_planned") {
         const inside = plannedSpans.some((p) => p.start <= seg.start && seg.end <= p.end);
-        pieces = [inside ? seg : { ...seg, overtime: { rule, tier: 0 } }];
+        pieces = [inside ? seg : { ...seg, overtime: { rule, tier: 0, window: null } }];
       } else {
         if (!norms.has(key))
           norms.set(key, unitNorm(rule, ctx, unitDates(rule, ctx, key), absences, credits));
@@ -457,14 +533,29 @@ function markOvertime(
         const left = before >= norm ? 0 : Math.round((norm - before) / share);
         pieces = splitAtMinute(seg, 0, left).map((p, idx, arr) => {
           const isOt = arr.length === 2 ? idx === 1 : left === 0;
-          return isOt ? { ...p, overtime: { rule, tier: 0 } } : p;
+          return isOt ? { ...p, overtime: { rule, tier: 0, window: null } } : p;
         });
         used.set(key, before + minutesOf(seg) * share);
       }
-      // Split overtime pieces at tier boundaries.
+      // Window rates first; then tiers (by clock hours since the planned end, or
+      // by overtime minutes counted in the unit).
       for (const p of pieces) {
         if (!p.overtime) {
           next.push(p);
+          continue;
+        }
+        const sit = situationOf(p, blocks, plannedSpans, ctx);
+        const window = rule.params.window_rates.findIndex(
+          (w) =>
+            (w.when === "any" || w.when === sit.kind) &&
+            inWindows([w], rule.params.exclude_holidays, p, ctx),
+        );
+        if (window >= 0) {
+          next.push({ ...p, overtime: { rule, tier: 0, window } });
+          continue;
+        }
+        if (rule.params.tier_basis === "since_planned_end" && sit.kind === "after_planned") {
+          next.push(...splitByClockHours(p, sit.anchor, rule));
           continue;
         }
         let rest: Segment | null = p;
@@ -478,7 +569,7 @@ function markOvertime(
           }
           const tierEnd = tier < rule.params.tiers.length - 1 ? acc : Infinity;
           const parts = splitAtMinute(rest, done, tierEnd);
-          const head: Segment = { ...parts[0]!, overtime: { rule, tier } };
+          const head: Segment = { ...parts[0]!, overtime: { rule, tier, window: null } };
           next.push(head);
           otUsed.set(key, done + minutesOf(head));
           rest = parts.length === 2 ? parts[1]! : null;
@@ -499,34 +590,42 @@ function candidatesFor(
 ): Candidate[] {
   const out: Candidate[] = [];
   const known = (a: Amount) => base !== null || a.type === "ore_per_hour";
+  const otRate = seg.overtime
+    ? seg.overtime.window !== null
+      ? seg.overtime.rule.params.window_rates[seg.overtime.window]!
+      : seg.overtime.rule.params.tiers[seg.overtime.tier]!
+    : null;
   if (
     seg.overtime &&
-    (known(seg.overtime.rule.params.tiers[seg.overtime.tier]!.amount) ||
-      seg.overtime.rule.params.compensation === "time_off")
+    otRate &&
+    (known(otRate.amount) || seg.overtime.rule.params.compensation === "time_off")
   ) {
-    const { rule, tier } = seg.overtime;
-    const t = rule.params.tiers[tier]!;
+    const { rule } = seg.overtime;
+    const t = otRate;
     const supplement = known(t.amount) ? amountRate(t.amount, base ?? 0) : 0;
     const includeBase = contract.payForm === "monthly" && rule.params.monthly_paid_includes_base;
-    out.push(
-      rule.params.compensation === "time_off"
-        ? {
-            rule,
-            payCode: t.pay_code,
-            rateOre: 0,
-            unit: "time_off_minutes",
-            factorBp: rule.params.time_off_factor_bp,
-            note: null,
-          }
-        : {
-            rule,
-            payCode: t.pay_code,
-            rateOre: supplement + (includeBase ? (base ?? 0) : 0),
-            unit: "hours",
-            factorBp: 10000,
-            note: null,
-          },
-    );
+    const timeOff: Candidate = {
+      rule,
+      payCode:
+        rule.params.compensation === "payout_and_time_off"
+          ? (rule.params.time_off_pay_code ?? t.pay_code)
+          : t.pay_code,
+      rateOre: 0,
+      unit: "time_off_minutes",
+      factorBp: rule.params.time_off_factor_bp,
+      note: null,
+    };
+    const money: Candidate = {
+      rule,
+      payCode: t.pay_code,
+      rateOre: supplement + (includeBase ? (base ?? 0) : 0),
+      unit: "hours",
+      factorBp: 10000,
+      note: null,
+    };
+    if (rule.params.compensation === "time_off") out.push(timeOff);
+    else if (rule.params.compensation === "payout") out.push(money);
+    else out.push(money, timeOff);
   }
   for (const rule of ctx.rules(seg.date, "time_window_supplement")) {
     if (seg.overtime && rule.params.exclude_overtime) continue;
@@ -1143,6 +1242,18 @@ export function calculatePay(input: CalcPayInput): PayResult {
         continue;
       }
       const minutes = absenceMinutesOn(ctx, a, d);
+      const paidFrom =
+        type.paid_from_seniority_months === null
+          ? null
+          : ctx.seniorityReached(type.paid_from_seniority_months);
+      if (minutes > 0 && type.payment === "full" && paidFrom !== null && d < paidFrom) {
+        notes.push({
+          code: "ABSENCE_UNPAID_SENIORITY",
+          message: `${type.label} betales først fra ${type.paid_from_seniority_months} måneders anciennitet (${paidFrom}). Indtil da gælder fx sygedagpenge.`,
+          date: d,
+        });
+        continue;
+      }
       if (
         minutes <= 0 ||
         type.payment === "none" ||
