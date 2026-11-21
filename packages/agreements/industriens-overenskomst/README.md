@@ -2,12 +2,16 @@
 
 Industriens Overenskomst (CO-industri og DI, udgave 31/7-2025) for timelønnede. Den er sat op som data, der arver lovens minimum (`basis-dk`). Fem nye generelle byggeklodser i regelmotoren var nødvendige (se nederst).
 
-- **Filer:** `v1.json` (satser fra 1/5-2025), `v2.json` (1/3-2026) og `v3.json` (1/3-2027). Alle tre laves af `generate.mjs`, så regler og satser ikke kan komme ud af trit. Kør `node docs/konfigurationer/industriens-overenskomst-2025/generate.mjs` og derefter `pnpm exec prettier --write docs/konfigurationer` efter en ændring.
-- **Sådan lægges den ind:**
-  1. Opret overenskomsten under **Indstillinger → Overenskomster → Ny overenskomst**, og indsæt `v1.json` på fanen **JSON**.
-  2. Publicér version 1.
-  3. Lav en ny version, indsæt `v2.json`, og publicér den.
-  4. Gør det samme med `v3.json`. En ny version afslutter selv den forrige.
+- **Systemskabelon:** Overenskomsten ligger i alle kundebaser som en låst skabelon, ligesom lovens minimum. Kunden kan ikke rette i den. Lokalaftaler og afvigelser laves som en lokalaftale ovenpå eller på den enkelte kontrakt.
+- **Startpakke:** Når en platformsadministrator opretter kunden på `/platform`, kan startpakken "Industriens Overenskomst" vælges. Den gør tre ting:
+  - Overenskomsten bliver standard for nye kontrakter. Feltet kan ændres under Opsætning.
+  - Lønperioden "Timelønnede (14 dage)" oprettes (§ 28).
+  - Tillægstyperne, der betales pr. gang eller pr. time, oprettes med de satser, der gælder på oprettelsesdagen. Se tabellen nedenfor. Kunden indtaster selv de senere satser.
+- **Filer:** `v1.json` (satser fra 1/5-2025), `v2.json` (1/3-2026), `v3.json` (1/3-2027) og `startpakke.json`. Alle laves af `generate.mjs`, så regler, satser og startpakke ikke kan komme ud af trit. Efter en ændring:
+  1. Kør `node packages/agreements/industriens-overenskomst/generate.mjs`.
+  2. Kør `pnpm --filter @vagtplan/agreements seed`.
+  3. Kør `pnpm exec prettier --write packages/agreements`.
+     Workflowet `Deploy database` lægger skabelonen og startpakken op ved merge.
 - **Personalegrupper** (feltet på kontrakten): `Dagarbejde`, `Forskudt tid`, `Skiftehold` og `Weekend`.
 - **Ugenorm** (på kontrakten):
   - 37 timer;
@@ -39,9 +43,9 @@ Industriens Overenskomst (CO-industri og DI, udgave 31/7-2025) for timelønnede.
 | § 18 stk. 2 Feriefridage                                                                 | 5 feriefridage pr. ferieår (1/9) efter 9 måneders anciennitet, også i et ferieår, hvor de 9 måneder nås før 31/8                                                                            |
 | § 40 stk. 6 Overførsel af ferie ud over 20 dage                                          | Ferie: overførsel kun af dage ud over 20                                                                                                                                                    |
 
-## Tillæg pr. gang (sættes op som tillægstyper under Opsætning)
+## Tillæg pr. gang (oprettes af startpakken som tillægstyper)
 
-Disse tillæg afhænger af noget, Turnus ikke kan se af vagterne. De oprettes som tillægstyper med fast beløb og vælges på vagten eller registreringen.
+Disse tillæg afhænger af noget, Turnus ikke kan se af vagterne. Startpakken opretter dem som tillægstyper, og de vælges på vagten eller registreringen.
 
 | Tillæg                                                                 | 1/5-2025 | 1/3-2026 | 1/3-2027 |
 | ---------------------------------------------------------------------- | -------- | -------- | -------- |
@@ -60,7 +64,7 @@ Fritvalgs Lønkonto (§ 25), pension (§ 34), feriegodtgørelse og -tillæg (§ 
 
 ## Testuger (regnet i hånden, satser fra 1/3-2026)
 
-Testugerne køres automatisk i `packages/agreements/test/konfigurationer.test.ts`.
+Testugerne køres automatisk i `packages/agreements/test/konfigurationer.test.ts`, som også tjekker, at startpakkens satsdatoer følger overenskomstens versioner.
 
 | Testuge                                     | Forventet                                                              |
 | ------------------------------------------- | ---------------------------------------------------------------------- |

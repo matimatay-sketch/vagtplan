@@ -10,12 +10,13 @@ import {
   type AgreementDocument,
   type EngineInput,
 } from "@vagtplan/rules-engine";
-import { templateRegistry } from "../index";
+import { starterKits, templateRegistry, templates } from "../index";
 
 /**
- * Concrete agreements set up as data (docs/konfigurationer): they parse,
- * resolve on top of basis-dk without falling below the law, and – for
- * Industriens Overenskomst – give the pay lines calculated by hand.
+ * Concrete agreements: the ones set up as data in docs/konfigurationer and the
+ * bundled Industriens Overenskomst template. They parse, resolve on top of
+ * basis-dk without falling below the law, and Industriens Overenskomst gives
+ * the pay lines calculated by hand. Its startpakke matches its rate dates.
  */
 const TZ = "Europe/Copenhagen";
 const configDir = join(import.meta.dirname, "..", "..", "..", "docs", "konfigurationer");
@@ -28,17 +29,35 @@ function jsonFiles(dir: string): string[] {
   });
 }
 
-const docs: AgreementDocument[] = jsonFiles(configDir).map((f) =>
-  parseAgreementDocument(JSON.parse(readFileSync(f, "utf8"))),
-);
+const docs: AgreementDocument[] = [
+  ...jsonFiles(configDir).map((f) => parseAgreementDocument(JSON.parse(readFileSync(f, "utf8")))),
+  ...templates.filter((t) => t.id === "industriens-overenskomst"),
+];
 
 function registry() {
   const r = templateRegistry();
-  for (const d of docs) (r[d.id] ??= []).push(d);
+  for (const d of docs) if (!r[d.id]?.includes(d)) (r[d.id] ??= []).push(d);
   return r;
 }
 
 describe("docs/konfigurationer", () => {
+  it("the Industriens Overenskomst startpakke follows the agreement's rate dates", () => {
+    const kit = starterKits.find((k) => k.key === "industriens-overenskomst")!;
+    expect(templates.some((t) => t.id === kit.agreement)).toBe(true);
+    const dates = templates
+      .filter((t) => t.id === kit.agreement)
+      .map((t) => t.valid_from)
+      .sort();
+    for (const s of kit.supplement_types) {
+      expect(s.amounts.map((a) => a.valid_from)).toEqual(dates);
+      expect(s.pay_code).toMatch(/^[A-Z0-9_]{1,32}$/);
+      expect(s.amounts.every((a) => Number.isInteger(a.amount) && a.amount > 0)).toBe(true);
+    }
+    // § 28: periods start on a Monday.
+    for (const g of kit.pay_period_groups)
+      expect(new Date(`${g.anchor_date}T00:00:00Z`).getUTCDay()).toBe(1);
+  });
+
   it("finds the configured agreements", () => {
     expect(new Set(docs.map((d) => d.id))).toEqual(
       new Set([

@@ -50,6 +50,7 @@ export async function createCustomerAction(
   const supabase = await createClient();
   const { data: orgId, error } = await supabase.rpc("platform_create_organization", {
     p_name: parsed.data.name,
+    ...(parsed.data.starter_kit ? { p_starter_kit: parsed.data.starter_kit } : {}),
   });
   if (error || !orgId) return { message: dbErrorMessage(error), values };
   revalidatePath("/platform");

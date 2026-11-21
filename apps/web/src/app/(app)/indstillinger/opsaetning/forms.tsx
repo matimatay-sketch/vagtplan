@@ -22,6 +22,7 @@ import {
   saveNoticeAction,
   saveNormDefaultsAction,
   saveRuleHandlingAction,
+  saveDefaultAgreementAction,
 } from "@/lib/actions/settings";
 import { initialActionState } from "@/lib/actions/state";
 import { RULE_CATALOG, type LeaveRules, type RuleHandlingMap } from "@/lib/schedule/rule-handling";
@@ -359,6 +360,36 @@ export function NormDefaultsForm({
       <div className="sm:col-span-2 lg:col-span-5">
         <FormMessage state={state} />
       </div>
+    </form>
+  );
+}
+
+export function DefaultAgreementForm({
+  value,
+  agreements,
+}: {
+  value: string | null;
+  agreements: { id: string; name: string }[];
+}) {
+  const [state, action] = useActionState(saveDefaultAgreementAction, initialActionState);
+  return (
+    <form action={action} className="grid gap-3 sm:max-w-md" data-testid="default-agreement-form">
+      <Field label={t.defaultAgreement} htmlFor="default_agreement_id">
+        <NativeSelect
+          id="default_agreement_id"
+          name="default_agreement_id"
+          defaultValue={value ?? ""}
+        >
+          <option value="">{t.noDefaultAgreement}</option>
+          {agreements.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <SubmitButton className="w-fit">{t.saveDefaultAgreement}</SubmitButton>
+      <FormMessage state={state} />
     </form>
   );
 }

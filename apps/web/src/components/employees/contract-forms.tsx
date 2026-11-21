@@ -39,6 +39,7 @@ export function NewContractForm({
   localAgreements,
   payPeriodGroups,
   defaultValidFrom,
+  defaultAgreementId,
   contract,
 }: {
   employeeId: string;
@@ -46,6 +47,8 @@ export function NewContractForm({
   localAgreements: Option[];
   payPeriodGroups: Option[];
   defaultValidFrom: string;
+  /** The organization's standard agreement (Opsætning), preselected for new contracts. */
+  defaultAgreementId?: string | null;
   contract?: EditableContract;
 }) {
   const [state, action] = useActionState(
@@ -85,7 +88,10 @@ export function NewContractForm({
           <NativeSelect
             {...f(
               "agreement_id",
-              c?.agreement_id ?? agreements.find((a) => !a.is_example)?.id ?? agreements[0]?.id,
+              c?.agreement_id ??
+                agreements.find((a) => a.id === defaultAgreementId)?.id ??
+                agreements.find((a) => !a.is_example)?.id ??
+                agreements[0]?.id,
             )}
           >
             {agreements.map((a) => (

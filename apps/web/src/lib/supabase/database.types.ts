@@ -725,17 +725,23 @@ isOneToOne: false
                   ]
                 },"organization_settings": {
                   Row: {
-                    "assistant_enabled": boolean,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
+                    "assistant_enabled": boolean,"default_agreement_id": string | null,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "assistant_enabled"?: boolean,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Update: {
-                    "assistant_enabled"?: boolean,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "organization_settings_default_agreement_id_fkey"
+      columns: ["default_agreement_id"]
+isOneToOne: false
+      referencedRelation: "agreement"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "organization_settings_organization_id_fkey"
       columns: ["organization_id"]
 isOneToOne: true
@@ -1365,6 +1371,20 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
+                },"starter_kit": {
+                  Row: {
+                    "content": NonNullable<Json>,"created_at": string,"description": string,"key": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content": NonNullable<Json>,"created_at"?: string,"description"?: string,"key": string,"name": string
+                  }
+                  Update: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"description"?: string,"key"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"supplement_type": {
                   Row: {
                     "amount": number,"amount_type": Database["public"]['Enums']["supplement_amount_type"],"archived_at": string | null,"created_at": string,"employee_selectable": boolean,"id": string,"name": string,"organization_id": string,"pay_code": string
@@ -1606,7 +1626,7 @@ isOneToOne: false
 { Args: { "p_org": string,"p_user": string }; Returns: undefined
                            },
 "platform_create_organization":
-{ Args: { "p_name": string }; Returns: string
+{ Args: { "p_name": string,"p_starter_kit"?: string }; Returns: string
                            },
 "platform_organizations":
 { Args: Record<PropertyKey, never>; Returns: {

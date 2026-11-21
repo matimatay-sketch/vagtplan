@@ -8,7 +8,15 @@ describe("customerFormSchema", () => {
     ).toEqual({
       name: "Bageriet ApS",
       admin_email: "konsulent@firma.dk",
+      starter_kit: null,
     });
+  });
+  it("keeps a chosen startpakke; empty means none", () => {
+    const base = { name: "Industri A/S", admin_email: "a@b.dk" };
+    expect(
+      customerFormSchema.parse({ ...base, starter_kit: "industriens-overenskomst" }).starter_kit,
+    ).toBe("industriens-overenskomst");
+    expect(customerFormSchema.parse({ ...base, starter_kit: "" }).starter_kit).toBeNull();
   });
   it("requires a name and a valid e-mail", () => {
     const r = customerFormSchema.safeParse({ name: " ", admin_email: "ikke-en-mail" });

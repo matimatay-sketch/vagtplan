@@ -1,12 +1,13 @@
 "use client";
 import { useActionState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import { createCustomerAction, inviteCustomerAdminAction } from "@/lib/actions/platform";
 import { initialActionState } from "@/lib/actions/state";
 import { da } from "@/lib/i18n/da";
 
-export function CustomerForm() {
+export function CustomerForm({ kits }: { kits: { key: string; name: string }[] }) {
   const t = da.platform;
   const [state, action] = useActionState(createCustomerAction, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
@@ -27,6 +28,16 @@ export function CustomerForm() {
           help={t.adminEmailHelp}
         >
           <Input type="email" autoComplete="off" {...fieldProps("admin_email", state)} />
+        </Field>
+        <Field label={t.starterKit} htmlFor="starter_kit" help={t.starterKitHelp}>
+          <NativeSelect {...fieldProps("starter_kit", state, "")}>
+            <option value="">{t.noStarterKit}</option>
+            {kits.map((k) => (
+              <option key={k.key} value={k.key}>
+                {k.name}
+              </option>
+            ))}
+          </NativeSelect>
         </Field>
       </div>
       <div>

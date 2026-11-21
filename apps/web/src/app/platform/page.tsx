@@ -24,7 +24,10 @@ export const metadata: Metadata = { title: "Kundeoversigt" };
 export default async function PlatformPage() {
   await requirePlatformAdmin();
   const supabase = await createClient();
-  const { data: customers, error } = await supabase.rpc("platform_organizations");
+  const [{ data: customers, error }, { data: kits }] = await Promise.all([
+    supabase.rpc("platform_organizations"),
+    supabase.from("starter_kit").select("key, name").order("name"),
+  ]);
   if (error) throw new Error(error.message);
   const t = da.platform;
 
@@ -36,7 +39,7 @@ export default async function PlatformPage() {
           <CardTitle className="text-base">{t.newCustomer}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomerForm />
+          <CustomerForm kits={kits ?? []} />
         </CardContent>
       </Card>
 

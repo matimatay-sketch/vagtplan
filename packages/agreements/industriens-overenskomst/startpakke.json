@@ -1,0 +1,129 @@
+{
+  "key": "industriens-overenskomst",
+  "name": "Industriens Overenskomst",
+  "agreement": "industriens-overenskomst",
+  "description": "Industriens Overenskomst som standardoverenskomst, lønperioder på 14 dage (§ 28) og tillæg, der betales pr. gang eller pr. time, når situationen opstår.",
+  "pay_period_groups": [
+    {
+      "name": "Timelønnede (14 dage)",
+      "frequency": "biweekly",
+      "anchor_date": "2026-01-05"
+    }
+  ],
+  "supplement_types": [
+    {
+      "name": "Overarbejde ikke varslet dagen før (§ 13 stk. 5)",
+      "pay_code": "OT_IKKE_VARSLET",
+      "amount_type": "fixed",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 11910
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 12270
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 12635
+        }
+      ]
+    },
+    {
+      "name": "Spisepause udskudt over ½ time (§ 13 stk. 7)",
+      "pay_code": "SPISEPAUSE_UDSKUDT",
+      "amount_type": "fixed",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 3305
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 3405
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 3510
+        }
+      ]
+    },
+    {
+      "name": "Skiftehold tillæg 3: ingen erstatningsfridag (§ 15 stk. 6.6)",
+      "pay_code": "SKIFT_3",
+      "amount_type": "per_hour",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 10470
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 10835
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 11215
+        }
+      ]
+    },
+    {
+      "name": "Skiftehold tillæg 4: forskudt vagtlistefridag (§ 15 stk. 8.5)",
+      "pay_code": "SKIFT_4",
+      "amount_type": "per_hour",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 3280
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 3395
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 3515
+        }
+      ]
+    },
+    {
+      "name": "Skiftehold tillæg 5: akut overflytning (§ 15 stk. 8.4)",
+      "pay_code": "SKIFT_5",
+      "amount_type": "fixed",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 26120
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 27030
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 27980
+        }
+      ]
+    },
+    {
+      "name": "Udearbejde (§ 19 stk. 2)",
+      "pay_code": "UDEARBEJDE",
+      "amount_type": "per_hour",
+      "amounts": [
+        {
+          "valid_from": "2025-05-01",
+          "amount": 620
+        },
+        {
+          "valid_from": "2026-03-01",
+          "amount": 645
+        },
+        {
+          "valid_from": "2027-03-01",
+          "amount": 665
+        }
+      ]
+    }
+  ]
+}

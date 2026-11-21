@@ -65,6 +65,7 @@ export default async function EmployeePage({
   const [
     { data: departments },
     { data: agreements },
+    { data: orgSettings },
     { data: payPeriodGroups },
     { data: profiles },
   ] = await Promise.all([
@@ -75,6 +76,11 @@ export default async function EmployeePage({
       .is("archived_at", null)
       .order("name"),
     supabase.from("agreement").select("id, name, kind, is_example").order("name"),
+    supabase
+      .from("organization_settings")
+      .select("default_agreement_id")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
     supabase
       .from("pay_period_group")
       .select("id, name")
@@ -268,6 +274,7 @@ export default async function EmployeePage({
                         localAgreements={(agreements ?? []).filter((a) => a.kind === "local")}
                         payPeriodGroups={payPeriodGroups ?? []}
                         defaultValidFrom={defaultValidFrom}
+                        defaultAgreementId={orgSettings?.default_agreement_id ?? null}
                       />
                     </div>
                   </details>

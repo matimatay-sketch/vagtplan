@@ -1497,6 +1497,10 @@ export const da = {
     lead: "Opret og administrér kundernes baser. Den, der skal konfigurere en base, inviteres som administrator og sætter resten op for kunden.",
     newCustomer: "Opret kunde",
     customerName: "Virksomhedens navn",
+    starterKit: "Startpakke",
+    noStarterKit: "Ingen (kun lovens minimum)",
+    starterKitHelp:
+      "Sætter basen op til overenskomsten: den bliver standard for nye kontrakter, og overenskomstens lønperioder og tillægstyper oprettes. Overenskomsten er låst; kundens lokalaftaler og afvigelser lægges ovenpå.",
     adminEmail: "Administrators e-mail",
     adminEmailHelp:
       "Personen får en invitation på e-mail. Findes brugeren allerede, får vedkommende adgang med det samme.",
@@ -1522,6 +1526,12 @@ export const da = {
     inviteFailed: "Invitationen kunne ikke sendes.",
   },
   settings: {
+    defaultAgreementTitle: "Standardoverenskomst",
+    defaultAgreementLead:
+      "Overenskomsten, der er valgt på forhånd, når en ny kontrakt oprettes. Lokalaftaler vælges på kontrakten.",
+    defaultAgreement: "Overenskomst til nye kontrakter",
+    noDefaultAgreement: "Ingen (vælges på kontrakten)",
+    saveDefaultAgreement: "Gem standardoverenskomst",
     editSupplement: "Ret tillæg",
     saveSupplement: "Gem tillæg",
     editSupplementHelp:

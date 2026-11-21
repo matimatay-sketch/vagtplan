@@ -1,6 +1,6 @@
 // Generates the three versions of Industriens Overenskomst 2025–2028 (one per
 // rate date) from one definition, so rules and rates cannot drift apart.
-// Run: node docs/konfigurationer/industriens-overenskomst-2025/generate.mjs
+// Run: pnpm --filter @vagtplan/agreements generate:io  (then the seed and prettier)
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -27,6 +27,13 @@ const VERSIONS = [
     // § 15 stk. 6.2
     s1: 4870,
     s2: 10435,
+    // Paid per occasion or per hour when the situation arises (startpakke).
+    s3: 10470,
+    s4: 3280,
+    s5: 26120,
+    varsel: 11910,
+    spise: 3305,
+    ude: 620,
   },
   {
     version: 2,
@@ -43,6 +50,12 @@ const VERSIONS = [
     f3: 6270,
     s1: 5040,
     s2: 10800,
+    s3: 10835,
+    s4: 3395,
+    s5: 27030,
+    varsel: 12270,
+    spise: 3405,
+    ude: 645,
   },
   {
     version: 3,
@@ -59,6 +72,12 @@ const VERSIONS = [
     f3: 6490,
     s1: 5215,
     s2: 11175,
+    s3: 11215,
+    s4: 3515,
+    s5: 27980,
+    varsel: 12635,
+    spise: 3510,
+    ude: 665,
   },
 ];
 
@@ -552,3 +571,55 @@ function document(v) {
 
 for (const v of VERSIONS)
   writeFileSync(join(dir, `v${v.version}.json`), `${JSON.stringify(document(v), null, 2)}\n`);
+
+/**
+ * Startpakke: what a new customer base on this agreement gets besides the
+ * agreement itself. Supplement types carry their amount per rate date; the
+ * one in force when the base is created is used.
+ */
+const supplement = (name, pay_code, amount_type, key) => ({
+  name,
+  pay_code,
+  amount_type,
+  amounts: VERSIONS.map((v) => ({ valid_from: v.valid_from, amount: v[key] })),
+});
+const starter = {
+  key: "industriens-overenskomst",
+  name: "Industriens Overenskomst",
+  agreement: "industriens-overenskomst",
+  description:
+    "Industriens Overenskomst som standardoverenskomst, lønperioder på 14 dage (§ 28) og tillæg, der betales pr. gang eller pr. time, når situationen opstår.",
+  pay_period_groups: [
+    // § 28 stk. 1: two weeks from the start of the calendar week.
+    { name: "Timelønnede (14 dage)", frequency: "biweekly", anchor_date: "2026-01-05" },
+  ],
+  supplement_types: [
+    supplement(
+      "Overarbejde ikke varslet dagen før (§ 13 stk. 5)",
+      "OT_IKKE_VARSLET",
+      "fixed",
+      "varsel",
+    ),
+    supplement(
+      "Spisepause udskudt over ½ time (§ 13 stk. 7)",
+      "SPISEPAUSE_UDSKUDT",
+      "fixed",
+      "spise",
+    ),
+    supplement(
+      "Skiftehold tillæg 3: ingen erstatningsfridag (§ 15 stk. 6.6)",
+      "SKIFT_3",
+      "per_hour",
+      "s3",
+    ),
+    supplement(
+      "Skiftehold tillæg 4: forskudt vagtlistefridag (§ 15 stk. 8.5)",
+      "SKIFT_4",
+      "per_hour",
+      "s4",
+    ),
+    supplement("Skiftehold tillæg 5: akut overflytning (§ 15 stk. 8.4)", "SKIFT_5", "fixed", "s5"),
+    supplement("Udearbejde (§ 19 stk. 2)", "UDEARBEJDE", "per_hour", "ude"),
+  ],
+};
+writeFileSync(join(dir, "startpakke.json"), `${JSON.stringify(starter, null, 2)}\n`);

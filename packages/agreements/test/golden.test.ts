@@ -53,6 +53,9 @@ describe("agreement templates", () => {
     expect(templates.map((t) => `${t.id}@v${t.version}`)).toEqual([
       "basis-dk@v1",
       "eksempel-detail@v1",
+      "industriens-overenskomst@v1",
+      "industriens-overenskomst@v2",
+      "industriens-overenskomst@v3",
     ]);
   });
   it("the example agreement is flagged as fictitious", () => {

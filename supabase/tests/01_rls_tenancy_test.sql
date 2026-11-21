@@ -26,7 +26,7 @@ select is((select count(*) from public.employee), 0::bigint, 'other admin sees n
 select is((select count(*) from public.department), 0::bigint, 'other admin sees no departments of org1');
 select is((select count(*) from public.contract), 0::bigint, 'other admin sees no contracts of org1');
 select is((select count(*) from public.pay_period_group), 1::bigint, 'a new organization gets a default pay period group');
-select is((select count(*) from public.agreement where organization_id is null), 2::bigint, 'system agreement templates are readable');
+select is((select count(*) from public.agreement where organization_id is null), 3::bigint, 'system agreement templates are readable');
 select throws_ok(
   format($$insert into public.department (organization_id, name) values (%L, 'Hack')$$, :'org1'),
   '42501', null, 'other admin cannot create a department in org1');
