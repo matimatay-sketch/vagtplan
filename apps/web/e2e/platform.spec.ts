@@ -125,6 +125,17 @@ test("a customer on Industriens Overenskomst gets a base set up for it", async (
   await forskudt.locator("> summary").click();
   await expect(forskudt.getByLabel("Kr. pr. time")).toHaveValue("32,60");
   await forskudt.getByLabel("Kr. pr. time").fill("33,00");
+  // Holidays are ticked, and a day is whole or half (Grundlovsdag from 12:00).
+  const holidays = version.locator('details[data-rule="helligdage"]');
+  await holidays.locator("> summary").click();
+  await expect(holidays.getByLabel("Grundlovsdag", { exact: true })).toBeChecked();
+  await expect(holidays.getByLabel("Grundlovsdag: hel eller halv dag")).toHaveValue("half");
+  await expect(holidays.getByLabel("Grundlovsdag: helligdag fra kl.")).toHaveValue("12:00");
+  await expect(holidays.getByLabel("Nytårsaftensdag", { exact: true })).not.toBeChecked();
+  await holidays.getByLabel("Nytårsaftensdag", { exact: true }).check();
+  await holidays.getByLabel("Nytårsaftensdag: hel eller halv dag").selectOption("half");
+  await holidays.getByLabel("Nytårsaftensdag: helligdag fra kl.").fill("14:00");
+  await holidays.getByLabel("1. maj", { exact: true }).uncheck();
   await version.getByRole("button", { name: "Gem ændringer i versionen" }).click();
   await expect(admin.getByText("Versionen er rettet.")).toBeVisible();
   await admin.reload();
@@ -132,6 +143,12 @@ test("a customer on Industriens Overenskomst gets a base set up for it", async (
   await expect(
     admin.locator('details[data-rule="forskudt-1"]').getByLabel("Kr. pr. time"),
   ).toHaveValue("33,00");
+  const saved = admin.locator('details[data-rule="helligdage"]');
+  await saved.locator("> summary").click();
+  await expect(saved.getByLabel("Nytårsaftensdag: helligdag fra kl.")).toHaveValue("14:00");
+  await expect(saved.getByLabel("1. maj", { exact: true })).not.toBeChecked();
+  // No rule is edited as JSON any more.
+  await expect(admin.getByRole("tab", { name: "JSON" })).toHaveCount(0);
   await admin.getByRole("link", { name: "Industriens Overenskomst 2025–2028" }).click();
 
   await admin.getByTestId("delete-agreement").click();
