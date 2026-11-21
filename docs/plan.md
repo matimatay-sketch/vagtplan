@@ -226,6 +226,8 @@ Acceptkriterier:
 ### Industriens Overenskomst som færdig base (ønsket 2026-11-21)
 
 - Startpakken "Industriens Overenskomst" vælges på `/platform`, når kunden oprettes, eller senere. Den lægger overenskomsten ind som kundens egen (konfigurerbar: nye versioner, lokalaftaler og sletning), sætter den som standard for nye kontrakter og opretter lønperioden på 14 dage og tillægstyperne med dagens satser.
+- Platformsadministratoren kan rette startpakken (versionernes regler, tillægstyper med sats pr. dato og lønperioder) på `/platform/startpakker` (ønsket 2026-11-21). Rettelser gælder kun kunder, der får pakken bagefter.
+- Kunden kan åbne hver version og rette direkte i en publiceret version, så længe ingen afsluttet lønperiode har brugt den. Ellers laves en ny version fra en dato.
 - Overenskomster kan slettes (arkiveres), når ingen aktive kontrakter eller lokalaftaler bruger dem.
 - Under Opsætning kan standardoverenskomsten ændres.
 

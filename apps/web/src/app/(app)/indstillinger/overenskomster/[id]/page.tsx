@@ -114,6 +114,7 @@ export default async function AgreementPage({
                 <th className="px-4 py-2 font-medium">{t.validFrom}</th>
                 <th className="px-4 py-2 font-medium">{t.validTo}</th>
                 <th className="px-4 py-2 font-medium" />
+                <th className="px-4 py-2 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -127,6 +128,17 @@ export default async function AgreementPage({
                       {t.status[v.status]}
                     </Badge>
                   </td>
+                  <td className="px-4 py-2 text-right">
+                    {v.status === "published" ? (
+                      <Link
+                        href={`/indstillinger/overenskomster/${a.id}/v/${v.version}`}
+                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        aria-label={t.openVersion(v.version)}
+                      >
+                        {t.open}
+                      </Link>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -138,9 +150,14 @@ export default async function AgreementPage({
               <CardTitle className="text-base">{t.readOnly}</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="max-h-[32rem] overflow-auto rounded-lg bg-muted/40 p-3 font-mono text-xs">
-                {JSON.stringify(latest?.document, null, 2)}
-              </pre>
+              {latest ? (
+                <AgreementEditor
+                  key={latest.id}
+                  target={{ kind: "view" }}
+                  document={latest.document as never}
+                  defaultDate={today}
+                />
+              ) : null}
             </CardContent>
           </Card>
         ) : draft ? (
@@ -153,7 +170,7 @@ export default async function AgreementPage({
             <CardContent>
               <AgreementEditor
                 key={draft.id}
-                versionId={draft.id}
+                target={{ kind: "draft", versionId: draft.id }}
                 document={draft.document as never}
                 employees={(employees ?? []).map((e) => ({
                   id: e.id,

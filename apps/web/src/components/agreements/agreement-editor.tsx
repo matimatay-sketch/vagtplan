@@ -11,11 +11,14 @@ import { Field } from "@/components/form";
 import {
   publishVersionAction,
   saveDraftAction,
+  savePublishedVersionAction,
   simulateAction,
   validateDraftAction,
+  validatePublishedVersionAction,
   type CheckResult,
   type SimResult,
 } from "@/lib/actions/agreements";
+import { saveKitVersionAction, validateKitVersionAction } from "@/lib/actions/starter-kits";
 import { decimalHours } from "@/lib/domain/project-report";
 import { da } from "@/lib/i18n/da";
 import { formatKroner } from "@/lib/domain/numbers";
@@ -79,20 +82,46 @@ function warningText(w: CheckResult["warnings"][number]): string {
   return t.EXAMPLE_AGREEMENT(w.agreementId);
 }
 
+/**
+ * What the editor works on: a draft (saved and published), a published version
+ * of an own agreement (changed in place), a version in a starter kit (platform)
+ * or a version that can only be read.
+ */
+export type EditorTarget =
+  | { kind: "draft"; versionId: string }
+  | { kind: "published"; versionId: string }
+  | { kind: "kit"; kitKey: string; version: number }
+  | { kind: "view" };
+
+function validateFor(target: EditorTarget, doc: Doc): Promise<CheckResult> {
+  if (target.kind === "draft") return validateDraftAction(target.versionId, doc);
+  if (target.kind === "published") return validatePublishedVersionAction(target.versionId, doc);
+  if (target.kind === "kit") return validateKitVersionAction(target.kitKey, target.version, doc);
+  return Promise.resolve({ ok: true, errors: [], warnings: [] });
+}
+function saveFor(target: EditorTarget, doc: Doc): Promise<CheckResult & { message?: string }> {
+  if (target.kind === "draft") return saveDraftAction(target.versionId, doc);
+  if (target.kind === "published") return savePublishedVersionAction(target.versionId, doc);
+  if (target.kind === "kit") return saveKitVersionAction(target.kitKey, target.version, doc);
+  return Promise.resolve({ ok: false, errors: [], warnings: [] });
+}
+
 export function AgreementEditor({
-  versionId,
+  target,
   document: initial,
-  employees,
+  employees = [],
   defaultDate,
   staffGroups = [],
 }: {
-  versionId: string;
+  target: EditorTarget;
   document: Doc;
-  employees: { id: string; name: string }[];
+  /** Employees for the simulator (none: no simulator). */
+  employees?: { id: string; name: string }[];
   defaultDate: string;
   /** Staff groups in the organization's contracts, as suggestions. */
   staffGroups?: string[];
 }) {
+  const readOnly = target.kind === "view";
   const t = da.agreements;
   const router = useRouter();
   const [doc, setDoc] = useState<Doc>(initial);
@@ -161,62 +190,73 @@ export function AgreementEditor({
     setDoc((d) => ({ ...d, rules: d.rules.map((r, k) => (k === i ? { ...r, ...patch } : r)) }));
 
   return (
-    <div className="grid gap-6" data-testid="agreement-editor">
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label={da.agreements.validFrom} htmlFor="valid_from">
-          <Input
-            id="valid_from"
-            type="date"
-            value={doc.valid_from}
-            onChange={(e) => setDoc((d) => ({ ...d, valid_from: e.target.value }))}
-          />
-        </Field>
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            disabled={pending}
-            onClick={() => {
-              const d = current();
-              if (d) start(async () => setCheck(await validateDraftAction(versionId, d)));
-            }}
-          >
-            <CheckCircle2 /> {t.validate}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={pending}
-            onClick={() => {
-              const d = current();
-              if (!d) return;
-              start(async () => {
-                const r = await saveDraftAction(versionId, d);
-                setCheck(r);
-                if (r.message) (r.ok ? toast.success : toast.error)(r.message);
-                if (r.ok) router.refresh();
-              });
-            }}
-          >
-            {t.saveDraft}
-          </Button>
-          <Button
-            disabled={pending}
-            onClick={() => {
-              if (!window.confirm(t.publishConfirm)) return;
-              start(async () => {
-                let r = await publishVersionAction(versionId);
-                if (r.needsConfirm) {
-                  if (!window.confirm(r.message ?? "")) return;
-                  r = await publishVersionAction(versionId, true);
-                }
-                if (r.message) (r.ok ? toast.success : toast.error)(r.message);
-                if (r.ok) router.refresh();
-              });
-            }}
-          >
-            <Send /> {t.publish}
-          </Button>
+    <div className="grid gap-6" data-testid={readOnly ? "agreement-version" : "agreement-editor"}>
+      {readOnly ? null : (
+        <div className="flex flex-wrap items-end gap-3">
+          {target.kind === "draft" ? (
+            <Field label={da.agreements.validFrom} htmlFor="valid_from">
+              <Input
+                id="valid_from"
+                type="date"
+                value={doc.valid_from}
+                onChange={(e) => setDoc((d) => ({ ...d, valid_from: e.target.value }))}
+              />
+            </Field>
+          ) : null}
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                const d = current();
+                if (d) start(async () => setCheck(await validateFor(target, d)));
+              }}
+            >
+              <CheckCircle2 /> {t.validate}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                const d = current();
+                if (!d) return;
+                if (target.kind === "published" && !window.confirm(t.savePublishedConfirm)) return;
+                start(async () => {
+                  const r = await saveFor(target, d);
+                  setCheck(r);
+                  if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+                  if (r.ok) router.refresh();
+                });
+              }}
+            >
+              {target.kind === "draft"
+                ? t.saveDraft
+                : target.kind === "kit"
+                  ? t.saveKitVersion
+                  : t.savePublished}
+            </Button>
+            {target.kind === "draft" ? (
+              <Button
+                disabled={pending}
+                onClick={() => {
+                  if (!window.confirm(t.publishConfirm)) return;
+                  start(async () => {
+                    let r = await publishVersionAction(target.versionId);
+                    if (r.needsConfirm) {
+                      if (!window.confirm(r.message ?? "")) return;
+                      r = await publishVersionAction(target.versionId, true);
+                    }
+                    if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+                    if (r.ok) router.refresh();
+                  });
+                }}
+              >
+                <Send /> {t.publish}
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       {check ? (
         <div
@@ -262,7 +302,12 @@ export function AgreementEditor({
       </div>
 
       {tab === "rules" ? (
-        <div className="grid gap-3">
+        // A read-only version disables every field. Buttons that change the rule
+        // are hidden; day toggles (aria-pressed) stay as they show the setting.
+        <fieldset
+          disabled={readOnly}
+          className={cn("grid min-w-0 gap-3", readOnly && "[&_button:not([aria-pressed])]:hidden")}
+        >
           {doc.rules.map((r, i) => (
             <details key={`${r.id}-${i}`} className="rounded-xl border bg-card" data-rule={r.id}>
               <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-4 py-3">
@@ -411,164 +456,169 @@ export function AgreementEditor({
               </div>
             </details>
           ))}
-          <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-rule">
-            <div>
-              <div className="font-medium">{t.ruleForms.addTitle}</div>
-              <p className="text-sm text-muted-foreground">{t.ruleForms.addLead}</p>
-            </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <Field label={t.ruleForms.ruleName} htmlFor="new-rule-name">
-                <Input
-                  id="new-rule-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Aftentillæg lager"
-                />
-              </Field>
-              <Field label={t.ruleForms.ruleType} htmlFor="new-rule-type">
-                <NativeSelect
-                  id="new-rule-type"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as Primitive)}
-                >
-                  {(["pay", "time", "leave", "other"] as const).map((g) => (
-                    <optgroup key={g} label={t.ruleForms.typeGroups[g]}>
-                      {RULE_TYPES.filter((x) => x.group === g).map((x) => (
-                        <option key={x.primitive} value={x.primitive}>
-                          {x.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </NativeSelect>
-              </Field>
-              {newType === "remark" ? (
-                <Field label={t.remarks.condition} htmlFor="new-rule-condition">
-                  <ConditionSelect
-                    id="new-rule-condition"
-                    value={remarkType}
-                    onChange={setRemarkType}
+          {readOnly ? null : (
+            <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="add-rule">
+              <div>
+                <div className="font-medium">{t.ruleForms.addTitle}</div>
+                <p className="text-sm text-muted-foreground">{t.ruleForms.addLead}</p>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label={t.ruleForms.ruleName} htmlFor="new-rule-name">
+                  <Input
+                    id="new-rule-name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Aftentillæg lager"
                   />
                 </Field>
-              ) : null}
+                <Field label={t.ruleForms.ruleType} htmlFor="new-rule-type">
+                  <NativeSelect
+                    id="new-rule-type"
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value as Primitive)}
+                  >
+                    {(["pay", "time", "leave", "other"] as const).map((g) => (
+                      <optgroup key={g} label={t.ruleForms.typeGroups[g]}>
+                        {RULE_TYPES.filter((x) => x.group === g).map((x) => (
+                          <option key={x.primitive} value={x.primitive}>
+                            {x.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                {newType === "remark" ? (
+                  <Field label={t.remarks.condition} htmlFor="new-rule-condition">
+                    <ConditionSelect
+                      id="new-rule-condition"
+                      value={remarkType}
+                      onChange={setRemarkType}
+                    />
+                  </Field>
+                ) : null}
+              </div>
+              <div>
+                <Button variant="outline" onClick={addRule}>
+                  <Plus /> {t.ruleForms.add}
+                </Button>
+              </div>
             </div>
-            <div>
-              <Button variant="outline" onClick={addRule}>
-                <Plus /> {t.ruleForms.add}
-              </Button>
-            </div>
-          </div>
+          )}
           <PayCodesTable
             value={doc.pay_codes ?? {}}
             used={usedPayCodes}
             onChange={(pay_codes) => setDoc((d) => ({ ...d, pay_codes }))}
           />
-        </div>
+        </fieldset>
       ) : (
         <Textarea
           aria-label={t.json}
+          readOnly={readOnly}
           className="min-h-[28rem] font-mono text-xs"
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
         />
       )}
 
-      <section className="grid gap-3 rounded-xl border bg-card p-4" data-testid="simulator">
-        <div>
-          <h2 className="font-semibold">{t.simulator}</h2>
-          <p className="text-sm text-muted-foreground">{t.simulatorLead}</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label={t.employee} htmlFor="sim-employee">
-            <NativeSelect
-              id="sim-employee"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-            >
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label={t.week} htmlFor="sim-date">
-            <Input
-              id="sim-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </Field>
-          <Button
-            disabled={pending || !employeeId}
-            onClick={() => {
-              const d = current();
-              if (d) start(async () => setSim(await simulateAction(d, employeeId, date)));
-            }}
-          >
-            <Play /> {t.simulate}
-          </Button>
-        </div>
-        {sim && !sim.ok ? <p className="text-sm text-destructive">{sim.message}</p> : null}
-        {sim && sim.ok ? (
-          <div className="grid gap-3">
-            <p className="text-xs text-muted-foreground">{sim.basis}</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {(["before", "after"] as const).map((k) => (
-                <div key={k} className="rounded-lg border" data-testid={`sim-${k}`}>
-                  <div className="border-b bg-muted/40 px-3 py-2 text-sm font-medium">
-                    {k === "before" ? t.before : t.after}
-                  </div>
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {sim[k].lines.map((l, i) => (
-                        <tr key={i} className="border-b last:border-0">
-                          <td className="px-3 py-1.5 font-mono text-xs">{l.payCode}</td>
-                          <td className="px-3 py-1.5 text-right tabular">
-                            {decimalHours(l.minutes)} t
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular">{kr(l.amountOre)}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-muted/40 font-semibold">
-                        <td className="px-3 py-1.5" colSpan={2}>
-                          {da.payroll.total}
-                        </td>
-                        <td
-                          className="px-3 py-1.5 text-right tabular"
-                          data-testid={`sim-${k}-total`}
-                        >
-                          {kr(sim[k].totalOre)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div className="px-3 py-2 text-xs">
-                    {sim[k].violations.length ? (
-                      <ul className="list-disc pl-4 text-destructive">
-                        {sim[k].violations.map((v, i) => (
-                          <li key={i}>{v}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="text-muted-foreground">{t.noViolations}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="text-sm" data-testid="sim-diff">
-              <span className="font-medium">{t.difference}: </span>
-              {sim.diff.length
-                ? sim.diff
-                    .map((d) => `${d.payCode} ${d.deltaOre > 0 ? "+" : ""}${kr(d.deltaOre)} kr.`)
-                    .join(", ")
-                : t.noDifference}
-            </div>
+      {readOnly || employees.length === 0 ? null : (
+        <section className="grid gap-3 rounded-xl border bg-card p-4" data-testid="simulator">
+          <div>
+            <h2 className="font-semibold">{t.simulator}</h2>
+            <p className="text-sm text-muted-foreground">{t.simulatorLead}</p>
           </div>
-        ) : null}
-      </section>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label={t.employee} htmlFor="sim-employee">
+              <NativeSelect
+                id="sim-employee"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+              >
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field label={t.week} htmlFor="sim-date">
+              <Input
+                id="sim-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </Field>
+            <Button
+              disabled={pending || !employeeId}
+              onClick={() => {
+                const d = current();
+                if (d) start(async () => setSim(await simulateAction(d, employeeId, date)));
+              }}
+            >
+              <Play /> {t.simulate}
+            </Button>
+          </div>
+          {sim && !sim.ok ? <p className="text-sm text-destructive">{sim.message}</p> : null}
+          {sim && sim.ok ? (
+            <div className="grid gap-3">
+              <p className="text-xs text-muted-foreground">{sim.basis}</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {(["before", "after"] as const).map((k) => (
+                  <div key={k} className="rounded-lg border" data-testid={`sim-${k}`}>
+                    <div className="border-b bg-muted/40 px-3 py-2 text-sm font-medium">
+                      {k === "before" ? t.before : t.after}
+                    </div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {sim[k].lines.map((l, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="px-3 py-1.5 font-mono text-xs">{l.payCode}</td>
+                            <td className="px-3 py-1.5 text-right tabular">
+                              {decimalHours(l.minutes)} t
+                            </td>
+                            <td className="px-3 py-1.5 text-right tabular">{kr(l.amountOre)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-muted/40 font-semibold">
+                          <td className="px-3 py-1.5" colSpan={2}>
+                            {da.payroll.total}
+                          </td>
+                          <td
+                            className="px-3 py-1.5 text-right tabular"
+                            data-testid={`sim-${k}-total`}
+                          >
+                            {kr(sim[k].totalOre)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div className="px-3 py-2 text-xs">
+                      {sim[k].violations.length ? (
+                        <ul className="list-disc pl-4 text-destructive">
+                          {sim[k].violations.map((v, i) => (
+                            <li key={i}>{v}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-muted-foreground">{t.noViolations}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-sm" data-testid="sim-diff">
+                <span className="font-medium">{t.difference}: </span>
+                {sim.diff.length
+                  ? sim.diff
+                      .map((d) => `${d.payCode} ${d.deltaOre > 0 ? "+" : ""}${kr(d.deltaOre)} kr.`)
+                      .join(", ")
+                  : t.noDifference}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      )}
     </div>
   );
 }

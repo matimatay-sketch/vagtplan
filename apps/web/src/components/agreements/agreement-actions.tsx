@@ -12,6 +12,7 @@ import {
   createLocalAction,
   newVersionAction,
 } from "@/lib/actions/agreements";
+import { newKitVersionAction } from "@/lib/actions/starter-kits";
 import { da } from "@/lib/i18n/da";
 
 export function CopyAgreementButton({ agreementId }: { agreementId: string }) {
@@ -104,11 +105,14 @@ export function NewLocalForm({ parentId }: { parentId: string }) {
   );
 }
 
+/** A new version from a date, in an own agreement or (with `kitKey`) a starter kit. */
 export function NewVersionForm({
   agreementId,
+  kitKey,
   defaultDate,
 }: {
-  agreementId: string;
+  agreementId?: string;
+  kitKey?: string;
   defaultDate: string;
 }) {
   const router = useRouter();
@@ -120,7 +124,9 @@ export function NewVersionForm({
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const r = await newVersionAction(agreementId, date);
+          const r = kitKey
+            ? await newKitVersionAction(kitKey, date)
+            : await newVersionAction(agreementId ?? "", date);
           if (r.message) (r.ok ? toast.success : toast.error)(r.message);
           if (r.ok) router.refresh();
         });
