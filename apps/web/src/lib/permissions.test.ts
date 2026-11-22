@@ -42,6 +42,7 @@ describe("permission catalog", () => {
       "assistant.use",
       "messages.send",
       "integrations.manage",
+      "reports.view",
     ]);
   });
 });
