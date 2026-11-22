@@ -1,9 +1,9 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
-import { Calculator, Download, Lock } from "lucide-react";
+import { Calculator, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
+import { ExportDialog, type ExportTemplateOption } from "./export-dialog";
 import { calculatePeriodAction, closePeriodAction } from "@/lib/actions/payroll";
 import { da } from "@/lib/i18n/da";
 
@@ -16,11 +16,10 @@ export function PeriodActions({
   periodId: string;
   open: boolean;
   canManage: boolean;
-  templates: { id: string; name: string }[];
+  templates: ExportTemplateOption[];
 }) {
   const t = da.payroll;
   const [pending, start] = useTransition();
-  const [template, setTemplate] = useState(templates[0]?.id ?? "");
   const run = (fn: () => Promise<{ ok?: boolean; message?: string }>) =>
     start(async () => {
       const r = await fn();
@@ -45,28 +44,11 @@ export function PeriodActions({
           </Button>
         </>
       ) : null}
-      {templates.length ? (
-        <span className="flex items-center gap-2">
-          <NativeSelect
-            aria-label={t.exportWith}
-            value={template}
-            onChange={(e) => setTemplate(e.target.value)}
-          >
-            {templates.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </NativeSelect>
-          <Button asChild variant="outline">
-            <a href={`/lon/${periodId}/eksport?skabelon=${template}`} download>
-              <Download /> {t.export}
-            </a>
-          </Button>
-        </span>
-      ) : (
-        <span className="text-sm text-muted-foreground">{t.noTemplates}</span>
-      )}
+      <ExportDialog
+        periods={[{ id: periodId, label: "" }]}
+        defaultPeriodId={periodId}
+        templates={templates}
+      />
     </div>
   );
 }

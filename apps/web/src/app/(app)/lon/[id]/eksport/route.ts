@@ -5,6 +5,8 @@ import { getAppContext } from "@/lib/auth";
 import { hasOrg } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { exportSettingsSchema, renderExport, type ExportRow } from "@/lib/domain/export";
+import { loadAbsenceExportRows } from "@/lib/payroll/absence-lines";
+import { employeesInPeriod } from "@/lib/payroll/periods";
 
 /** The pay period's current pay lines in the chosen export template. */
 export async function GET(request: NextRequest, { params }: RouteContext<"/lon/[id]/eksport">) {
@@ -18,7 +20,11 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/lon/[
 
   const supabase = await createClient();
   const [{ data: period }, { data: template }, { data: runs }] = await Promise.all([
-    supabase.from("pay_period").select("id, start_date, end_date").eq("id", id).maybeSingle(),
+    supabase
+      .from("pay_period")
+      .select("id, group_id, start_date, end_date")
+      .eq("id", id)
+      .maybeSingle(),
     supabase
       .from("export_template")
       .select("id, name, settings")
@@ -65,6 +71,20 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/lon/[
         posting: posting(l.posting),
       })),
   );
+  // Approved absence of the period's employees, when the template includes it.
+  if (settings.content !== "pay") {
+    const employees = await employeesInPeriod(supabase, {
+      groupId: period.group_id,
+      start: period.start_date,
+      end: period.end_date,
+    });
+    rows.push(
+      ...(await loadAbsenceExportRows(supabase, ctx, employees, {
+        start: period.start_date,
+        end: period.end_date,
+      })),
+    );
+  }
   const { text, rowCount } = renderExport(settings, rows);
   await supabase.from("export_log").insert({
     organization_id: ctx.organization.id,

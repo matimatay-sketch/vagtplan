@@ -179,3 +179,116 @@ describe("renderExport – km and fixed lines", () => {
     expect(text).toBe("KM_HOEJ;;42,50;42,50\nNORMAL;7,50;;7,50\nUDLAEG;0,00;;\n");
   });
 });
+
+describe("renderExport – date formats", () => {
+  const formats: [string, string][] = [
+    ["yyyy-mm-dd", "2027-01-04"],
+    ["dd-mm-yyyy", "04-01-2027"],
+    ["dd.mm.yyyy", "04.01.2027"],
+    ["ddmmyyyy", "04012027"],
+    ["dd/mm/yyyy", "04/01/2027"],
+    ["mm/dd/yyyy", "01/04/2027"],
+    ["yyyymmdd", "20270104"],
+    ["ddmmyy", "040127"],
+    ["dd-mm-yy", "04-01-27"],
+    ["d.m.yyyy", "4.1.2027"],
+  ];
+  it.each(formats)("%s writes %s", (dateFormat, expected) => {
+    const s = exportSettingsSchema.parse({
+      dateFormat,
+      header: false,
+      bom: false,
+      columns: [{ field: "period_start" }],
+    });
+    expect(renderExport(s, [row({})]).text).toBe(`${expected}\r\n`);
+  });
+});
+
+describe("renderExport – pay lines, absence or both", () => {
+  // Sick 2 days (7,40 h a day = 444 min) and vacation ½ day, each in the period.
+  const sick = row({
+    kind: "absence",
+    payCode: "sick",
+    label: "Sygdom",
+    unit: "absence",
+    quantityMinutes: 888,
+    quantityDays: 200,
+    rateOre: 0,
+    amountOre: 0,
+    dateFrom: "2027-01-05",
+    dateTo: "2027-01-06",
+  });
+  const vacation = row({
+    kind: "absence",
+    payCode: "vacation",
+    label: "Ferie",
+    unit: "absence",
+    quantityMinutes: 222,
+    quantityDays: 50,
+    rateOre: 0,
+    amountOre: 0,
+    dateFrom: "2027-01-08",
+    dateTo: "2027-01-08",
+  });
+  const columns = [
+    { field: "record_type", header: "Type" },
+    { field: "pay_code_external", header: "Kode" },
+    { field: "quantity", header: "Antal" },
+    { field: "date_from", header: "Fra" },
+    { field: "date_to", header: "Til" },
+  ];
+  const settings = (over: Record<string, unknown>) =>
+    exportSettingsSchema.parse({ header: false, bom: false, lineEnding: "lf", columns, ...over });
+  const rows = [row({}), sick, vacation];
+
+  it("pay lines only by default (as before)", () => {
+    expect(renderExport(settings({}), rows).text).toBe("Løn;NORMAL;7,50;2027-01-04;2027-01-17\n");
+  });
+
+  it("absence only, in hours", () => {
+    expect(renderExport(settings({ content: "absence" }), rows).text).toBe(
+      "Fravær;sick;14,80;2027-01-05;2027-01-06\nFravær;vacation;3,70;2027-01-08;2027-01-08\n",
+    );
+  });
+
+  it("absence in days, both kinds, pay lines first", () => {
+    expect(renderExport(settings({ content: "both", absenceUnit: "days" }), rows).text).toBe(
+      "Løn;NORMAL;7,50;2027-01-04;2027-01-17\n" +
+        "Fravær;sick;2,00;2027-01-05;2027-01-06\n" +
+        "Fravær;vacation;0,50;2027-01-08;2027-01-08\n",
+    );
+  });
+
+  it("absence codes follow the code map; days and hours columns; grouped per type", () => {
+    const r = renderExport(
+      exportSettingsSchema.parse({
+        header: false,
+        bom: false,
+        lineEnding: "lf",
+        content: "absence",
+        codeMap: { sick: "S01", vacation: null },
+        columns: [
+          { field: "pay_code_external" },
+          { field: "quantity_days" },
+          { field: "quantity_hours" },
+          { field: "amount" },
+          { field: "date_from" },
+          { field: "date_to" },
+        ],
+      }),
+      [
+        sick,
+        {
+          ...sick,
+          quantityMinutes: 444,
+          quantityDays: 100,
+          dateFrom: "2027-01-12",
+          dateTo: "2027-01-12",
+        },
+        vacation,
+      ],
+    );
+    expect(r.text).toBe("S01;3,00;22,20;;2027-01-05;2027-01-12\n");
+    expect(r.skippedCodes).toEqual(["vacation"]);
+  });
+});

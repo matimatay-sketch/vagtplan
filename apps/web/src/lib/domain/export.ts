@@ -21,6 +21,10 @@ export const EXPORT_FIELDS = [
   "period_end",
   "constant",
   "posting",
+  "record_type",
+  "quantity_days",
+  "date_from",
+  "date_to",
 ] as const;
 export type ExportField = (typeof EXPORT_FIELDS)[number];
 
@@ -38,13 +42,30 @@ const column = z
     path: ["dimension"],
   });
 
+export const DATE_FORMATS = [
+  "yyyy-mm-dd",
+  "dd-mm-yyyy",
+  "dd.mm.yyyy",
+  "ddmmyyyy",
+  "dd/mm/yyyy",
+  "mm/dd/yyyy",
+  "yyyymmdd",
+  "ddmmyy",
+  "dd-mm-yy",
+  "d.m.yyyy",
+] as const;
+
 export const exportSettingsSchema = z.object({
   separator: z.string().length(1).default(";"),
   decimal: z.enum([",", "."]).default(","),
   header: z.boolean().default(true),
   bom: z.boolean().default(true),
   lineEnding: z.enum(["crlf", "lf"]).default("crlf"),
-  dateFormat: z.enum(["yyyy-mm-dd", "dd-mm-yyyy", "dd.mm.yyyy", "ddmmyyyy"]).default("yyyy-mm-dd"),
+  dateFormat: z.enum(DATE_FORMATS).default("yyyy-mm-dd"),
+  /** What the file holds: pay lines, approved absence, or both (pay lines first). */
+  content: z.enum(["pay", "absence", "both"]).default("pay"),
+  /** Absence as hours (the day's norm) or as days. */
+  absenceUnit: z.enum(["hours", "days"]).default("hours"),
   /** One row per employee, pay code and rate, or one row per pay line. */
   grouping: z.enum(["employee_code", "line"]).default("employee_code"),
   /** Pay codes without a mapping: keep Turnus' code, or leave them out. */
@@ -70,17 +91,24 @@ export const GENERIC_CSV: ExportSettings = exportSettingsSchema.parse({
 });
 
 export type ExportRow = {
+  /** A pay line (default) or approved absence. */
+  kind?: "pay" | "absence";
   employeeNumber: string;
   employeeName: string;
   payCode: string;
   label: string;
-  unit: "hours" | "time_off_minutes" | "fixed" | "km";
+  unit: "hours" | "time_off_minutes" | "fixed" | "km" | "absence";
   /** Minutes; metres for km; 0 for fixed amounts. */
   quantityMinutes: number;
   rateOre: number;
   amountOre: number;
   periodStart: string;
   periodEnd: string;
+  /** Absence: days in hundredths (100 = one day). */
+  quantityDays?: number;
+  /** The row's own first and last date (absence); pay lines use the period. */
+  dateFrom?: string;
+  dateTo?: string;
   /** dimension key → value code */
   posting?: Record<string, string>;
 };
@@ -99,11 +127,33 @@ const isTime = (r: { unit: string }) => r.unit === "hours" || r.unit === "time_o
 
 function date(iso: string, format: ExportSettings["dateFormat"]): string {
   const [y, m, d] = iso.split("-") as [string, string, string];
-  if (format === "dd-mm-yyyy") return `${d}-${m}-${y}`;
-  if (format === "dd.mm.yyyy") return `${d}.${m}.${y}`;
-  if (format === "ddmmyyyy") return `${d}${m}${y}`;
-  return iso;
+  switch (format) {
+    case "dd-mm-yyyy":
+      return `${d}-${m}-${y}`;
+    case "dd.mm.yyyy":
+      return `${d}.${m}.${y}`;
+    case "ddmmyyyy":
+      return `${d}${m}${y}`;
+    case "dd/mm/yyyy":
+      return `${d}/${m}/${y}`;
+    case "mm/dd/yyyy":
+      return `${m}/${d}/${y}`;
+    case "yyyymmdd":
+      return `${y}${m}${d}`;
+    case "ddmmyy":
+      return `${d}${m}${y.slice(2)}`;
+    case "dd-mm-yy":
+      return `${d}-${m}-${y.slice(2)}`;
+    case "d.m.yyyy":
+      return `${Number(d)}.${Number(m)}.${y}`;
+    default:
+      return iso;
+  }
 }
+
+const isAbsence = (r: { kind?: string }) => r.kind === "absence";
+/** Danish words for the record_type column. */
+export const RECORD_TYPES = { pay: "Løn", absence: "Fravær" } as const;
 
 function quote(value: string, separator: string): string {
   return /["\r\n]/.test(value) || value.includes(separator)
@@ -122,7 +172,10 @@ export function renderExport(
   rows: readonly ExportRow[],
 ): { text: string; rowCount: number; skippedCodes: string[] } {
   const skipped = new Set<string>();
-  const mapped = rows.flatMap((r) => {
+  const wanted = rows.filter((r) =>
+    settings.content === "both" ? true : (settings.content === "absence") === isAbsence(r),
+  );
+  const mapped = wanted.flatMap((r) => {
     const has = Object.prototype.hasOwnProperty.call(settings.codeMap, r.payCode);
     const external = has
       ? settings.codeMap[r.payCode]
@@ -140,23 +193,30 @@ export function renderExport(
   if (settings.grouping === "employee_code") {
     const groups = new Map<string, (typeof mapped)[number]>();
     for (const r of mapped) {
-      const key = `${r.employeeNumber}|${r.external}|${r.rateOre}|${postingKey(r.posting)}`;
+      const key = `${r.kind ?? "pay"}|${r.employeeNumber}|${r.external}|${r.rateOre}|${postingKey(r.posting)}`;
       const g = groups.get(key);
       if (g) {
         g.quantityMinutes += r.quantityMinutes;
         g.amountOre += r.amountOre;
+        g.quantityDays = (g.quantityDays ?? 0) + (r.quantityDays ?? 0);
+        if (r.dateFrom && (!g.dateFrom || r.dateFrom < g.dateFrom)) g.dateFrom = r.dateFrom;
+        if (r.dateTo && (!g.dateTo || r.dateTo > g.dateTo)) g.dateTo = r.dateTo;
       } else groups.set(key, { ...r });
     }
     out = [...groups.values()].sort(
       (a, b) =>
+        Number(isAbsence(a)) - Number(isAbsence(b)) ||
         a.employeeNumber.localeCompare(b.employeeNumber, "da", { numeric: true }) ||
         a.external.localeCompare(b.external, "da", { numeric: true }) ||
         a.rateOre - b.rateOre ||
         postingKey(a.posting).localeCompare(postingKey(b.posting), "da", { numeric: true }),
     );
   } else {
-    out = [...mapped].sort((a, b) =>
-      a.employeeNumber.localeCompare(b.employeeNumber, "da", { numeric: true }),
+    out = [...mapped].sort(
+      (a, b) =>
+        Number(isAbsence(a)) - Number(isAbsence(b)) ||
+        a.employeeNumber.localeCompare(b.employeeNumber, "da", { numeric: true }) ||
+        (a.dateFrom ?? "").localeCompare(b.dateFrom ?? ""),
     );
   }
 
@@ -179,15 +239,27 @@ export function renderExport(
       case "quantity_km":
         return r.unit === "km" ? km(r.quantityMinutes, settings.decimal) : "";
       case "quantity":
+        if (isAbsence(r))
+          return settings.absenceUnit === "days"
+            ? hundredths(r.quantityDays ?? 0, settings.decimal)
+            : hours(r.quantityMinutes, settings.decimal);
         return isTime(r)
           ? hours(r.quantityMinutes, settings.decimal)
           : r.unit === "km"
             ? km(r.quantityMinutes, settings.decimal)
             : "";
       case "rate":
-        return hundredths(r.rateOre, settings.decimal);
+        return isAbsence(r) ? "" : hundredths(r.rateOre, settings.decimal);
       case "amount":
-        return hundredths(r.amountOre, settings.decimal);
+        return isAbsence(r) ? "" : hundredths(r.amountOre, settings.decimal);
+      case "record_type":
+        return RECORD_TYPES[isAbsence(r) ? "absence" : "pay"];
+      case "quantity_days":
+        return isAbsence(r) ? hundredths(r.quantityDays ?? 0, settings.decimal) : "";
+      case "date_from":
+        return date(r.dateFrom ?? r.periodStart, settings.dateFormat);
+      case "date_to":
+        return date(r.dateTo ?? r.periodEnd, settings.dateFormat);
       case "period_start":
         return date(r.periodStart, settings.dateFormat);
       case "period_end":
