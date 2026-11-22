@@ -117,6 +117,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"approval_substitute": {
+                  Row: {
+                    "absent_user_id": string,"archived_at": string | null,"created_at": string,"created_by": string | null,"id": string,"note": string,"organization_id": string,"substitute_user_id": string,"valid_from": string,"valid_to": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absent_user_id": string,"archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"note"?: string,"organization_id": string,"substitute_user_id": string,"valid_from": string,"valid_to": string
+                  }
+                  Update: {
+                    "absent_user_id"?: string,"archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"note"?: string,"organization_id"?: string,"substitute_user_id"?: string,"valid_from"?: string,"valid_to"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "approval_substitute_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"assistant_proposal": {
                   Row: {
                     "created_at": string,"created_by": string,"department_id": string,"discarded_at": string | null,"id": string,"note": string | null,"organization_id": string,"week_start": string
@@ -1594,6 +1614,9 @@ isOneToOne: false
 "email_result":
 { Args: { "p_error": string,"p_id": string,"p_ok": boolean }; Returns: undefined
                            },
+"end_approval_substitute":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "end_impersonation":
 { Args: { "p_session": string }; Returns: undefined
                            },
@@ -1684,6 +1707,9 @@ isOneToOne: false
 "report_shift_cancellation":
 { Args: { "p_reason": string,"p_shift_id": string }; Returns: string
                            },
+"save_approval_substitute":
+{ Args: { "p_absent": string,"p_from": string,"p_id": string,"p_note": string,"p_org": string,"p_substitute": string,"p_to": string }; Returns: string
+                           },
 "save_pay_run":
 { Args: { "p_daily": Json,"p_employee_id": string,"p_engine_version": string,"p_lines": Json,"p_notes": Json,"p_pending": number,"p_period_id": string }; Returns: string
                            },
@@ -1709,6 +1735,11 @@ isOneToOne: false
                            },
 "start_impersonation":
 { Args: { "p_employee_id": string }; Returns: string
+                           },
+"substitute_candidates":
+{ Args: { "p_org": string }; Returns: {
+              "approves": boolean,"name": string,"user_id": string
+            }[]
                            },
 "swap_candidates":
 { Args: { "p_shift_id": string }; Returns: {

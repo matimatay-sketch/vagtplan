@@ -2,6 +2,8 @@
  * Filters for the approval page (Godkend tid). Pure: the page loads rows,
  * pay codes per registration and absence per employee, then filters here.
  */
+import { addDays, diffDays, isValidIsoDate, type IsoDate } from "./civil-date";
+import { weekStartOf } from "./schedule-time";
 
 export const STATUS_FILTERS = ["all", "pending", "approved", "open", "missing"] as const;
 export type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -24,6 +26,8 @@ export type TimeFilters = {
   payCode: string | null;
   absenceType: string | null;
   postingValue: string | null;
+  /** Agreement (row id): employees with a contract on it in the period. */
+  agreementId: string | null;
   query: string;
 };
 
@@ -55,6 +59,8 @@ export type FilterContext = {
   absenceTypesByEmployee: Record<string, string[]>;
   /** Employees the user approves personally ("Godkendes af"). */
   myEmployees: readonly string[];
+  /** employee id → agreement ids of their contracts in the period */
+  agreementsByEmployee?: Record<string, string[]>;
 };
 
 const one = (v: unknown): string =>
@@ -74,6 +80,7 @@ export function parseTimeFilters(sp: Record<string, string | string[] | undefine
     payCode: one(sp.loenart) || null,
     absenceType: one(sp.fravaer) || null,
     postingValue: one(sp.kontering) || null,
+    agreementId: one(sp.overenskomst) || null,
     query: one(sp.q).trim(),
   };
 }
@@ -125,6 +132,8 @@ export function filterTimeRows<R extends FilterableRow>(
         (ctx.absenceTypesByEmployee[r.employeeId] ?? []).includes(f.absenceType)) &&
       (!f.postingValue ||
         r.postingAllocations.some((a) => Object.values(a.values).includes(f.postingValue!))) &&
+      (!f.agreementId ||
+        (ctx.agreementsByEmployee?.[r.employeeId] ?? []).includes(f.agreementId)) &&
       (!q ||
         r.employeeName.toLowerCase().includes(q) ||
         r.employeeNumber.toLowerCase().includes(q)),
@@ -139,4 +148,36 @@ export function countFlags(
   return Object.fromEntries(
     FLAG_FILTERS.map((flag) => [flag, rows.filter((r) => hasFlag(r, flag, ctx)).length]),
   ) as Record<FlagFilter, number>;
+}
+
+export type DateRange = { from: IsoDate; to: IsoDate };
+/** The longest range the page loads at once. */
+export const MAX_RANGE_DAYS = 93;
+
+/**
+ * The dates to show: `fra`–`til` (one date = that day; reversed = turned
+ * around), the old `uge` link, or the current week. At most MAX_RANGE_DAYS.
+ */
+export function parseDateRange(
+  sp: Record<string, string | string[] | undefined>,
+  today: IsoDate,
+): DateRange {
+  const fra = one(sp.fra);
+  const til = one(sp.til);
+  const week = (d: IsoDate) => ({ from: weekStartOf(d), to: addDays(weekStartOf(d), 6) });
+  if (!isValidIsoDate(fra)) {
+    const uge = one(sp.uge);
+    return week(isValidIsoDate(uge) ? uge : today);
+  }
+  let from = fra;
+  let to = isValidIsoDate(til) ? til : fra;
+  if (to < from) [from, to] = [to, from];
+  if (diffDays(to, from) >= MAX_RANGE_DAYS) to = addDays(from, MAX_RANGE_DAYS - 1);
+  return { from, to };
+}
+
+/** The range before (-1) or after (1), of the same length. */
+export function shiftRange(r: DateRange, direction: 1 | -1): DateRange {
+  const days = diffDays(r.to, r.from) + 1;
+  return { from: addDays(r.from, direction * days), to: addDays(r.to, direction * days) };
 }

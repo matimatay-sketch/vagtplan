@@ -132,13 +132,13 @@ test("completed as planned, deviation with reason, approval and correction as a 
   const filters = page.getByTestId("time-filters");
   await filters.locator('[data-flag="deviation"]').getByRole("checkbox").check();
   await filters.getByLabel("Lønart").selectOption("NORMAL");
-  await filters.getByRole("button", { name: "Vis" }).click();
+  await filters.getByRole("button", { name: "Vis", exact: true }).click();
   await expect(page).toHaveURL(/vis=deviation/);
   await expect(page).toHaveURL(/loenart=NORMAL/);
   await expect(row).toBeVisible();
   await expect(page.getByTestId("filter-result")).toContainText("Viser");
   await filters.getByLabel("Status").selectOption("open");
-  await filters.getByRole("button", { name: "Vis" }).click();
+  await filters.getByRole("button", { name: "Vis", exact: true }).click();
   await expect(page).toHaveURL(/status=open/);
   await expect(row).toHaveCount(0);
   await page.goto(`/tid/godkend?uge=${week}&status=approved&q=Mads`);
@@ -152,7 +152,9 @@ test("completed as planned, deviation with reason, approval and correction as a 
 
   // The approval can be undone while the pay period is open, and given again. (When the
   // payroll test has closed this period first, it is refused with a clear message.)
-  await row.getByRole("button", { name: "Fortryd godkendelse" }).click();
+  // Approved rows are selected the same way, and the approval removed for all selected.
+  await row.getByRole("checkbox").check();
+  await page.getByTestId("unapprove-selected").click();
   const outcome = page.getByText(/Godkendelsen er fortrudt\.|Lønperioden er afsluttet/);
   await expect(outcome).toBeVisible();
   if ((await outcome.textContent())?.startsWith("Godkendelsen")) {
