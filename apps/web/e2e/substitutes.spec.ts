@@ -27,7 +27,7 @@ test("a manager appoints a substitute approver for a period and ends it early", 
   await login(page, users.manager);
   await page.goto("/tid/godkend");
   await page.getByRole("link", { name: "Stedfortrædere" }).click();
-  await expect(page).toHaveURL(/\/tid\/stedfortraedere/);
+  await expect(page).toHaveURL(/\/tid\/godkend\/stedfortraedere/);
   const form = page.getByTestId("substitute-form").first();
   await form.getByLabel("Stedfortræder").selectOption({ label: "Mads Medarbejder" });
   await form.getByLabel("Note (valgfri)").fill("Ferie");
@@ -52,7 +52,7 @@ test("a manager appoints a substitute approver for a period and ends it early", 
 
   // Lise is back early and ends it.
   await login(page, users.manager);
-  await page.goto("/tid/stedfortraedere");
+  await page.goto("/tid/godkend/stedfortraedere");
   await row.getByRole("button", { name: "Afslut nu" }).click();
   await expect(page.getByText("Stedfortrædelsen er afsluttet.")).toBeVisible();
   await expect(

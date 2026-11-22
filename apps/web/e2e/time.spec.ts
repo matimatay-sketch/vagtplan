@@ -1,8 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, users } from "./helpers";
 
+/** Monday of the week `weeks` from now, by the Copenhagen date (as the app counts weeks). */
 function mondayIn(weeks: number): string {
-  const d = new Date();
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
+  const d = new Date(`${today}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 7 * weeks);
   const dow = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() - (dow - 1));

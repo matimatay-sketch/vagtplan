@@ -1,4 +1,5 @@
 import type { RuleLayer } from "@vagtplan/rules-engine";
+import type { CustomRule } from "@/lib/forms/custom-rules";
 
 export type Handling = "block" | "allow";
 export type RuleHandlingMap = Partial<Record<string, Handling>>;
@@ -55,6 +56,8 @@ export function organizationLayerFrom(s: {
   notice_publish_hours: number | null;
   notice_change_hours: number | null;
   leave_rules?: LeaveRules | null;
+  /** The organization's own remark rules (on top of every agreement). */
+  custom_rules?: readonly CustomRule[] | null;
 }): { rules: RuleLayer[] } | null {
   const rules: RuleLayer[] = [];
   const params: Record<string, number> = {};
@@ -97,5 +100,14 @@ export function organizationLayerFrom(s: {
       ? { payout: { allowed: l.payout_allowed, only_above_days: l.payout_only_above_days ?? null } }
       : {}),
   });
+  for (const r of s.custom_rules ?? [])
+    rules.push({
+      id: r.id,
+      primitive: "remark",
+      label: r.label,
+      source: ORG_SOURCE,
+      severity: r.severity,
+      params: r.params,
+    });
   return rules.length ? { rules } : null;
 }

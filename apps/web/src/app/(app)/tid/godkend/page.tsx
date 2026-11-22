@@ -106,15 +106,13 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   }));
   const week = { start: range.from, end: range.to };
   // Agreements of the contracts in the period, for the agreement filter.
-  const employeeIds = [...new Set(accessible.map((r) => r.employeeId))];
-  const { data: contracts } = employeeIds.length
-    ? await supabase
-        .from("contract")
-        .select("employee_id, agreement:agreement_id (id, name)")
-        .in("employee_id", employeeIds)
-        .lte("valid_from", range.to)
-        .or(`valid_to.is.null,valid_to.gte.${range.from}`)
-    : { data: [] };
+  // (All contracts the user may see, so the choices do not depend on the other filters.)
+  const { data: contracts } = await supabase
+    .from("contract")
+    .select("employee_id, agreement:agreement_id (id, name)")
+    .eq("organization_id", ctx.organization.id)
+    .lte("valid_from", range.to)
+    .or(`valid_to.is.null,valid_to.gte.${range.from}`);
   const agreementsByEmployee: Record<string, string[]> = {};
   const agreementNames = new Map<string, string>();
   for (const c of contracts ?? []) {
@@ -219,7 +217,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
         actions={
           canSubstitute ? (
             <Button asChild variant="outline">
-              <Link href="/tid/stedfortraedere">
+              <Link href="/tid/godkend/stedfortraedere">
                 <UserRoundCog /> {da.substitutes.link}
               </Link>
             </Button>

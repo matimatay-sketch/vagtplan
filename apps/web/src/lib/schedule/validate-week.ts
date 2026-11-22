@@ -1,4 +1,5 @@
 import "server-only";
+import type { CustomRule } from "@/lib/forms/custom-rules";
 import {
   shiftsToIntervals,
   validateNotice,
@@ -39,6 +40,7 @@ export type OrganizationSettingsRow = {
   notice_change_hours: number | null;
   rule_handling: RuleHandlingMap;
   leave_rules: LeaveRules;
+  custom_rules: CustomRule[];
 };
 
 export async function loadOrganizationSettings(
@@ -47,7 +49,7 @@ export async function loadOrganizationSettings(
 ): Promise<OrganizationSettingsRow> {
   const { data } = await supabase
     .from("organization_settings")
-    .select("notice_publish_hours, notice_change_hours, rule_handling, leave_rules")
+    .select("notice_publish_hours, notice_change_hours, rule_handling, leave_rules, custom_rules")
     .eq("organization_id", organizationId)
     .maybeSingle();
   return {
@@ -55,6 +57,7 @@ export async function loadOrganizationSettings(
     notice_change_hours: data?.notice_change_hours ?? null,
     rule_handling: (data?.rule_handling ?? {}) as RuleHandlingMap,
     leave_rules: (data?.leave_rules ?? {}) as LeaveRules,
+    custom_rules: (data?.custom_rules ?? []) as unknown as CustomRule[],
   };
 }
 
