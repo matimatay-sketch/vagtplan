@@ -6,6 +6,7 @@ import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApprovalTable, type DepartmentRights } from "@/components/time/approval-table";
+import { RegisterForEmployee } from "@/components/time/register-for";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { canInDepartment, hasAny } from "@/lib/permissions";
@@ -208,6 +209,34 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
     ? await supabase.rpc("substitute_candidates", { p_org: ctx.organization.id })
     : { data: [] };
   const canSubstitute = hasAny(ctx.permissions, ["users.manage", "time.approve"]);
+  // Employees the user may register time for (time.manage in their department).
+  const manageDepartments = visible.filter((d) => rights[d.id]?.manage).map((d) => d.id);
+  const { data: manageable } = manageDepartments.length
+    ? await supabase
+        .from("employee_department")
+        .select(
+          "employee_id, department_id, is_primary, employee:employee!employee_department_organization_id_employee_id_fkey (first_name, last_name, archived_at)",
+        )
+        .in("department_id", manageDepartments)
+        .order("is_primary", { ascending: false })
+    : { data: [] };
+  const registerEmployees = [
+    ...new Map(
+      (manageable ?? [])
+        .filter((m) => m.employee && !m.employee.archived_at)
+        .map((m) => [
+          m.employee_id,
+          {
+            id: m.employee_id,
+            name: `${m.employee!.first_name} ${m.employee!.last_name}`,
+            departmentId: m.department_id,
+          },
+        ]),
+    ).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, "da"));
+  const missingCount = accessible.filter(
+    (r) => r.kind === "missing" && rights[r.departmentId]?.manage,
+  ).length;
 
   return (
     <>
@@ -215,13 +244,21 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
         title={t.approveTitle}
         help={t.approveLead}
         actions={
-          canSubstitute ? (
-            <Button asChild variant="outline">
-              <Link href="/tid/godkend/stedfortraedere">
-                <UserRoundCog /> {da.substitutes.link}
-              </Link>
-            </Button>
-          ) : null
+          <>
+            <RegisterForEmployee
+              employees={registerEmployees}
+              defaultDate={today < range.to ? today : range.to}
+              posting={posting}
+              supplements={{ options: supplementOptions, chooseAll: true }}
+            />
+            {canSubstitute ? (
+              <Button asChild variant="outline">
+                <Link href="/tid/godkend/stedfortraedere">
+                  <UserRoundCog /> {da.substitutes.link}
+                </Link>
+              </Button>
+            ) : null}
+          </>
         }
       />
       {substituting?.length ? (
@@ -410,6 +447,20 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           </Button>
         </div>
       </div>
+      {missingCount > 0 && filters.status !== "missing" ? (
+        <p
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed px-4 py-2 text-sm"
+          data-testid="missing-summary"
+        >
+          {t.missingCount(missingCount)}
+          <Link
+            href={`/tid/godkend?${query({ ...filters, status: "missing" }, {})}`}
+            className="font-medium text-primary underline underline-offset-4"
+          >
+            {t.showMissing}
+          </Link>
+        </p>
+      ) : null}
       {filtered && (
         <p className="mb-3 text-sm text-muted-foreground" data-testid="filter-result">
           {f.showing(rows.length, accessible.length)}

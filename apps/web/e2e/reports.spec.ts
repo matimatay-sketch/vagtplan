@@ -5,6 +5,8 @@ import { login, users } from "./helpers";
 test("reports: employee data, time, absence, planned shifts and norm, downloaded as CSV", async ({
   page,
 }) => {
+  // Five reports over a year of test data.
+  test.setTimeout(90_000);
   await login(page, users.admin);
   await page
     .getByRole("navigation", { name: "Hovedmenu" })

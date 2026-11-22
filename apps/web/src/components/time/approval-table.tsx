@@ -219,6 +219,7 @@ export function ApprovalTable({
                           employeeId: e.id,
                           departmentId: e.departmentId,
                           date: dates[0]!,
+                          employeeName: e.name,
                         })
                       }
                     >
@@ -286,7 +287,34 @@ export function ApprovalTable({
                         </span>
                       ) : null}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {r.kind === "missing" && canManage && r.shiftId ? (
+                        <>
+                          <CompleteButton shiftIds={[r.shiftId]} label={t.completeAsPlanned} />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`${t.registerOtherTimes}: ${e.name} ${formatDay(r.date)}`}
+                            onClick={() =>
+                              setDraft({
+                                mode: "create",
+                                employeeId: e.id,
+                                departmentId: r.departmentId,
+                                date: r.date,
+                                employeeName: e.name,
+                                plan: {
+                                  shiftId: r.shiftId!,
+                                  start: r.start,
+                                  end: r.end!,
+                                  breaks: r.plan?.breaks ?? r.breaks,
+                                },
+                              })
+                            }
+                          >
+                            <Pencil /> {t.registerOtherTimes}
+                          </Button>
+                        </>
+                      ) : null}
                       {r.kind === "entry" && canManage && r.status === "pending" ? (
                         <Button
                           size="icon"

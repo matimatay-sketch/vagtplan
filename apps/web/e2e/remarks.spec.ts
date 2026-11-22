@@ -115,7 +115,10 @@ test("consultant sets up remarks with a limit, a severity and where they are sho
   // Registered as planned: approval shows the early-start warning only.
   await page.goto(`/tid/godkend?uge=${week}`);
   const section = page.locator(`section[data-employee="${name}"]`);
-  await section.getByRole("button", { name: /Gennemført som planlagt/ }).click();
+  await section
+    .getByRole("button", { name: /Gennemført som planlagt/ })
+    .first()
+    .click();
   const row = section.getByTestId("approval-row").filter({ hasText: "05:00–16:30" });
   const remarks = row.getByTestId("time-violations");
   await expect(remarks.locator('li[data-severity="WARNING"]')).toHaveText(

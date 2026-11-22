@@ -4,7 +4,6 @@ import type { createClient } from "@/lib/supabase/server";
 import type { DbBreak } from "@/lib/domain/breaks";
 import { addDays } from "@/lib/domain/civil-date";
 import { localParts, zonedTime } from "@/lib/domain/schedule-time";
-import { loadTimeOverview } from "@/lib/time/load";
 import { loadPeriodAbsences } from "@/lib/absence/load";
 import {
   absenceReport,
@@ -26,6 +25,33 @@ const minutesBetween = (a: string, b: string) =>
   Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60_000);
 const unpaid = (breaks: readonly DbBreak[]) =>
   breaks.filter((b) => !b.paid).reduce((s, b) => s + b.minutes, 0);
+
+/**
+ * Registrations in the range the user may see (the time_overview function
+ * checks the rights), without the validation the approval page runs.
+ */
+async function timeEntries(supabase: Client, q: Query) {
+  const { data, error } = await supabase.rpc("time_overview", {
+    p_from: new Date(zonedTime(q.from)).toISOString(),
+    p_to: new Date(zonedTime(addDays(q.to, 1))).toISOString(),
+  });
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r) => r.row_kind === "entry" && r.employee_id && r.start_at)
+    .filter((r) => !q.departmentId || r.department_id === q.departmentId)
+    .map((r) => ({
+      employeeId: r.employee_id!,
+      employeeName: r.employee_name ?? "",
+      employeeNumber: r.employee_number ?? "",
+      departmentName: r.department_name ?? "",
+      date: localParts(r.start_at!).date,
+      start: r.start_at!,
+      end: r.end_at,
+      breaks: (r.breaks ?? []) as unknown as DbBreak[],
+      status: r.status,
+      source: r.source,
+    }));
+}
 
 /** The employees the user may see (RLS), optionally in one department. */
 async function employees(supabase: Client, ctx: AppContext, departmentId: string | null) {
@@ -132,14 +158,9 @@ export async function loadReport(
   }
 
   if (q.report === "time") {
-    const overview = await loadTimeOverview(supabase, ctx, {
-      from: q.from,
-      to: q.to,
-      departmentId: q.departmentId,
-    });
+    const entries = await timeEntries(supabase, q);
     return timeReport(
-      overview.rows
-        .filter((r) => r.kind === "entry")
+      entries
         .sort(
           (a, b) =>
             a.date.localeCompare(b.date) ||
@@ -227,16 +248,16 @@ export async function loadReport(
   }
 
   // Norm: contracts, planned (work shifts) and registered time per employee.
-  const [cs, overview] = await Promise.all([
+  const [cs, entries] = await Promise.all([
     contracts(
       supabase,
       emps.map((e) => e.id),
     ),
-    loadTimeOverview(supabase, ctx, { from: q.from, to: q.to, departmentId: q.departmentId }),
+    timeEntries(supabase, q),
   ]);
   const registered = new Map<string, number>();
-  for (const r of overview.rows)
-    if (r.kind === "entry" && r.end && r.status !== "open")
+  for (const r of entries)
+    if (r.end && r.status !== "open")
       registered.set(
         r.employeeId,
         (registered.get(r.employeeId) ?? 0) + minutesBetween(r.start, r.end) - unpaid(r.breaks),

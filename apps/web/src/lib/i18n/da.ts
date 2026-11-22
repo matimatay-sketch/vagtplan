@@ -1158,6 +1158,14 @@ export const da = {
     violations: "Regelbrud i den faktiske tid",
     missingTeam: "Vagter uden registrering",
     registerFor: "Registrér for medarbejderen",
+    registerOtherTimes: "Registrér andre tider",
+    registerForEmployee: "Registrér for en medarbejder",
+    registerForLead:
+      "Vælg medarbejder og dato. Registreringen kommer til godkendelse som andre registreringer.",
+    continue: "Fortsæt",
+    missingCount: (n: number) =>
+      n === 1 ? "1 planlagt vagt uden registrering" : `${n} planlagte vagter uden registrering`,
+    showMissing: "Vis dem",
     duration: "Arbejdstid",
     kind: "Type",
     kinds: { work: "Arbejde", call_out: "Tilkald under rådighed" },
