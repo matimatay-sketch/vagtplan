@@ -13,6 +13,42 @@ const plus = (date: string, days: number) => {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 };
+/** Easter Sunday (anonymous Gregorian algorithm). */
+function easter(y: number): string {
+  const a = y % 19,
+    b = Math.floor(y / 100),
+    c = y % 100,
+    d = Math.floor(b / 4),
+    e = b % 4;
+  const f = Math.floor((b + 8) / 25),
+    g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4),
+    k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7,
+    m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+/** Danish public holidays (and days some agreements treat as such) in a year. */
+function holidays(y: number): string[] {
+  const e = easter(y);
+  return [
+    ...[-3, -2, 0, 1, 39, 49, 50].map((n) => plus(e, n)),
+    ...["01-01", "05-01", "06-05", "12-24", "12-25", "12-26", "12-31"].map((md) => `${y}-${md}`),
+  ];
+}
+/** The first Monday from `weeks` ahead whose Monday–Friday has no holiday. */
+function mondayWithoutHolidays(weeks: number): string {
+  for (let w = weeks; ; w++) {
+    const monday = mondayIn(w);
+    const days = [0, 1, 2, 3, 4].map((n) => plus(monday, n));
+    const years = [...new Set(days.map((d) => Number(d.slice(0, 4))))];
+    const all = years.flatMap(holidays);
+    if (!days.some((d) => all.includes(d))) return monday;
+  }
+}
 const cell = (page: Page, row: string, date: string) =>
   page.locator(`tr[data-row="${row}"] td[data-cell$="|${date}"]`);
 const MADS = "Mads Medarbejder";
@@ -21,7 +57,7 @@ test("vacation request: the manager approves, the balance and the schedule follo
   page,
 }) => {
   // A week without public holidays, far enough ahead not to clash with other tests.
-  const week = mondayIn(23);
+  const week = mondayWithoutHolidays(23);
   const friday = plus(week, 4);
   const wednesday = plus(week, 2);
 
