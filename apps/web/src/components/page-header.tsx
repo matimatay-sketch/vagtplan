@@ -29,7 +29,7 @@ export function PageHeader({
         </h1>
         {lead ? <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{lead}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap gap-2 sm:shrink-0">{actions}</div> : null}
     </div>
   );
 }

@@ -42,3 +42,35 @@ test("help explanations open with a tap on a phone", async ({ page }) => {
   await page.getByRole("button", { name: "Forklaring: Fravær og ferie" }).tap();
   await expect(page.getByTestId("help-content")).toContainText("Søg om ferie og fri");
 });
+
+test("no page is wider than the phone, so the bottom menu stays in view", async ({ page }) => {
+  test.setTimeout(120_000);
+  const pages: [string, string[]][] = [
+    [
+      users.manager,
+      [
+        "/oversigt",
+        "/vagtplan",
+        "/tid/godkend",
+        "/fravaer/godkend",
+        "/beskeder",
+        "/medarbejdere",
+        "/profil",
+      ],
+    ],
+    [users.employee, ["/oversigt", "/min-vagtplan", "/tid", "/fravaer", "/koersel", "/profil"]],
+  ];
+  for (const [user, paths] of pages) {
+    await page.context().clearCookies();
+    await login(page, user);
+    for (const path of paths) {
+      await page.goto(path);
+      const size = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth,
+        screen: window.innerWidth,
+      }));
+      expect(size.page, `${path} is wider than the phone`).toBeLessThanOrEqual(size.screen);
+      await expect(page.getByRole("navigation", { name: "Hovedmenu" }).last()).toBeInViewport();
+    }
+  }
+});
