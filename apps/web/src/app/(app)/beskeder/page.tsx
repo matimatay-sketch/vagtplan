@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeftRight, CalendarX, Info, MessageSquarePlus } from "lucide-react";
+import { ArrowLeftRight, BellRing, CalendarX, Info, MessageSquarePlus } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +88,9 @@ export default async function MessagesPage({ searchParams }: PageProps<"/beskede
                     ? CalendarX
                     : c.last_kind === "system"
                       ? Info
-                      : null;
+                      : c.last_kind === "reminder"
+                        ? BellRing
+                        : null;
               return (
                 <li key={c.id}>
                   <Link
@@ -99,7 +101,8 @@ export default async function MessagesPage({ searchParams }: PageProps<"/beskede
                     <span className="grid min-w-0 flex-1 gap-0.5">
                       <span className="flex items-center gap-2">
                         <span className={cn("truncate", c.unread > 0 && "font-semibold")}>
-                          {c.participant_names || t.you}
+                          {/* Reminders come from Turnus (the recipient is the only participant). */}
+                          {c.participant_names || (c.last_kind === "reminder" ? t.system : t.you)}
                         </span>
                         {c.subject ? (
                           <span className="truncate text-sm text-muted-foreground">

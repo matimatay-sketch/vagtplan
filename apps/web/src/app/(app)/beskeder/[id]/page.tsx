@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, EyeOff, Info } from "lucide-react";
+import { BellRing, ChevronLeft, EyeOff, Info } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { hideConversationAction } from "@/lib/actions/messages";
 import { loadShiftItems } from "@/lib/messages/load";
 import { formatDateTime } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
+import { reminderFromBody } from "@/lib/forms/reminders";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Besked" };
@@ -62,6 +63,8 @@ export default async function ConversationPage({ params }: PageProps<"/beskeder/
   );
   const nameOf = new Map((people ?? []).map((p) => [p.user_id, p.name]));
   const others = (people ?? []).filter((p) => p.user_id !== ctx.userId).map((p) => p.name);
+  // A reminder conversation: Turnus writes, and there is no one to answer.
+  const fromTurnus = others.length === 0 && list.some((m) => m.kind === "reminder");
   const lastRead = me?.last_read_at ?? null;
   const unread = list.some(
     (m) => m.sender_id !== ctx.userId && (!lastRead || m.created_at > lastRead),
@@ -78,7 +81,7 @@ export default async function ConversationPage({ params }: PageProps<"/beskeder/
           </Link>
         }
         title={conversation.subject ?? (others.join(", ") || t.noSubject)}
-        lead={`${t.people}: ${others.join(", ") || t.you}`}
+        lead={`${t.people}: ${others.join(", ") || (fromTurnus ? t.system : t.you)}`}
         actions={
           <form action={hideConversationAction}>
             <input type="hidden" name="id" value={id} />
@@ -91,6 +94,31 @@ export default async function ConversationPage({ params }: PageProps<"/beskeder/
       <ol className="mb-6 grid gap-3" data-testid="messages" aria-live="polite">
         {list.map((m) => {
           const mine = m.sender_id === ctx.userId;
+          if (m.kind === "reminder") {
+            const r = reminderFromBody(m.body);
+            return (
+              <li
+                key={m.id}
+                className="grid max-w-[46rem] gap-1 rounded-xl border border-dashed bg-card px-4 py-3"
+                data-testid="reminder-message"
+              >
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <BellRing className="size-3.5 text-signal" aria-hidden />
+                  {da.messages.kinds.reminder} · {formatDateTime(m.created_at)}
+                </span>
+                <p className="text-sm">{r ? da.reminders.message[r.kind](r.count) : m.body}</p>
+                {r?.note ? <p className="text-sm text-muted-foreground">{r.note}</p> : null}
+                {r ? (
+                  <Link
+                    href={da.reminders.links[r.kind]}
+                    className="w-fit text-sm font-medium text-primary underline underline-offset-4"
+                  >
+                    {da.reminders.open}
+                  </Link>
+                ) : null}
+              </li>
+            );
+          }
           if (m.kind === "system") {
             const text =
               (m.swap_id ? da.swap.system[m.body] : da.cancellation.system[m.body]) ?? m.body;
@@ -147,11 +175,13 @@ export default async function ConversationPage({ params }: PageProps<"/beskeder/
           );
         })}
       </ol>
-      <Card>
-        <CardContent>
-          <ReplyForm conversationId={id} />
-        </CardContent>
-      </Card>
+      {fromTurnus ? null : (
+        <Card>
+          <CardContent>
+            <ReplyForm conversationId={id} />
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

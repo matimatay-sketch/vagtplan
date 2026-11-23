@@ -193,6 +193,12 @@ export const PERMISSIONS = [
     label: "Se rapporter (indholdet følger de øvrige rettigheder)",
     scopes: ["departments", "organization"],
   },
+  {
+    key: "reminders.manage",
+    group: "Påmindelser",
+    label: "Sætte påmindelser op og sende dem",
+    scopes: ["departments", "organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;

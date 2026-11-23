@@ -43,6 +43,7 @@ describe("permission catalog", () => {
       "messages.send",
       "integrations.manage",
       "reports.view",
+      "reminders.manage",
     ]);
   });
 });

@@ -1921,12 +1921,14 @@ export const da = {
       swap: "Forslag om vagtbytte",
       cancellation: "Afbud",
       system: "Besked fra Turnus",
+      reminder: "Påmindelse",
     },
     email: {
       subjectText: (sender: string) => `Ny besked fra ${sender} i Turnus`,
       subjectSwap: "Forslag om vagtbytte i Turnus",
       subjectCancellation: "Afbud til en vagt i Turnus",
       subjectSystem: "Nyt om en vagt i Turnus",
+      subjectReminder: "Påmindelse fra Turnus",
       intro: (organization: string) => `Du har en ny besked i Turnus (${organization}).`,
       from: (sender: string) => `Fra: ${sender}`,
       about: (subject: string) => `Emne: ${subject}`,
@@ -2088,6 +2090,93 @@ export const da = {
       registered: "Registreret (timer)",
       difference: "Forskel (timer)",
     },
+  },
+  reminders: {
+    title: "Påmindelser",
+    lead: "Sæt op, hvad der skal mindes om og for hvilke medarbejdere. Send med en knap, eller lad Turnus sende automatisk om morgenen på de valgte ugedage. Påmindelsen kommer som besked i Turnus og som e-mail.",
+    link: "Påmindelser",
+    newTitle: "Ny påmindelse",
+    editTitle: "Ret påmindelsen",
+    name: "Navn",
+    namePlaceholder: "Fx Husk at registrere tid",
+    kind: "Påmind om",
+    kinds: {
+      missing_registration: "Planlagte vagter uden registreret tid (til medarbejderen)",
+      open_stamp: "Stempling ikke afsluttet (til medarbejderen)",
+      time_approval: "Tid, der venter på godkendelse (til godkenderen)",
+      absence_approval: "Fravær, der venter på godkendelse (til godkenderen)",
+      expense_approval: "Kørsel og udlæg, der venter på godkendelse (til godkenderen)",
+    },
+    shortKinds: {
+      missing_registration: "Manglende registrering",
+      open_stamp: "Stempling ikke afsluttet",
+      time_approval: "Tid til godkendelse",
+      absence_approval: "Fravær til godkendelse",
+      expense_approval: "Kørsel og udlæg til godkendelse",
+    },
+    departments: "Afdelinger",
+    allDepartments: "Alle afdelinger",
+    employees: "Kun disse medarbejdere (valgfrit)",
+    employeesHelp: "Ingen valgt = alle medarbejdere i de valgte afdelinger.",
+    lookback: "Se dage tilbage",
+    lookbackHelp:
+      "Hvor langt tilbage vagter, registreringer og udlæg tælles med. Stempling og fravær tæller altid med.",
+    note: "Egen tekst i påmindelsen (valgfri)",
+    auto: "Send automatisk",
+    autoHelp: "Sendes om morgenen på de valgte ugedage, højst én gang om dagen.",
+    weekdays: "Ugedage",
+    weekdayNames: ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"],
+    create: "Opret påmindelse",
+    save: "Gem påmindelsen",
+    saved: "Påmindelsen er gemt.",
+    created: "Påmindelsen er oprettet.",
+    archive: "Slet",
+    archiveConfirm: "Slet påmindelsen? Den sendes ikke mere.",
+    archived: "Påmindelsen er slettet.",
+    preview: "Hvem får den?",
+    previewEmpty: "Ingen at minde om lige nu.",
+    previewCount: (name: string, n: number) => `${name} (${n})`,
+    sendNow: "Send nu",
+    sendConfirm: (n: number) => `Send påmindelsen til ${n} ${n === 1 ? "person" : "personer"} nu?`,
+    sent: (n: number) =>
+      n === 0
+        ? "Ingen at minde om lige nu."
+        : n === 1
+          ? "Påmindelsen er sendt til 1 person."
+          : `Påmindelsen er sendt til ${n} personer.`,
+    none: "Ingen påmindelser endnu.",
+    everyone: "Alle",
+    autoOn: (days: string) => `Automatisk: ${days}`,
+    manualOnly: "Kun med knap",
+    lastSent: (when: string, n: number) => `Sidst sendt ${when} til ${n}`,
+    neverSent: "Ikke sendt endnu",
+    kindRequired: "Vælg, hvad der skal mindes om",
+    lookbackInvalid: "Angiv 1–93 dage",
+    weekdaysRequired: "Vælg mindst én ugedag",
+    message: {
+      missing_registration: (n: number) =>
+        n === 1
+          ? "Påmindelse: Du har 1 planlagt vagt uden registreret tid. Registrér tiden under Tid."
+          : `Påmindelse: Du har ${n} planlagte vagter uden registreret tid. Registrér tiden under Tid.`,
+      open_stamp: (n: number) =>
+        n === 1
+          ? "Påmindelse: Du har en registrering, der ikke er stemplet ud. Afslut den under Tid."
+          : `Påmindelse: Du har ${n} registreringer, der ikke er stemplet ud. Afslut dem under Tid.`,
+      time_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "registrering venter" : "registreringer venter"} på din godkendelse under Godkend tid.`,
+      absence_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "fraværsansøgning venter" : "fraværsansøgninger venter"} på din godkendelse under Godkend fravær.`,
+      expense_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "kørsel eller udlæg venter" : "kørsler og udlæg venter"} på din godkendelse under Godkend tid.`,
+    },
+    links: {
+      missing_registration: "/tid",
+      open_stamp: "/tid",
+      time_approval: "/tid/godkend",
+      absence_approval: "/fravaer/godkend",
+      expense_approval: "/tid/godkend",
+    },
+    open: "Åbn",
   },
   customRules: {
     title: "Egne regler",

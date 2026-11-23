@@ -3,7 +3,7 @@ import { da } from "@/lib/i18n/da";
 /** What the database puts in the e-mail outbox for a new message. */
 export type MessageEmailPayload = {
   conversation_id: string;
-  message_kind: "text" | "swap" | "cancellation" | "system";
+  message_kind: "text" | "swap" | "cancellation" | "system" | "reminder";
   subject: string | null;
   sender: string | null;
   organization: string;
@@ -25,9 +25,11 @@ export function messageEmail(
       ? t.subjectSwap
       : p.message_kind === "cancellation"
         ? t.subjectCancellation
-        : p.message_kind === "system" || !p.sender
-          ? t.subjectSystem
-          : t.subjectText(p.sender);
+        : p.message_kind === "reminder"
+          ? t.subjectReminder
+          : p.message_kind === "system" || !p.sender
+            ? t.subjectSystem
+            : t.subjectText(p.sender);
   const url = `${siteUrl.replace(/\/$/, "")}/beskeder/${encodeURIComponent(p.conversation_id)}`;
   const lines = [
     t.intro(p.organization),

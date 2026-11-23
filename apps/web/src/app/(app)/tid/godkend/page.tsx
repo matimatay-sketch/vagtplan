@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SubmitButton } from "@/components/form";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, SlidersHorizontal, UserRoundCog } from "lucide-react";
+import { BellRing, ChevronLeft, ChevronRight, SlidersHorizontal, UserRoundCog } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -251,6 +251,13 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
               posting={posting}
               supplements={{ options: supplementOptions, chooseAll: true }}
             />
+            {hasAny(ctx.permissions, ["reminders.manage"]) ? (
+              <Button asChild variant="outline">
+                <Link href="/tid/godkend/paamindelser">
+                  <BellRing /> {da.reminders.link}
+                </Link>
+              </Button>
+            ) : null}
             {canSubstitute ? (
               <Button asChild variant="outline">
                 <Link href="/tid/godkend/stedfortraedere">
