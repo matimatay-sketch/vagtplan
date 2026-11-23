@@ -10,6 +10,7 @@ import { loadTimeOverview } from "@/lib/time/load";
 import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { stampPostingFor } from "@/lib/time/stamp-context";
+import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Tid" };
@@ -37,6 +38,10 @@ export default async function TimePage() {
   ]);
   const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
   const stampPosting = await stampPostingFor(supabase, ctx.employee.id, posting);
+  const [deviation, stampPlans] = await Promise.all([
+    loadDeviationContext(supabase, ctx.organization.id),
+    loadStampPlans(supabase, ctx.employee.id),
+  ]);
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
 
   return (
@@ -49,12 +54,17 @@ export default async function TimePage() {
           employeeId={ctx.employee.id}
           openSince={open?.start ?? null}
           posting={stampPosting}
+          reasons={deviation.reasons}
+          thresholdMinutes={deviation.thresholdMinutes}
+          stampPlans={stampPlans}
+          openPlan={open?.plan ? { start: open.plan.start, end: open.plan.end } : null}
         />
         <MyEntries
           rows={overview.rows}
           daily={overview.daily[ctx.employee.id] ?? {}}
           posting={posting}
           supplements={{ options: supplementOptions, chooseAll: false }}
+          deviation={deviation}
           employeeId={ctx.employee.id}
           dates={dates}
         />

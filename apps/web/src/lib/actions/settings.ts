@@ -12,6 +12,7 @@ import {
   supplementTypeSchema,
 } from "@/lib/forms/settings";
 import { customRulesSchema } from "@/lib/forms/custom-rules";
+import { deviationReasonSchema, deviationThresholdSchema } from "@/lib/forms/deviation-reasons";
 import type { Json } from "@/lib/supabase/database.types";
 import { da } from "@/lib/i18n/da";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
@@ -225,4 +226,62 @@ export async function saveCustomRulesAction(rules: unknown): Promise<ActionState
   revalidateSettings();
   revalidatePath("/tid", "layout");
   return { ok: true, message: da.customRules.saved };
+}
+
+/** Creates or changes a deviation reason (settings.manage; RLS checks it). */
+export async function saveDeviationReasonAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireContext(["settings.manage"]);
+  const values = formValues(formData);
+  const parsed = deviationReasonSchema.safeParse(formData);
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const id = z.guid().safeParse(values.id).data;
+  const supabase = await createClient();
+  const row = { ...parsed.data, organization_id: ctx.organization.id };
+  const { data, error } = id
+    ? await supabase.from("deviation_reason").update(row).eq("id", id).select("id")
+    : await supabase.from("deviation_reason").insert(row).select("id");
+  if (error) return { message: dbErrorMessage(error), values };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidateSettings();
+  revalidatePath("/tid", "layout");
+  return { ok: true, message: da.deviationReasons.saved };
+}
+
+export async function archiveDeviationReasonAction(id: string): Promise<ActionState> {
+  await requireContext(["settings.manage"]);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("deviation_reason")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", z.guid().parse(id))
+    .select("id");
+  if (error) return { message: dbErrorMessage(error) };
+  if (!data?.length) return { message: da.common.notAllowed };
+  revalidateSettings();
+  revalidatePath("/tid", "layout");
+  return { ok: true, message: da.deviationReasons.archived };
+}
+
+export async function saveDeviationThresholdAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireContext(["settings.manage"]);
+  const values = formValues(formData);
+  const parsed = deviationThresholdSchema.safeParse(values);
+  if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organization_settings")
+    .update(parsed.data)
+    .eq("organization_id", ctx.organization.id)
+    .select("organization_id");
+  if (error) return { message: dbErrorMessage(error), values };
+  if (!data?.length) return { message: da.common.notAllowed, values };
+  revalidateSettings();
+  revalidatePath("/tid", "layout");
+  return { ok: true, message: da.common.saved };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PERMISSIONS,
+  hasDepartmentScope,
   canInDepartment,
   hasAny,
   normalizeGrants,
@@ -43,6 +44,7 @@ describe("permission catalog", () => {
       "messages.send",
       "integrations.manage",
       "reports.view",
+      "reminders.manage",
     ]);
   });
 });
@@ -106,6 +108,17 @@ describe("normalizeGrants", () => {
     expect(scopeLabel("messages.send", "")).toBe("Kun til ledere");
     expect(scopeLabel("messages.send", "organization")).toBe("Alle");
     expect(scopeLabel("employees.view", "")).toBe("Ingen");
-    expect(scopeLabel("employees.view", "departments")).toBe("Egne afdelinger");
+    expect(scopeLabel("employees.view", "departments")).toBe("Afdelinger, man er ansvarlig for");
+  });
+});
+
+describe("hasDepartmentScope", () => {
+  it("is true when a permission is limited to the departments the user is responsible for", () => {
+    expect(hasDepartmentScope({ "employees.view": "departments" })).toBe(true);
+    expect(hasDepartmentScope({ "employees.view": "organization" })).toBe(false);
+    expect(hasDepartmentScope({})).toBe(false);
+  });
+  it("ignores messages.send, whose departments are the user's own", () => {
+    expect(hasDepartmentScope({ "messages.send": "departments" })).toBe(false);
   });
 });

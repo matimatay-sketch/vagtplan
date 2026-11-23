@@ -13,6 +13,9 @@ export type QueuedStamp = {
   employeeId?: string;
   /** Posting chosen when stamping in (dimension id → value id); omitted = as planned/standard. */
   posting?: Record<string, string>;
+  /** Deviation reason chosen when stamping (start: in or without a shift; end: out). */
+  reasonId?: string;
+  reasonAt?: "start" | "end";
 };
 
 export type StampResult =

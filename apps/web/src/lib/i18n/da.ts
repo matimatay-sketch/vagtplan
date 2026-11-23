@@ -724,6 +724,13 @@ export const da = {
     departments: "Ansvarlig for afdelinger",
     noDepartments: "Ingen",
     addResponsible: "Gør ansvarlig for afdeling",
+    noResponsibilityNotice:
+      "Du har rettigheder til afdelinger, du er ansvarlig for, men du er ikke sat som ansvarlig for nogen afdeling endnu. Derfor ser du ingen medarbejdere eller vagter. Bed en administrator om at gøre dig ansvarlig under Afdelinger eller på din medarbejderside.",
+    noResponsibilityWarning: (name: string) =>
+      `${name} har rettigheder til de afdelinger, brugeren er ansvarlig for, men er ikke ansvarlig for nogen afdeling. Derfor ser ${name} ingen medarbejdere eller vagter.`,
+    makeResponsibleForOwn: (depts: string) => `Gør ansvarlig for ${depts}`,
+    responsibilityHelp:
+      'Rettigheder med omfanget "Afdelinger, man er ansvarlig for" gælder kun de afdelinger, brugeren er sat som ansvarlig for her. Det er ikke nok at være medarbejder i afdelingen.',
     lastOwner: "Der skal altid være mindst én administrator.",
   },
   profiles: {
@@ -1159,6 +1166,7 @@ export const da = {
     missingTeam: "Vagter uden registrering",
     registerFor: "Registrér for medarbejderen",
     registerOtherTimes: "Registrér andre tider",
+    deviationTimeOff: (reason: string) => `Afspadsering (${reason})`,
     registerForEmployee: "Registrér for en medarbejder",
     registerForLead:
       "Vælg medarbejder og dato. Registreringen kommer til godkendelse som andre registreringer.",
@@ -1921,12 +1929,14 @@ export const da = {
       swap: "Forslag om vagtbytte",
       cancellation: "Afbud",
       system: "Besked fra Turnus",
+      reminder: "Påmindelse",
     },
     email: {
       subjectText: (sender: string) => `Ny besked fra ${sender} i Turnus`,
       subjectSwap: "Forslag om vagtbytte i Turnus",
       subjectCancellation: "Afbud til en vagt i Turnus",
       subjectSystem: "Nyt om en vagt i Turnus",
+      subjectReminder: "Påmindelse fra Turnus",
       intro: (organization: string) => `Du har en ny besked i Turnus (${organization}).`,
       from: (sender: string) => `Fra: ${sender}`,
       about: (subject: string) => `Emne: ${subject}`,
@@ -2088,6 +2098,170 @@ export const da = {
       registered: "Registreret (timer)",
       difference: "Forskel (timer)",
     },
+  },
+  reminders: {
+    title: "Påmindelser",
+    lead: "Sæt op, hvad der skal mindes om og for hvilke medarbejdere. Send med en knap, eller lad Turnus sende automatisk om morgenen på de valgte ugedage. Påmindelsen kommer som besked i Turnus og som e-mail.",
+    link: "Påmindelser",
+    newTitle: "Ny påmindelse",
+    editTitle: "Ret påmindelsen",
+    name: "Navn",
+    namePlaceholder: "Fx Husk at registrere tid",
+    kind: "Påmind om",
+    kinds: {
+      missing_registration: "Planlagte vagter uden registreret tid (til medarbejderen)",
+      open_stamp: "Stempling ikke afsluttet (til medarbejderen)",
+      time_approval: "Tid, der venter på godkendelse (til godkenderen)",
+      absence_approval: "Fravær, der venter på godkendelse (til godkenderen)",
+      expense_approval: "Kørsel og udlæg, der venter på godkendelse (til godkenderen)",
+    },
+    shortKinds: {
+      missing_registration: "Manglende registrering",
+      open_stamp: "Stempling ikke afsluttet",
+      time_approval: "Tid til godkendelse",
+      absence_approval: "Fravær til godkendelse",
+      expense_approval: "Kørsel og udlæg til godkendelse",
+    },
+    departments: "Afdelinger",
+    allDepartments: "Alle afdelinger",
+    employees: "Kun disse medarbejdere (valgfrit)",
+    employeesHelp: "Ingen valgt = alle medarbejdere i de valgte afdelinger.",
+    lookback: "Se dage tilbage",
+    lookbackHelp:
+      "Hvor langt tilbage vagter, registreringer og udlæg tælles med. Stempling og fravær tæller altid med.",
+    note: "Egen tekst i påmindelsen (valgfri)",
+    auto: "Send automatisk",
+    autoHelp: "Sendes om morgenen på de valgte ugedage, højst én gang om dagen.",
+    weekdays: "Ugedage",
+    weekdayNames: ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"],
+    create: "Opret påmindelse",
+    save: "Gem påmindelsen",
+    saved: "Påmindelsen er gemt.",
+    created: "Påmindelsen er oprettet.",
+    archive: "Slet",
+    archiveConfirm: "Slet påmindelsen? Den sendes ikke mere.",
+    archived: "Påmindelsen er slettet.",
+    preview: "Hvem får den?",
+    previewEmpty: "Ingen at minde om lige nu.",
+    previewCount: (name: string, n: number) => `${name} (${n})`,
+    sendNow: "Send nu",
+    sendConfirm: (n: number) => `Send påmindelsen til ${n} ${n === 1 ? "person" : "personer"} nu?`,
+    sent: (n: number) =>
+      n === 0
+        ? "Ingen at minde om lige nu."
+        : n === 1
+          ? "Påmindelsen er sendt til 1 person."
+          : `Påmindelsen er sendt til ${n} personer.`,
+    none: "Ingen påmindelser endnu.",
+    everyone: "Alle",
+    autoOn: (days: string) => `Automatisk: ${days}`,
+    manualOnly: "Kun med knap",
+    lastSent: (when: string, n: number) => `Sidst sendt ${when} til ${n}`,
+    neverSent: "Ikke sendt endnu",
+    kindRequired: "Vælg, hvad der skal mindes om",
+    lookbackInvalid: "Angiv 1–93 dage",
+    weekdaysRequired: "Vælg mindst én ugedag",
+    message: {
+      missing_registration: (n: number) =>
+        n === 1
+          ? "Påmindelse: Du har 1 planlagt vagt uden registreret tid. Registrér tiden under Tid."
+          : `Påmindelse: Du har ${n} planlagte vagter uden registreret tid. Registrér tiden under Tid.`,
+      open_stamp: (n: number) =>
+        n === 1
+          ? "Påmindelse: Du har en registrering, der ikke er stemplet ud. Afslut den under Tid."
+          : `Påmindelse: Du har ${n} registreringer, der ikke er stemplet ud. Afslut dem under Tid.`,
+      time_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "registrering venter" : "registreringer venter"} på din godkendelse under Godkend tid.`,
+      absence_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "fraværsansøgning venter" : "fraværsansøgninger venter"} på din godkendelse under Godkend fravær.`,
+      expense_approval: (n: number) =>
+        `Påmindelse: ${n} ${n === 1 ? "kørsel eller udlæg venter" : "kørsler og udlæg venter"} på din godkendelse under Godkend tid.`,
+    },
+    links: {
+      missing_registration: "/tid",
+      open_stamp: "/tid",
+      time_approval: "/tid/godkend",
+      absence_approval: "/fravaer/godkend",
+      expense_approval: "/tid/godkend",
+    },
+    open: "Åbn",
+  },
+  deviationReasons: {
+    title: "Afvigelsesårsager",
+    lead: "Årsager, medarbejderne vælger, når de kommer eller går tidligere eller senere end vagten, eller stempler uden en vagt. Hver årsag bestemmer, hvad der sker med lønnen.",
+    threshold: "Årsag kræves ved afvigelse over (minutter)",
+    thresholdHelp: "Afviger tiden mindre fra vagten, spørges der ikke om en årsag.",
+    saveThreshold: "Gem grænsen",
+    none: "Ingen årsager endnu. Uden årsager skrives en begrundelse som fritekst.",
+    newTitle: "Ny årsag",
+    name: "Navn",
+    namePlaceholder: "Fx Lægebesøg",
+    appliesTo: "Kan vælges, når man",
+    situations: {
+      early_in: "kommer for tidligt",
+      late_in: "kommer for sent",
+      early_out: "går for tidligt",
+      late_out: "går for sent",
+      unplanned: "stempler uden vagt",
+    },
+    treatment: "Betydning for lønnen",
+    treatments: {
+      none: "Kun registrering (statistik)",
+      payout: "Tiden udbetales efter overenskomsten",
+      time_off: "Den ekstra tid bliver afspadsering",
+      absence: "Den manglende tid bliver fravær",
+    },
+    timeOffMode: "Afspadsering",
+    timeOffModeHelp:
+      "Efter overenskomsten: overarbejdsreglens faktor og lønart for afspadsering bruges. Egen faktor: du angiver faktor og lønart, og den ekstra tid udbetales ikke.",
+    timeOffModes: {
+      agreement: "Efter overenskomsten",
+      factor: "Egen faktor",
+    },
+    factor: "Timer afspadsering pr. time",
+    payCode: "Lønart for afspadsering",
+    absenceType: "Fraværstype",
+    absenceTypeHelp:
+      "Fravær: den manglende tid bliver fravær af den valgte type og betales efter typen (fuld løn eller ingen løn).",
+    create: "Opret årsag",
+    save: "Gem årsagen",
+    edit: "Ret",
+    archive: "Slet",
+    archiveConfirm: "Slet årsagen? Registreringer, der allerede har den, beholder den.",
+    saved: "Årsagen er gemt.",
+    archived: "Årsagen er slettet.",
+    appliesRequired: "Vælg mindst én situation",
+    treatmentRequired: "Vælg betydningen for lønnen",
+    factorInvalid: "Angiv en faktor, fx 1 eller 1,5",
+    payCodeRequired: "Angiv en lønart med store bogstaver",
+    absenceRequired: "Vælg en fraværstype",
+    thresholdInvalid: "Angiv hele minutter (0–240)",
+    // Choosing a reason on a registration.
+    startReason: "Årsag",
+    startReasonFor: {
+      early_in: (m: string) => `Du kom ${m} for tidligt. Hvorfor?`,
+      late_in: (m: string) => `Du kom ${m} for sent. Hvorfor?`,
+      unplanned: () => "Du har ingen vagt nu. Hvorfor stempler du ind?",
+    } as Record<string, (m: string) => string>,
+    endReasonFor: {
+      early_out: (m: string) => `Du går ${m} før vagten slutter. Hvorfor?`,
+      late_out: (m: string) => `Du går ${m} efter vagten. Hvorfor?`,
+    } as Record<string, (m: string) => string>,
+    // Neutral wording: a manager may register for the employee.
+    entryReasonFor: {
+      early_in: (m: string) => `Årsag: mødt ${m} før vagten`,
+      late_in: (m: string) => `Årsag: mødt ${m} for sent`,
+      early_out: (m: string) => `Årsag: gået ${m} før tid`,
+      late_out: (m: string) => `Årsag: gået ${m} efter vagten`,
+      unplanned: () => "Årsag: arbejde uden vagt",
+    } as Record<string, (m: string) => string>,
+    elaborate: "Uddybning",
+    choose: "Vælg årsag",
+    reasonRequired: "Vælg en årsag",
+    confirmIn: "Stempl ind",
+    confirmOut: "Stempl ud",
+    cancel: "Annullér",
+    badge: (name: string) => `Årsag: ${name}`,
   },
   customRules: {
     title: "Egne regler",

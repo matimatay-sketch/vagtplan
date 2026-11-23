@@ -4,7 +4,7 @@ import { login, users } from "./helpers";
 const MADS = "/medarbejdere/50000000-0000-0000-0000-000000000002";
 const ANNE = "/medarbejdere/50000000-0000-0000-0000-000000000005";
 
-async function setLederContracts(page: Page, scope: "Ingen" | "Egne afdelinger") {
+async function setLederContracts(page: Page, scope: "Ingen" | "Afdelinger, man er ansvarlig for") {
   await page.goto("/indstillinger/rettigheder");
   await page.getByRole("link", { name: /^Leder/ }).click();
   const matrix = page.getByTestId("grant-matrix");
@@ -35,7 +35,7 @@ test("admin can restrict the Leder profile and the manager loses the ability", a
 
   // Restore for other tests.
   await login(page, users.admin);
-  await setLederContracts(page, "Egne afdelinger");
+  await setLederContracts(page, "Afdelinger, man er ansvarlig for");
 });
 
 test("admin creates a custom profile and assigns it to a user", async ({ page }) => {
@@ -132,7 +132,7 @@ test("profiles can be compared side by side, also only the differences", async (
   const row = table.locator('[data-permission="employees.manage"]');
   await expect(row).toHaveAttribute("data-differs", "true");
   await expect(row).toContainText("Hele virksomheden");
-  await expect(row).toContainText("Egne afdelinger");
+  await expect(row).toContainText("Afdelinger, man er ansvarlig for");
 
   // Only the differences: every row shown differs.
   const all = await table.getByTestId("compare-row").count();

@@ -20,6 +20,14 @@ import { assistantState } from "@/lib/assistant/access";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
 import { CustomRulesForm } from "@/components/settings/custom-rules";
+import {
+  ArchiveDeviationReasonButton,
+  DeviationReasonForm,
+  DeviationThresholdForm,
+} from "@/components/settings/deviation-reasons";
+import { LazyDetails } from "@/components/lazy-details";
+import { loadAgreements } from "@/lib/engine";
+import type { DeviationReason } from "@/lib/domain/deviation";
 import { da } from "@/lib/i18n/da";
 import {
   LeaveRulesForm,
@@ -64,7 +72,7 @@ export default async function SettingsPage() {
     supabase
       .from("organization_settings")
       .select(
-        "norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call, default_agreement_id",
+        "norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call, default_agreement_id, deviation_threshold_minutes",
       )
       .eq("organization_id", ctx.organization.id)
       .maybeSingle(),
@@ -75,6 +83,31 @@ export default async function SettingsPage() {
       .eq("is_example", false)
       .order("name"),
   ]);
+  const [{ data: reasonRows }, engine] = await Promise.all([
+    supabase
+      .from("deviation_reason")
+      .select(
+        "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("sort_order")
+      .order("name"),
+    loadAgreements(supabase),
+  ]);
+  const reasons = (reasonRows ?? []) as unknown as DeviationReason[];
+  // Absence types in the organization's agreements (for "the missing time becomes absence").
+  const absenceTypes = new Map<string, string>();
+  for (const docs of Object.values(engine.registry))
+    for (const doc of docs)
+      for (const r of doc.rules)
+        if (r.primitive === "absence")
+          for (const type of (r.params as { types?: { code: string; label: string }[] }).types ??
+            [])
+            if (!absenceTypes.has(type.code)) absenceTypes.set(type.code, type.label);
+  const absenceTypeList = [...absenceTypes.entries()]
+    .map(([code, label]) => ({ code, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "da"));
   const links = [
     { href: "/indstillinger/lonperioder", label: da.nav.payPeriodGroups, show: true },
     {
@@ -176,6 +209,53 @@ export default async function SettingsPage() {
               </h3>
               <CustomRulesForm rules={settings.custom_rules} />
             </section>
+          </CardContent>
+        </Card>
+        <Card data-testid="deviation-reasons">
+          <CardHeader>
+            <CardTitle>
+              {da.deviationReasons.title}
+              <HelpTip>
+                <span className="grid gap-2">
+                  <span>{da.deviationReasons.lead}</span>
+                  <span>{da.deviationReasons.timeOffModeHelp}</span>
+                  <span>{da.deviationReasons.absenceTypeHelp}</span>
+                </span>
+              </HelpTip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            <DeviationThresholdForm minutes={norm?.deviation_threshold_minutes ?? 5} />
+            {reasons.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{da.deviationReasons.none}</p>
+            ) : (
+              <ul className="grid divide-y rounded-lg border" data-testid="deviation-reason-list">
+                {reasons.map((r) => (
+                  <li key={r.id} className="grid gap-2 px-3 py-3" data-reason={r.name}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="grid gap-0.5">
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {da.deviationReasons.treatments[r.treatment]}
+                          {" · "}
+                          {r.applies_to.map((x) => da.deviationReasons.situations[x]).join(", ")}
+                        </span>
+                      </div>
+                      <ArchiveDeviationReasonButton id={r.id} name={r.name} />
+                    </div>
+                    <LazyDetails className="text-sm" summary={da.deviationReasons.edit}>
+                      <div className="mt-3">
+                        <DeviationReasonForm initial={r} absenceTypes={absenceTypeList} />
+                      </div>
+                    </LazyDetails>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="grid gap-2 border-t pt-4">
+              <h3 className="font-semibold">{da.deviationReasons.newTitle}</h3>
+              <DeviationReasonForm absenceTypes={absenceTypeList} />
+            </div>
           </CardContent>
         </Card>
         <Card>

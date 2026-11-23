@@ -12,6 +12,7 @@ export type WorkInterval = Span & {
   normPercent: number;
   supplements: ShiftSupplementInput[];
   postings: PostingRow[];
+  overtimeAsTimeOff: boolean;
 };
 
 export type PostingRow = {
@@ -44,6 +45,7 @@ export function normalizeIntervals(inputs: readonly WorkIntervalInput[]): WorkIn
         plannedShiftId: i.plannedShiftId ?? null,
         normPercent: Math.max(0, i.normPercent ?? ((i.kind ?? "work") === "on_call" ? 0 : 100)),
         supplements: i.supplements ?? [],
+        overtimeAsTimeOff: i.overtimeAsTimeOff ?? false,
         postings: (i.postings ?? []).map((p) => ({
           values: p.values,
           start: p.start && p.end ? parseInstant(p.start) : null,

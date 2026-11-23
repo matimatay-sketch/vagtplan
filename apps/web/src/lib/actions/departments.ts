@@ -71,6 +71,29 @@ export async function addManagerAction(formData: FormData) {
   revalidatePath("/medarbejdere", "layout");
 }
 
+/** Makes a user responsible for the departments their own employee record is in. */
+export async function addManagerForOwnDepartmentsAction(formData: FormData) {
+  const ctx = await requireContext(["users.manage"]);
+  const input = z
+    .object({ employee_id: z.guid(), user_id: z.guid() })
+    .parse(Object.fromEntries(formData));
+  const supabase = await createClient();
+  const { data: links } = await supabase
+    .from("employee_department")
+    .select("department_id")
+    .eq("employee_id", input.employee_id);
+  for (const l of links ?? []) {
+    const { error } = await supabase.from("department_manager").insert({
+      organization_id: ctx.organization.id,
+      department_id: l.department_id,
+      user_id: input.user_id,
+    });
+    if (error && error.code !== "23505") throw new Error(dbErrorMessage(error));
+  }
+  revalidatePath("/afdelinger");
+  revalidatePath("/medarbejdere", "layout");
+}
+
 export async function removeManagerAction(formData: FormData) {
   await requireContext(["users.manage"]);
   const input = z

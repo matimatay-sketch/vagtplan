@@ -9,6 +9,7 @@ import { formatHours } from "@/lib/domain/numbers";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
+import type { DeviationContext } from "@/lib/time/deviation-types";
 import type { PostingDimension } from "@/lib/domain/posting";
 import { cn } from "@/lib/utils";
 import { EntryDialog, type EntryDraft, type EntrySupplements } from "./entry-dialog";
@@ -82,6 +83,11 @@ export function RowDetails({
         </span>
       ) : null}
       <DeviationText row={row} />
+      {row.reasonNames.map((name) => (
+        <span key={name} className="rounded border px-1 text-foreground" data-testid="row-reason">
+          {da.deviationReasons.badge(name)}
+        </span>
+      ))}
       {row.postingAllocations.length ? (
         <span
           className="inline-flex items-center gap-1"
@@ -168,6 +174,7 @@ export function MyEntries({
   daily,
   posting,
   supplements,
+  deviation,
   employeeId,
   dates,
 }: {
@@ -175,6 +182,8 @@ export function MyEntries({
   daily: Record<string, number>;
   posting: PostingDimension[];
   supplements: EntrySupplements;
+  /** Deviation reasons for the registration form. */
+  deviation?: DeviationContext;
   employeeId: string;
   /** Newest first. */
   dates: string[];
@@ -280,7 +289,13 @@ export function MyEntries({
           })}
         </ol>
       </section>
-      <EntryDialog draft={draft} posting={posting} supplements={supplements} onClose={close} />
+      <EntryDialog
+        draft={draft}
+        posting={posting}
+        supplements={supplements}
+        deviation={deviation}
+        onClose={close}
+      />
     </div>
   );
 }

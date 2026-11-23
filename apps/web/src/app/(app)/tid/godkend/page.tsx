@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { SubmitButton } from "@/components/form";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, SlidersHorizontal, UserRoundCog } from "lucide-react";
+import { BellRing, ChevronLeft, ChevronRight, SlidersHorizontal, UserRoundCog } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApprovalTable, type DepartmentRights } from "@/components/time/approval-table";
 import { RegisterForEmployee } from "@/components/time/register-for";
+import { loadDeviationContext } from "@/lib/time/deviation-context";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { canInDepartment, hasAny } from "@/lib/permissions";
@@ -88,10 +89,11 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   const isWeek = range.from === weekStartOf(range.from) && dates.length === 7;
   const filters = parseTimeFilters(sp);
 
-  const [overview, posting, supplementOptions] = await Promise.all([
+  const [overview, posting, supplementOptions, deviation] = await Promise.all([
     loadTimeOverview(supabase, ctx, { from: range.from, to: range.to, departmentId }),
     loadPostingDimensions(supabase),
     loadSupplementOptions(supabase, ctx.organization.id),
+    loadDeviationContext(supabase, ctx.organization.id),
   ]);
   const accessible = overview.rows.filter(
     (r) => rights[r.departmentId] || approverOf.has(r.employeeId),
@@ -250,7 +252,15 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
               defaultDate={today < range.to ? today : range.to}
               posting={posting}
               supplements={{ options: supplementOptions, chooseAll: true }}
+              deviation={deviation}
             />
+            {hasAny(ctx.permissions, ["reminders.manage"]) ? (
+              <Button asChild variant="outline">
+                <Link href="/tid/godkend/paamindelser">
+                  <BellRing /> {da.reminders.link}
+                </Link>
+              </Button>
+            ) : null}
             {canSubstitute ? (
               <Button asChild variant="outline">
                 <Link href="/tid/godkend/stedfortraedere">
@@ -480,6 +490,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
           amountsFor={previewEmployees.filter((e) => e.showAmounts).map((e) => e.id)}
           posting={posting}
           supplements={{ options: supplementOptions, chooseAll: true }}
+          deviation={deviation}
           dates={dates}
         />
       )}

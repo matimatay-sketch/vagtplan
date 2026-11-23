@@ -12,6 +12,8 @@ import { needsReason } from "@/lib/domain/time-entries";
 import type { StampResult } from "@/lib/domain/stamp-queue";
 import { formBreaksToDb, localInstants } from "@/lib/schedule/breaks";
 import { da } from "@/lib/i18n/da";
+import { reasonsFor, situations } from "@/lib/domain/deviation";
+import { loadDeviationContext } from "@/lib/time/deviation-context";
 import type { Json } from "@/lib/supabase/database.types";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
 
@@ -30,6 +32,8 @@ const stampSchema = z
       at: z.iso.datetime({ offset: true }),
       organizationId: z.guid(),
       posting: z.record(z.guid(), z.guid()).optional(),
+      reasonId: z.guid().optional(),
+      reasonAt: z.enum(["start", "end"]).optional(),
     }),
   )
   .max(50);
@@ -44,7 +48,7 @@ export async function syncStampsAction(input: unknown): Promise<StampResult[]> {
   const supabase = await createClient();
   const out: StampResult[] = [];
   for (const e of events) {
-    const { error } = await supabase.rpc("stamp", {
+    const { data: entryId, error } = await supabase.rpc("stamp", {
       p_organization_id: e.organizationId,
       p_client_id: e.clientId,
       p_action: e.action,
@@ -57,6 +61,14 @@ export async function syncStampsAction(input: unknown): Promise<StampResult[]> {
           }
         : {}),
     });
+    // The deviation reason chosen when stamping (RLS: the employee's own registration).
+    if (!error && entryId && e.reasonId)
+      await supabase
+        .from("time_entry")
+        .update(
+          e.reasonAt === "end" ? { end_reason_id: e.reasonId } : { start_reason_id: e.reasonId },
+        )
+        .eq("id", entryId);
     if (!error) out.push({ clientId: e.clientId, status: "ok" });
     // The server answered, so the stamp leaves the queue either way; only a
     // network failure (the action throws in the browser) keeps it queued.
@@ -79,6 +91,53 @@ export async function completeAsPlannedAction(shiftIds: string[]): Promise<Actio
   if (error) return { message: dbErrorMessage(error) };
   revalidateTime();
   return { ok: true, message: da.time.completed(data ?? 0) };
+}
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** The plan behind a registration (published snapshot), if any. */
+async function planFor(
+  supabase: Supabase,
+  shiftId: string | null | undefined,
+  startAt: string,
+): Promise<{ start: string; end: string } | null> {
+  if (!shiftId) return null;
+  const { data } = await supabase.rpc("time_overview", {
+    p_from: new Date(new Date(startAt).getTime() - 2 * 86_400_000).toISOString(),
+    p_to: new Date(new Date(startAt).getTime() + 2 * 86_400_000).toISOString(),
+  });
+  const r = (data ?? []).find((x) => x.shift_id === shiftId);
+  return r?.plan_start && r.plan_end ? { start: r.plan_start, end: r.plan_end } : null;
+}
+
+/** Chosen deviation reasons, required where reasons are set up for the situation. */
+async function resolveReasons(
+  supabase: Supabase,
+  orgId: string,
+  times: { start_at: string; end_at: string },
+  plan: { start: string; end: string } | null,
+  f: { start_reason_id?: string | null; end_reason_id?: string | null },
+): Promise<
+  { startReason: string | null; endReason: string | null } | { errors: Record<string, string> }
+> {
+  const deviation = await loadDeviationContext(supabase, orgId);
+  const sit = situations(
+    { start: times.start_at, end: times.end_at },
+    plan,
+    deviation.thresholdMinutes,
+  );
+  const startSituation = sit.unplanned ? "unplanned" : (sit.start?.kind ?? null);
+  const startOptions = startSituation ? reasonsFor(startSituation, deviation.reasons) : [];
+  const endOptions = sit.end ? reasonsFor(sit.end.kind, deviation.reasons) : [];
+  const startReason = startOptions.some((r) => r.id === f.start_reason_id)
+    ? f.start_reason_id!
+    : null;
+  const endReason = endOptions.some((r) => r.id === f.end_reason_id) ? f.end_reason_id! : null;
+  const errors: Record<string, string> = {};
+  if (startOptions.length && !startReason)
+    errors.start_reason_id = da.deviationReasons.reasonRequired;
+  if (endOptions.length && !endReason) errors.end_reason_id = da.deviationReasons.reasonRequired;
+  return Object.keys(errors).length ? { errors } : { startReason, endReason };
 }
 
 /**
@@ -126,16 +185,15 @@ export async function saveTimeEntryAction(
     existing = data;
   }
   const shiftId = existing?.shift_id ?? f.shift_id;
-  let plan: { start: string; end: string } | null = null;
-  if (shiftId) {
-    const { data } = await supabase.rpc("time_overview", {
-      p_from: new Date(new Date(times.start_at).getTime() - 2 * 86_400_000).toISOString(),
-      p_to: new Date(new Date(times.start_at).getTime() + 2 * 86_400_000).toISOString(),
-    });
-    const r = (data ?? []).find((x) => x.shift_id === shiftId);
-    if (r?.plan_start && r.plan_end) plan = { start: r.plan_start, end: r.plan_end };
-  }
+  const plan = await planFor(supabase, shiftId, times.start_at);
+  // A deviation reason is required where one is set up for the situation and the
+  // deviation is over the threshold; otherwise a written reason as before.
+  const reasons = await resolveReasons(supabase, ctx.organization.id, times, plan, f);
+  if ("errors" in reasons) return { errors: reasons.errors, values };
+  const { startReason, endReason } = reasons;
   if (
+    !startReason &&
+    !endReason &&
     needsReason({ start: times.start_at, end: times.end_at }, plan) &&
     (f.deviation_reason ?? "").length < 3
   )
@@ -147,6 +205,8 @@ export async function saveTimeEntryAction(
     posting_allocations: asJson(posting),
     supplement_type_ids: f.supplement_type_ids,
     deviation_reason: f.deviation_reason,
+    start_reason_id: startReason,
+    end_reason_id: endReason,
     note: f.note,
     kind: f.kind,
   };
@@ -259,7 +319,16 @@ export async function correctTimeEntryAction(
       values,
     };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("correct_time_entry", {
+  const { data: current } = await supabase
+    .from("time_entry")
+    .select("shift_id, organization_id")
+    .eq("id", f.id)
+    .maybeSingle();
+  if (!current) return { message: da.common.notAllowed, values };
+  const plan = await planFor(supabase, current.shift_id, times.start_at);
+  const reasons = await resolveReasons(supabase, current.organization_id, times, plan, f);
+  if ("errors" in reasons) return { errors: reasons.errors, values };
+  const { data: newId, error } = await supabase.rpc("correct_time_entry", {
     p_id: f.id,
     p_start_at: times.start_at,
     p_end_at: times.end_at,
@@ -271,6 +340,14 @@ export async function correctTimeEntryAction(
     p_reason: f.deviation_reason!,
   });
   if (error) return { message: dbErrorMessage(error), values };
+  // The new version is pending, so the reasons can be set on it.
+  if (newId) {
+    const { error: reasonError } = await supabase
+      .from("time_entry")
+      .update({ start_reason_id: reasons.startReason, end_reason_id: reasons.endReason })
+      .eq("id", newId);
+    if (reasonError) return { message: dbErrorMessage(reasonError), values };
+  }
   revalidateTime();
   return { ok: true, message: da.common.saved };
 }

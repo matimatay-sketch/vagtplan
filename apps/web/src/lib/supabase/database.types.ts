@@ -301,14 +301,14 @@ isOneToOne: false
                   ]
                 },"conversation": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"last_message_at": string,"organization_id": string,"subject": string | null
+                    "created_at": string,"created_by": string | null,"id": string,"last_message_at": string,"organization_id": string,"reminder_rule_id": string | null,"subject": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id": string,"subject"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id": string,"reminder_rule_id"?: string | null,"subject"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id"?: string,"subject"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"last_message_at"?: string,"organization_id"?: string,"reminder_rule_id"?: string | null,"subject"?: string | null
                   }
                   Relationships: [
                     {
@@ -316,6 +316,12 @@ isOneToOne: false
       columns: ["organization_id"]
 isOneToOne: false
       referencedRelation: "organization"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversation_reminder_rule_id_fkey"
+      columns: ["reminder_rule_id"]
+isOneToOne: false
+      referencedRelation: "reminder_rule"
       referencedColumns: ["id"]
     }
                   ]
@@ -377,6 +383,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "department"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"deviation_reason": {
+                  Row: {
+                    "absence_type": string | null,"applies_to": (string)[],"archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"sort_order": number,"time_off_factor_bp": number,"time_off_mode": string,"time_off_pay_code": string | null,"treatment": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absence_type"?: string | null,"applies_to": (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment": string
+                  }
+                  Update: {
+                    "absence_type"?: string | null,"applies_to"?: (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deviation_reason_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"email_outbox": {
@@ -745,14 +771,14 @@ isOneToOne: false
                   ]
                 },"organization_settings": {
                   Row: {
-                    "assistant_enabled": boolean,"custom_rules": NonNullable<Json>,"default_agreement_id": string | null,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
+                    "assistant_enabled": boolean,"custom_rules": NonNullable<Json>,"default_agreement_id": string | null,"deviation_threshold_minutes": number,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"deviation_threshold_minutes"?: number,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Update: {
-                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"deviation_threshold_minutes"?: number,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1063,6 +1089,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "project"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"reminder_rule": {
+                  Row: {
+                    "archived_at": string | null,"auto": boolean,"created_at": string,"created_by": string | null,"department_ids": (string)[],"employee_ids": (string)[],"id": string,"kind": string,"last_sent_at": string | null,"last_sent_count": number | null,"lookback_days": number,"name": string,"note": string,"organization_id": string,"weekdays": (number)[]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"department_ids"?: (string)[],"employee_ids"?: (string)[],"id"?: string,"kind": string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"name": string,"note"?: string,"organization_id": string,"weekdays"?: (number)[]
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"department_ids"?: (string)[],"employee_ids"?: (string)[],"id"?: string,"kind"?: string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"name"?: string,"note"?: string,"organization_id"?: string,"weekdays"?: (number)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reminder_rule_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"rotation": {
@@ -1427,17 +1473,23 @@ isOneToOne: false
                   ]
                 },"time_entry": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"supplement_type_ids": (string)[],"updated_at": string
+                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"end_reason_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"start_reason_id": string | null,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"supplement_type_ids": (string)[],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"end_reason_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"start_reason_id"?: string | null,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"end_reason_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"start_reason_id"?: string | null,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "time_entry_end_reason_fk"
+      columns: ["organization_id","end_reason_id"]
+isOneToOne: false
+      referencedRelation: "deviation_reason"
+      referencedColumns: ["organization_id","id"]
+    },{
       foreignKeyName: "time_entry_organization_id_department_id_fkey"
       columns: ["organization_id","department_id"]
 isOneToOne: false
@@ -1466,6 +1518,12 @@ isOneToOne: false
       columns: ["organization_id","supersedes_id"]
 isOneToOne: false
       referencedRelation: "time_entry"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "time_entry_start_reason_fk"
+      columns: ["organization_id","start_reason_id"]
+isOneToOne: false
+      referencedRelation: "deviation_reason"
       referencedColumns: ["organization_id","id"]
     }
                   ]
@@ -1707,11 +1765,19 @@ isOneToOne: false
 "report_shift_cancellation":
 { Args: { "p_reason": string,"p_shift_id": string }; Returns: string
                            },
+"run_due_reminders":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "save_approval_substitute":
 { Args: { "p_absent": string,"p_from": string,"p_id": string,"p_note": string,"p_org": string,"p_substitute": string,"p_to": string }; Returns: string
                            },
 "save_pay_run":
 { Args: { "p_daily": Json,"p_employee_id": string,"p_engine_version": string,"p_lines": Json,"p_notes": Json,"p_pending": number,"p_period_id": string }; Returns: string
+                           },
+"send_reminders":
+{ Args: { "p_rule_id": string,"p_send": boolean }; Returns: {
+              "items": number,"name": string,"user_id": string
+            }[]
                            },
 "set_primary_department":
 { Args: { "p_department_id": string,"p_employee_id": string }; Returns: undefined
@@ -1794,7 +1860,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","cancellation_status": "open"|"resolved"|"withdrawn","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","message_kind": "text"|"swap"|"cancellation"|"system","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","swap_status": "proposed"|"accepted"|"completed"|"declined"|"rejected"|"cancelled","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
+            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","cancellation_status": "open"|"resolved"|"withdrawn","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","message_kind": "text"|"swap"|"cancellation"|"system"|"reminder","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","swap_status": "proposed"|"accepted"|"completed"|"declined"|"rejected"|"cancelled","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1910,7 +1976,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"cancellation_status": ["open", "resolved", "withdrawn"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"message_kind": ["text", "swap", "cancellation", "system"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"swap_status": ["proposed", "accepted", "completed", "declined", "rejected", "cancelled"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
+            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"cancellation_status": ["open", "resolved", "withdrawn"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"message_kind": ["text", "swap", "cancellation", "system", "reminder"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"swap_status": ["proposed", "accepted", "completed", "declined", "rejected", "cancelled"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
           }
         }
 } as const

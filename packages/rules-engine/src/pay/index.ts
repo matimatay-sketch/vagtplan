@@ -103,6 +103,8 @@ type Segment = Span & {
   normPercent: number;
   date: IsoDate;
   holiday: boolean;
+  /** Overtime from this segment is taken as time off (see WorkIntervalInput). */
+  timeOff: boolean;
   /** window: index into the rule's window_rates (null = paid by tier). */
   overtime: { rule: ResolvedRule & Rule<"overtime">; tier: number; window: number | null } | null;
 };
@@ -622,11 +624,13 @@ function candidatesFor(
       ? seg.overtime.rule.params.window_rates[seg.overtime.window]!
       : seg.overtime.rule.params.tiers[seg.overtime.tier]!
     : null;
-  if (
-    seg.overtime &&
-    otRate &&
-    (known(otRate.amount) || seg.overtime.rule.params.compensation === "time_off")
-  ) {
+  // The registration's own choice (time off) wins over the rule's compensation.
+  const compensation = seg.overtime
+    ? seg.timeOff
+      ? "time_off"
+      : seg.overtime.rule.params.compensation
+    : null;
+  if (seg.overtime && otRate && (known(otRate.amount) || compensation === "time_off")) {
     const { rule } = seg.overtime;
     const t = otRate;
     const supplement = known(t.amount) ? amountRate(t.amount, base ?? 0) : 0;
@@ -634,7 +638,7 @@ function candidatesFor(
     const timeOff: Candidate = {
       rule,
       payCode:
-        rule.params.compensation === "payout_and_time_off"
+        compensation !== "time_off" || seg.timeOff
           ? (rule.params.time_off_pay_code ?? t.pay_code)
           : t.pay_code,
       rateOre: 0,
@@ -650,8 +654,8 @@ function candidatesFor(
       factorBp: 10000,
       note: null,
     };
-    if (rule.params.compensation === "time_off") out.push(timeOff);
-    else if (rule.params.compensation === "payout") out.push(money);
+    if (compensation === "time_off") out.push(timeOff);
+    else if (compensation === "payout") out.push(money);
     else out.push(money, timeOff);
   }
   for (const rule of ctx.rules(seg.date, "time_window_supplement")) {
@@ -908,6 +912,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
           normPercent: i.normPercent,
           date: d,
           holiday: isHolidayTime(ctx, d, s.start),
+          timeOff: i.overtimeAsTimeOff,
           overtime: null,
         });
       }

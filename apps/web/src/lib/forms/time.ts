@@ -34,6 +34,8 @@ export const timeEntryFormSchema = z
     posting_allocations: postingField,
     supplement_type_ids: supplementsField,
     deviation_reason: optionalText,
+    start_reason_id: optionalGuid,
+    end_reason_id: optionalGuid,
     note: optionalText,
     kind: z.enum(["work", "call_out"]).default("work"),
   })
