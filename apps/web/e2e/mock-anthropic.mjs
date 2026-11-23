@@ -6,6 +6,8 @@ import { createServer } from "node:http";
 const PORT = Number(process.env.MOCK_ANTHROPIC_PORT ?? 4545);
 const requests = [];
 const webhooks = [];
+// Web Push deliveries (encrypted; the tests count them per endpoint).
+const pushes = [];
 let proposalCalls = 0;
 
 function sse(res, text) {
@@ -85,6 +87,26 @@ createServer((req, res) => {
       res.end("ok");
     });
     return;
+  }
+  // A Web Push service for the notification tests.
+  if (req.method === "POST" && req.url?.startsWith("/__push/")) {
+    let size = 0;
+    req.on("data", (c) => (size += c.length));
+    req.on("end", () => {
+      pushes.push({
+        endpoint: req.url,
+        size,
+        encoding: req.headers["content-encoding"],
+        vapid: String(req.headers.authorization ?? "").startsWith("vapid "),
+      });
+      res.statusCode = 201;
+      res.end();
+    });
+    return;
+  }
+  if (req.method === "GET" && req.url === "/__pushes") {
+    res.setHeader("content-type", "application/json");
+    return res.end(JSON.stringify(pushes));
   }
   if (req.method === "GET" && req.url === "/__webhooks") {
     res.setHeader("content-type", "application/json");

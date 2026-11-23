@@ -65,6 +65,10 @@ Under **Project Settings → API Keys** finder du:
 | `CRON_SECRET` (valgfri) | En lang tilfældig tekst. Beskytter genforsøg af webhooks og e-mails |
 | `SMTP_URL` (valgfri) | Mailudbyderens SMTP, fx `smtps://bruger:kode@smtp.udbyder.eu:465`. Bruges til e-mails om nye beskeder |
 | `EMAIL_FROM` (valgfri) | Afsender, fx `Turnus <no-reply@ditdomæne.dk>` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (valgfri) | Push i browseren og den installerede webapp. Lav nøgleparret med `npx web-push generate-vapid-keys` |
+| `VAPID_PRIVATE_KEY` (valgfri) | Den private nøgle fra samme kommando. Kun til serveren |
+| `VAPID_SUBJECT` (valgfri) | Kontakt til push-tjenesterne, fx `mailto:drift@ditdomæne.dk` |
+| `FCM_SERVICE_ACCOUNT` (valgfri) | Push til appen i App Store og Google Play. Hele JSON-filen for en servicekonto i Firebase (se `docs/drift/app.md`) |
 
 4. Klik **Deploy**.
 5. Når adressen kendes, sætter du `NEXT_PUBLIC_SITE_URL` og Supabase' **Site URL** og **Redirect URLs** til den. Til sidst vælger du **Redeploy** i Vercel.
@@ -99,4 +103,6 @@ Før rigtige brugere inviteres, skal der sættes en rigtig mailudbyder op under 
   - Vercels gratis plan (Hobby) må ikke bruges kommercielt. Til rigtige kunder kræves Pro.
 - **Webhooks**: sendes med det samme efter handlingen. Genforsøg sendes af Vercel Cron (`/api/cron/webhooks`). På gratis-planen kører det kun én gang i døgnet, og på Pro kan det sættes hyppigere i `apps/web/vercel.json`.
 - **E-mails om beskeder**: sendes kun, når `SMTP_URL` er sat, og afdelingen har slået e-mail til under Afdelinger. Brug samme EU-udbyder som til Supabase' SMTP. Uden `SMTP_URL` venter e-mailene i køen, og beskederne ses kun i appen. Genforsøg sendes af samme cron som webhooks.
+- **Push-notifikationer**: sendes med det samme efter handlingen, og genforsøg sendes af samme cron. Uden VAPID-nøgler eller `FCM_SERVICE_ACCOUNT` venter notifikationerne i køen. Indholdet af en besked sendes aldrig, kun hvem den er fra. Se `docs/drift/app.md`.
+- **Kalenderlinks** (`/api/kalender/<token>.ics`): medarbejderen laver linket på Profil. Kun en hash af linket gemmes, og et nyt link stopper det gamle.
 - **AI-assistenten**: kræver `ANTHROPIC_API_KEY` og en databehandleraftale (se `docs/jura-todo.md` nr. 32).

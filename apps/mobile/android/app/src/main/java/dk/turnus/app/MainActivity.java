@@ -1,0 +1,5 @@
+package dk.turnus.app;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {}

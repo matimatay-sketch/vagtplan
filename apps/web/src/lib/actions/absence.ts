@@ -1,6 +1,7 @@
 "use server";
 import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
+import { sendPushSoon } from "@/lib/push/send";
 import { z } from "zod";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +17,8 @@ import { dbErrorMessage, formValues, type ActionState } from "./state";
 const overlap = { "23P01": da.absence.overlap };
 
 function revalidateAbsence() {
+  // Requests and decisions notify the approvers and the employee.
+  sendPushSoon();
   revalidatePath("/fravaer", "layout");
   revalidatePath("/vagtplan", "layout");
   revalidatePath("/oversigt");

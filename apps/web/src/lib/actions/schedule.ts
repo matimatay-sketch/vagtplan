@@ -1,4 +1,5 @@
 "use server";
+import { sendPushSoon } from "@/lib/push/send";
 import { sendWebhooksSoon } from "@/lib/api/notify";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -541,6 +542,8 @@ export async function publishAction(input: {
     })),
   });
   if (error) return { message: dbErrorMessage(error) };
+  // Employees whose shifts changed get a notification.
+  sendPushSoon();
   revalidateSchedule();
   return { ok: true, message: da.schedule.published(r.pendingCount) };
 }

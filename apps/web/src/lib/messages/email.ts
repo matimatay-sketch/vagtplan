@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { messageEmail, type MessageEmailPayload } from "@/lib/domain/message-email";
+import { dispatchPush } from "@/lib/push/send";
 
 /** E-mail is sent when SMTP_URL is set (e.g. smtps://user:pass@smtp.example.eu:465). */
 export function emailConfigured(): boolean {
@@ -51,13 +52,13 @@ export async function dispatchEmails(limit = 20): Promise<number> {
   return data.length;
 }
 
-/** Sends pending e-mails after the response (the database fills the outbox). */
+/** Sends pending e-mails and push notifications after the response (the database fills the outboxes). */
 export function sendEmailsSoon() {
   after(async () => {
     try {
-      await dispatchEmails();
+      await Promise.all([dispatchEmails(), dispatchPush()]);
     } catch (e) {
-      console.error("emails", e);
+      console.error("notifications", e);
     }
   });
 }

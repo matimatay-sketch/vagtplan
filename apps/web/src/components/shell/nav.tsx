@@ -314,6 +314,16 @@ const BAR_PRIORITY = [
   "/tid/godkend",
   "/fravaer",
 ];
+/** Approvers manage from the phone: stamping is on Oversigt, approvals in the bar. */
+const APPROVER_BAR_PRIORITY = [
+  "/oversigt",
+  "/vagtplan",
+  "/tid/godkend",
+  "/beskeder",
+  "/min-vagtplan",
+  "/tid",
+  "/fravaer/godkend",
+];
 const BAR_SLOTS = 5;
 
 /**
@@ -330,9 +340,12 @@ function BottomBar({
   badge: (href: string) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const priority = items.some((i) => i.href === "/tid/godkend")
+    ? APPROVER_BAR_PRIORITY
+    : BAR_PRIORITY;
   const rank = (href: string) => {
-    const i = BAR_PRIORITY.indexOf(href);
-    return i === -1 ? BAR_PRIORITY.length : i;
+    const i = priority.indexOf(href);
+    return i === -1 ? priority.length : i;
   };
   const ordered = [...items].sort((a, b) => rank(a.href) - rank(b.href));
   const overflow = items.length > BAR_SLOTS;

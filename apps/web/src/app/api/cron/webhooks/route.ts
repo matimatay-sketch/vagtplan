@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { dispatchWebhooks } from "@/lib/api/webhooks";
 import { dispatchEmails } from "@/lib/messages/email";
+import { dispatchPush } from "@/lib/push/send";
 import { createServiceClient } from "@/lib/supabase/server";
 
-/** Sends due webhook deliveries, automatic reminders and notification e-mails (retries). Called by Vercel Cron with CRON_SECRET. */
+/** Sends due webhook deliveries, automatic reminders and notification e-mails and push notifications (retries). Called by Vercel Cron with CRON_SECRET. */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`)
@@ -22,5 +23,11 @@ export async function GET(req: Request) {
     emails += n;
     if (n < 50) break;
   }
-  return NextResponse.json({ sent, emails, reminders: reminders ?? 0 });
+  let push = 0;
+  for (let i = 0; i < 5; i++) {
+    const n = await dispatchPush(50);
+    push += n;
+    if (n < 50) break;
+  }
+  return NextResponse.json({ sent, emails, push, reminders: reminders ?? 0 });
 }
