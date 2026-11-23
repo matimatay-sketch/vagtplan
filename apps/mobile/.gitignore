@@ -1,0 +1,5 @@
+www/
+node_modules/
+# Firebase configuration per environment (downloaded from the Firebase console).
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
