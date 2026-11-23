@@ -215,7 +215,13 @@ export default async function SettingsPage() {
           <CardHeader>
             <CardTitle>
               {da.deviationReasons.title}
-              <HelpTip>{da.deviationReasons.lead}</HelpTip>
+              <HelpTip>
+                <span className="grid gap-2">
+                  <span>{da.deviationReasons.lead}</span>
+                  <span>{da.deviationReasons.timeOffModeHelp}</span>
+                  <span>{da.deviationReasons.absenceTypeHelp}</span>
+                </span>
+              </HelpTip>
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5">
@@ -226,16 +232,16 @@ export default async function SettingsPage() {
               <ul className="grid divide-y rounded-lg border" data-testid="deviation-reason-list">
                 {reasons.map((r) => (
                   <li key={r.id} className="grid gap-2 px-3 py-3" data-reason={r.name}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{r.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {da.deviationReasons.treatments[r.treatment]}
-                        {" · "}
-                        {r.applies_to.map((x) => da.deviationReasons.situations[x]).join(", ")}
-                      </span>
-                      <span className="ml-auto">
-                        <ArchiveDeviationReasonButton id={r.id} name={r.name} />
-                      </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="grid gap-0.5">
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {da.deviationReasons.treatments[r.treatment]}
+                          {" · "}
+                          {r.applies_to.map((x) => da.deviationReasons.situations[x]).join(", ")}
+                        </span>
+                      </div>
+                      <ArchiveDeviationReasonButton id={r.id} name={r.name} />
                     </div>
                     <LazyDetails className="text-sm" summary={da.deviationReasons.edit}>
                       <div className="mt-3">

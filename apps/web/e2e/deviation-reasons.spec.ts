@@ -90,8 +90,10 @@ test("deviation reasons: set up, chosen when stamping and registering, changed b
   const ask = stamp.getByTestId("stamp-reason");
   await expect(ask).toContainText("Du har ingen vagt nu. Hvorfor stempler du ind?");
   await expect(ask.getByRole("radio")).toHaveCount(1);
-  await expect(ask.getByRole("button", { name: "Stempl ind" })).toBeDisabled();
-  await ask.getByLabel(AGREED).check();
+  // The only possible reason is chosen already, and the main button waits for the answer.
+  await expect(ask.getByLabel(AGREED)).toBeChecked();
+  await expect(ask.getByLabel(AGREED)).toBeFocused();
+  await expect(stamp.getByRole("button", { name: "Stempl ind" })).toHaveCount(1);
   await ask.getByRole("button", { name: "Stempl ind" }).click();
   await expect(stamp.getByTestId("stamp-status")).toContainText("Stemplet ind kl.");
   await stamp.getByRole("button", { name: "Stempl ud" }).click();
@@ -111,10 +113,12 @@ test("deviation reasons: set up, chosen when stamping and registering, changed b
   const form = page.getByTestId("entry-form");
   await form.getByLabel("Slut").fill("16:00");
   const reasons = form.getByTestId("entry-reasons");
-  await expect(reasons.getByLabel("Årsag: går for sent (slut)")).toBeVisible();
+  await expect(reasons.getByLabel("Årsag: gået 1 t efter vagten")).toBeVisible();
+  // With reasons to choose from, the written text is only an elaboration.
+  await expect(form.getByLabel("Uddybning (valgfri)")).toBeVisible();
   await form.getByRole("button", { name: "Gem registrering" }).click();
   await expect(form.getByText("Vælg en årsag")).toBeVisible();
-  await reasons.getByLabel("Årsag: går for sent (slut)").selectOption({ label: EXTRA });
+  await reasons.getByLabel("Årsag: gået 1 t efter vagten").selectOption({ label: EXTRA });
   await form.getByRole("button", { name: "Gem registrering" }).click();
   await expect(form).toHaveCount(0);
   await expect(day.getByTestId("row-reason")).toHaveText(`Årsag: ${EXTRA}`);
@@ -130,7 +134,7 @@ test("deviation reasons: set up, chosen when stamping and registering, changed b
   await expect(row.getByTestId("row-reason")).toHaveText(`Årsag: ${EXTRA}`);
   await row.getByRole("button", { name: /Redigér/ }).click();
   const edit = page.getByTestId("entry-form");
-  await edit.getByLabel("Årsag: går for sent (slut)").selectOption({ label: AGREED });
+  await edit.getByLabel("Årsag: gået 1 t efter vagten").selectOption({ label: AGREED });
   await edit.getByRole("button", { name: "Gem registrering" }).click();
   await expect(edit).toHaveCount(0);
   await expect(row.getByTestId("row-reason")).toHaveText(`Årsag: ${AGREED}`);

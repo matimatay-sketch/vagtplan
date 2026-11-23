@@ -159,12 +159,7 @@ export function DeviationReasonForm({
         </div>
       ) : null}
       {treatment === "absence" ? (
-        <Field
-          label={t.absenceType}
-          htmlFor={`${p}absence_type`}
-          error={err("absence_type")}
-          help={t.absenceTypeHelp}
-        >
+        <Field label={t.absenceType} htmlFor={`${p}absence_type`} error={err("absence_type")}>
           <NativeSelect
             id={`${p}absence_type`}
             name="absence_type"

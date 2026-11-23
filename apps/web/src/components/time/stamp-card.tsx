@@ -182,10 +182,18 @@ export function StampCard({
       reasons,
       thresholdMinutes,
     );
-    if (question) setAsking({ action, at, question });
-    else save(action, at);
+    if (question) {
+      setAsking({ action, at, question });
+      // One possible reason: chosen already, so a single tap confirms.
+      setReasonId(question.options.length === 1 ? question.options[0]!.id : "");
+    } else save(action, at);
   };
   const r = da.deviationReasons;
+  // The question gets focus, so keyboard and screen reader users land on it.
+  const questionRef = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    if (asking) questionRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+  }, [asking]);
 
   return (
     <div
@@ -239,7 +247,7 @@ export function StampCard({
             ))}
           </div>
         ) : null}
-        {state.in ? (
+        {asking ? null : state.in ? (
           <Button
             size="lg"
             className="w-full sm:w-auto pointer-coarse:h-14 pointer-coarse:text-base"
@@ -264,8 +272,10 @@ export function StampCard({
         <fieldset
           className="mt-4 grid gap-3 rounded-xl border bg-card p-4"
           data-testid="stamp-reason"
+          ref={questionRef}
         >
-          <legend className="px-1 font-medium">
+          {/* Floated, so the question sits inside the box instead of on its border. */}
+          <legend className="float-left w-full font-medium">
             {asking.question.at === "start"
               ? r.startReasonFor[asking.question.situation]!(formatMinutes(asking.question.minutes))
               : r.endReasonFor[asking.question.situation]!(formatMinutes(asking.question.minutes))}
