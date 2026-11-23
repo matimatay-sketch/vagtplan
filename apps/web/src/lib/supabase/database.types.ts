@@ -261,6 +261,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"calendar_feed": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"employee_id": string,"id": string,"organization_id": string,"token_hash": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"employee_id": string,"id"?: string,"organization_id": string,"token_hash": string,"user_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"employee_id"?: string,"id"?: string,"organization_id"?: string,"token_hash"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "calendar_feed_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "calendar_feed_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"contract": {
                   Row: {
                     "agreement_id": string,"created_at": string,"employee_id": string,"exempt_from_registration": boolean,"exemption_reason": string | null,"exemption_since": string | null,"id": string,"local_agreement_id": string | null,"organization_id": string,"overrides": NonNullable<Json>,"pay_form": Database["public"]['Enums']["pay_form"],"pay_period_group_id": string,"pay_step": string | null,"seniority_date": string | null,"staff_group": string | null,"valid_from": string,"valid_to": string | null,"weekly_norm_minutes": number
@@ -749,6 +775,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notification_setting": {
+                  Row: {
+                    "absence": boolean,"approvals": boolean,"messages": boolean,"organization_id": string,"schedule": boolean,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absence"?: boolean,"approvals"?: boolean,"messages"?: boolean,"organization_id": string,"schedule"?: boolean,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "absence"?: boolean,"approvals"?: boolean,"messages"?: boolean,"organization_id"?: string,"schedule"?: boolean,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_setting_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"organization": {
                   Row: {
                     "archived_at": string | null,"created_at": string,"default_profile_id": string | null,"id": string,"name": string,"timezone": string
@@ -1089,6 +1135,46 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "project"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"push_device": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"keys": NonNullable<Json>,"label": string,"last_seen_at": string,"organization_id": string,"platform": string,"token": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"keys"?: NonNullable<Json>,"label"?: string,"last_seen_at"?: string,"organization_id": string,"platform": string,"token": string,"user_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"keys"?: NonNullable<Json>,"label"?: string,"last_seen_at"?: string,"organization_id"?: string,"platform"?: string,"token"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_device_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"push_outbox": {
+                  Row: {
+                    "attempts": number,"created_at": string,"id": string,"kind": string,"last_error": string | null,"next_attempt_at": string,"organization_id": string,"payload": NonNullable<Json>,"sent_at": string | null,"status": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"kind": string,"last_error"?: string | null,"next_attempt_at"?: string,"organization_id": string,"payload": NonNullable<Json>,"sent_at"?: string | null,"status"?: string,"user_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"kind"?: string,"last_error"?: string | null,"next_attempt_at"?: string,"organization_id"?: string,"payload"?: NonNullable<Json>,"sent_at"?: string | null,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_outbox_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"reminder_rule": {
@@ -1611,6 +1697,11 @@ isOneToOne: false
 "archive_pay_period_group":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"calendar_feed_lookup":
+{ Args: { "p_token": string }; Returns: {
+              "employee_id": string,"organization_id": string,"timezone": string
+            }[]
+                           },
 "can_impersonate":
 { Args: { "p_employee_id": string }; Returns: {
               "allowed": boolean,"email": string,"reason": string,"user_id": string
@@ -1655,6 +1746,9 @@ isOneToOne: false
 "correct_time_entry":
 { Args: { "p_breaks": Json,"p_end_at": string,"p_id": string,"p_posting_allocations"?: Json,"p_project_allocations": Json,"p_reason": string,"p_start_at": string,"p_supplement_type_ids"?: (string)[] }; Returns: string
                            },
+"create_calendar_feed":
+{ Args: { "p_org": string }; Returns: string
+                           },
 "create_employee":
 { Args: { "p_birth_date": string,"p_department_id": string,"p_email"?: string,"p_employee_number": string,"p_first_name": string,"p_hired_on"?: string,"p_last_name": string,"p_phone"?: string,"p_school_obligated"?: boolean,"p_school_obligation_ends_on"?: string }; Returns: string
                            },
@@ -1674,6 +1768,9 @@ isOneToOne: false
                            },
 "end_approval_substitute":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"end_calendar_feed":
+{ Args: { "p_org": string }; Returns: undefined
                            },
 "end_impersonation":
 { Args: { "p_session": string }; Returns: undefined
@@ -1758,6 +1855,20 @@ isOneToOne: false
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "breaks": Json,"department_id": string,"department_name": string,"employee_id": string,"employee_name": string,"end_at": string,"id": string,"is_mine": boolean,"kind": Database["public"]['Enums']["shift_kind"],"label": string,"start_at": string
             }[]
+                           },
+"push_claim":
+{ Args: { "p_limit"?: number }; Returns: {
+              "attempts": number,"devices": Json,"id": string,"kind": string,"organization_id": string,"payload": Json,"user_id": string
+            }[]
+                           },
+"push_result":
+{ Args: { "p_error": string,"p_gone": (string)[],"p_id": string,"p_ok": boolean }; Returns: undefined
+                           },
+"register_push_device":
+{ Args: { "p_keys": Json,"p_label": string,"p_org": string,"p_platform": string,"p_token": string }; Returns: string
+                           },
+"remove_push_device":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "reopen_expense_items":
 { Args: { "p_expense_ids": (string)[],"p_trip_ids": (string)[] }; Returns: number

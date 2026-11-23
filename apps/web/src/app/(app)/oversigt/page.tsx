@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -85,13 +86,22 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
   const stamping = ctx.employee
     ? await (async () => {
         const id = ctx.employee!.id;
-        const [overview, posting] = await Promise.all([
+        const [overview, posting, deviation, plans] = await Promise.all([
           loadTimeOverview(supabase, ctx, { from: addDays(today, -1), to: today, onlyMine: true }),
           stampPostingFor(supabase, id),
+          loadDeviationContext(supabase, ctx.organization.id),
+          loadStampPlans(supabase, id),
         ]);
         if (overview.exempt.has(id)) return null;
         const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
-        return { employeeId: id, openSince: open?.start ?? null, posting };
+        return {
+          employeeId: id,
+          openSince: open?.start ?? null,
+          posting,
+          deviation,
+          plans,
+          openPlan: open?.plan ? { start: open.plan.start, end: open.plan.end } : null,
+        };
       })()
     : null;
   const in14 = new Date(zonedTime(addDays(today, 15))).toISOString();
@@ -272,6 +282,10 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
             employeeId={stamping.employeeId}
             openSince={stamping.openSince}
             posting={stamping.posting}
+            reasons={stamping.deviation.reasons}
+            thresholdMinutes={stamping.deviation.thresholdMinutes}
+            stampPlans={stamping.plans}
+            openPlan={stamping.openPlan}
           />
         </section>
       ) : null}
@@ -281,15 +295,17 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
         </Alert>
       ) : null}
       {stats.length ? (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {stats.map((s) => (
             <Link key={s.label} href={s.href} className="group">
               <Card className="h-full transition-shadow group-hover:shadow-md">
-                <CardHeader>
-                  <CardDescription>{s.label}</CardDescription>
-                  <CardTitle className="font-display text-4xl tabular">{s.value}</CardTitle>
+                <CardHeader className="max-sm:p-3">
+                  <CardDescription className="max-sm:text-xs">{s.label}</CardDescription>
+                  <CardTitle className="font-display text-2xl tabular sm:text-4xl">
+                    {s.value}
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+                <CardContent className="flex items-center justify-between text-sm text-muted-foreground max-sm:hidden">
                   <span className={s.note ? "text-warning-foreground" : undefined}>
                     {s.note ?? " "}
                   </span>

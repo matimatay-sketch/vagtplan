@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import webpush from "web-push";
+
+// Push keys for the test run only (the receiver is the local mock).
+const vapid = webpush.generateVAPIDKeys();
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
@@ -38,6 +42,9 @@ export default defineConfig({
         // Notification e-mails go to the local Mailpit.
         SMTP_URL: "smtp://127.0.0.1:54325",
         EMAIL_FROM: "Turnus <no-reply@turnus.test>",
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapid.publicKey,
+        VAPID_PRIVATE_KEY: vapid.privateKey,
+        VAPID_SUBJECT: "mailto:test@turnus.test",
       },
     },
   ],

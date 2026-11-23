@@ -10,6 +10,9 @@ import { todayIn } from "@/lib/domain/civil-date";
 import { formatDate, formatWeeklyHours, fullName } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
 import { CelebrationsToggle } from "@/components/dashboard/celebrations-toggle";
+import { NotificationsCard } from "@/components/notifications/notifications-card";
+import { CalendarFeedCard } from "@/components/notifications/calendar-feed-card";
+import { hasAny } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Min profil" };
 
@@ -19,9 +22,42 @@ export default async function ProfilePage() {
   const today = todayIn(ctx.organization.timezone);
   const t = da.employees;
   const tc = da.contracts;
+  const [{ data: devices }, { data: setting }, { data: feed }] = await Promise.all([
+    supabase
+      .from("push_device")
+      .select("id, platform, label, created_at")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("created_at"),
+    supabase
+      .from("notification_setting")
+      .select("messages, schedule, absence, approvals")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
+    supabase
+      .from("calendar_feed")
+      .select("created_at")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .maybeSingle(),
+  ]);
+  const notifications = (
+    <NotificationsCard
+      vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+      devices={devices ?? []}
+      settings={setting ?? { messages: true, schedule: true, absence: true, approvals: true }}
+      showApprovals={hasAny(ctx.permissions, ["absence.approve"])}
+    />
+  );
   if (!ctx.employee) {
     return (
-      <PageHeader title={da.nav.myProfile} lead="Din bruger er ikke knyttet til en medarbejder." />
+      <>
+        <PageHeader
+          title={da.nav.myProfile}
+          lead="Din bruger er ikke knyttet til en medarbejder."
+        />
+        <div className="grid gap-6 md:grid-cols-2">{notifications}</div>
+      </>
     );
   }
   const { data: me } = await supabase
@@ -88,6 +124,8 @@ export default async function ProfilePage() {
             ))}
           </CardContent>
         </Card>
+        {notifications}
+        <CalendarFeedCard activeSince={feed?.created_at ?? null} />
       </div>
     </>
   );

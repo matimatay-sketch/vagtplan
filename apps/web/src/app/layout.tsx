@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { NativeBridge } from "@/components/pwa/native-bridge";
 import { brand } from "@/lib/brand";
 import { HELP_BOOT_SCRIPT } from "@/lib/domain/help-mode";
 import "./globals.css";
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <Toaster position="top-right" richColors />
         <RegisterServiceWorker />
+        <NativeBridge />
       </body>
     </html>
   );
