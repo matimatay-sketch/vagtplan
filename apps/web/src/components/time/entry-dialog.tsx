@@ -22,6 +22,9 @@ import {
 } from "@/lib/actions/time";
 import { initialActionState } from "@/lib/actions/state";
 import { dbBreaksToForm, type DbBreak, type EditableBreak } from "@/lib/domain/breaks";
+import { reasonsFor, situations } from "@/lib/domain/deviation";
+import { localInstants } from "@/lib/schedule/breaks";
+import type { DeviationContext } from "@/lib/time/deviation-types";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
 import type { SupplementOption } from "@/lib/time/supplements";
@@ -55,9 +58,12 @@ export function EntryDialog({
   draft,
   posting,
   supplements,
+  deviation,
   onClose,
 }: {
   draft: EntryDraft | null;
+  /** Deviation reasons and the threshold for asking (none set up: free text only). */
+  deviation?: DeviationContext;
   posting: PostingDimension[];
   supplements: EntrySupplements;
   onClose: () => void;
@@ -75,6 +81,7 @@ export function EntryDialog({
             draft={draft}
             posting={posting}
             supplements={supplements}
+            deviation={deviation}
             onDone={onClose}
           />
         ) : null}
@@ -87,9 +94,11 @@ function EntryForm({
   draft,
   posting,
   supplements,
+  deviation,
   onDone,
 }: {
   draft: EntryDraft;
+  deviation?: DeviationContext;
   posting: PostingDimension[];
   supplements: EntrySupplements;
   onDone: () => void;
@@ -97,6 +106,8 @@ function EntryForm({
   const t = da.time;
   const row = draft.mode === "create" ? null : draft.row;
   const plan = draft.mode === "create" ? draft.plan : undefined;
+  const [startReason, setStartReason] = useState(row?.startReasonId ?? "");
+  const [endReason, setEndReason] = useState(row?.endReasonId ?? "");
   const [state, action] = useActionState(
     draft.mode === "correct" ? correctTimeEntryAction : saveTimeEntryAction,
     initialActionState,
@@ -226,6 +237,18 @@ function EntryForm({
             ))}
           </fieldset>
         ) : null}
+        <ReasonFields
+          deviation={deviation}
+          date={values.date}
+          startTime={values.start_time}
+          endTime={values.end_time}
+          plan={row?.plan ?? plan ?? null}
+          startReason={startReason}
+          endReason={endReason}
+          onStart={setStartReason}
+          onEnd={setEndReason}
+          errors={state.errors}
+        />
         <Field
           label={draft.mode === "correct" ? t.correctionReason : t.reason}
           htmlFor="deviation_reason"
@@ -299,5 +322,101 @@ function EntryForm({
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * The deviation reasons that fit the times typed (start and end against the
+ * plan, or a registration without a plan). Hidden when none apply.
+ */
+function ReasonFields({
+  deviation,
+  date,
+  startTime,
+  endTime,
+  plan,
+  startReason,
+  endReason,
+  onStart,
+  onEnd,
+  errors,
+}: {
+  deviation?: DeviationContext;
+  date: string;
+  startTime: string;
+  endTime: string;
+  plan: { start: string; end: string } | null;
+  startReason: string;
+  endReason: string;
+  onStart: (v: string) => void;
+  onEnd: (v: string) => void;
+  errors?: Record<string, string>;
+}) {
+  const r = da.deviationReasons;
+  if (!deviation || deviation.reasons.length === 0 || !/^\d{2}:\d{2}$/.test(startTime)) return null;
+  let entry: { start: string; end: string };
+  try {
+    const endsNextDay = /^\d{2}:\d{2}$/.test(endTime) && endTime <= startTime;
+    const i = localInstants(
+      date,
+      startTime,
+      /^\d{2}:\d{2}$/.test(endTime) ? endTime : startTime,
+      endsNextDay,
+    );
+    entry = { start: i.start_at, end: i.end_at };
+  } catch {
+    return null;
+  }
+  const s = situations(entry, plan, deviation.thresholdMinutes);
+  const startSituation = s.unplanned ? "unplanned" : (s.start?.kind ?? null);
+  const startOptions = startSituation ? reasonsFor(startSituation, deviation.reasons) : [];
+  const endOptions = s.end ? reasonsFor(s.end.kind, deviation.reasons) : [];
+  if (startOptions.length === 0 && endOptions.length === 0)
+    return (
+      <>
+        <input type="hidden" name="start_reason_id" value="" />
+        <input type="hidden" name="end_reason_id" value="" />
+      </>
+    );
+  const select = (
+    id: "start_reason_id" | "end_reason_id",
+    label: string,
+    options: typeof startOptions,
+    value: string,
+    onChange: (v: string) => void,
+  ) =>
+    options.length ? (
+      <Field label={label} htmlFor={id} error={errors?.[id]}>
+        <NativeSelect id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)}>
+          <option value="">{r.choose}</option>
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+    ) : (
+      <input type="hidden" name={id} value="" />
+    );
+  return (
+    <div className="grid gap-4 sm:grid-cols-2" data-testid="entry-reasons">
+      {select(
+        "start_reason_id",
+        s.unplanned
+          ? r.entryUnplannedReason
+          : r.entryStartReason(r.situations[startSituation ?? "early_in"]),
+        startOptions,
+        startReason,
+        onStart,
+      )}
+      {select(
+        "end_reason_id",
+        r.entryEndReason(r.situations[s.end?.kind ?? "late_out"]),
+        endOptions,
+        endReason,
+        onEnd,
+      )}
+    </div>
   );
 }

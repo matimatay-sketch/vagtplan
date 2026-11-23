@@ -9,6 +9,7 @@ import { formatHours } from "@/lib/domain/numbers";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
 import { da } from "@/lib/i18n/da";
+import type { DeviationContext } from "@/lib/time/deviation-types";
 import type { PostingDimension } from "@/lib/domain/posting";
 import { EntryDialog, type EntryDraft, type EntrySupplements } from "./entry-dialog";
 import { sumRows, type PayPreview } from "@/lib/domain/pay-preview";
@@ -29,6 +30,7 @@ export function ApprovalTable({
   amountsFor,
   posting,
   supplements,
+  deviation,
   dates,
 }: {
   rows: TimeRow[];
@@ -45,6 +47,8 @@ export function ApprovalTable({
   amountsFor: string[];
   posting: PostingDimension[];
   supplements: EntrySupplements;
+  /** Deviation reasons for the registration form. */
+  deviation?: DeviationContext;
   dates: string[];
 }) {
   const supplementNames = Object.fromEntries(supplements.options.map((s) => [s.id, s.name]));
@@ -368,7 +372,13 @@ export function ApprovalTable({
             : [],
         )}
       />
-      <EntryDialog draft={draft} posting={posting} supplements={supplements} onClose={close} />
+      <EntryDialog
+        draft={draft}
+        posting={posting}
+        supplements={supplements}
+        deviation={deviation}
+        onClose={close}
+      />
     </div>
   );
 }

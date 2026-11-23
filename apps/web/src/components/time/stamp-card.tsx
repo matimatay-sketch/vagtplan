@@ -16,6 +16,8 @@ import {
   type QueuedStamp,
 } from "@/lib/domain/stamp-queue";
 import { localParts } from "@/lib/domain/schedule-time";
+import { stampQuestion, type DeviationReason } from "@/lib/domain/deviation";
+import { formatMinutes } from "@vagtplan/rules-engine";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +65,10 @@ export function StampCard({
   openSince,
   disabled,
   posting = [],
+  reasons = [],
+  thresholdMinutes = 5,
+  stampPlans = [],
+  openPlan = null,
 }: {
   organizationId: string;
   /** The signed-in employee: queued stamps of anyone else on the device are not sent. */
@@ -72,6 +78,13 @@ export function StampCard({
   disabled?: boolean;
   /** Posting the employee may choose when stamping in (values available to them). */
   posting?: PostingDimension[];
+  /** Deviation reasons the employee may choose. */
+  reasons?: Pick<DeviationReason, "id" | "name" | "applies_to">[];
+  thresholdMinutes?: number;
+  /** Published shifts the employee may stamp in to (start/end). */
+  stampPlans?: { start: string; end: string }[];
+  /** The plan of the open registration (for stamping out). */
+  openPlan?: { start: string; end: string } | null;
 }) {
   const t = da.time;
   const [choice, setChoice] = useState<Record<string, string>>({});
@@ -134,20 +147,45 @@ export function StampCard({
     };
   }, [flush]);
 
-  const stamp = (action: "in" | "out") => {
+  // A reason is asked before the stamp is saved when the time deviates from the shift.
+  const [asking, setAsking] = useState<{
+    action: "in" | "out";
+    at: string;
+    question: NonNullable<
+      ReturnType<typeof stampQuestion<Pick<DeviationReason, "id" | "name" | "applies_to">>>
+    >;
+  } | null>(null);
+  const [reasonId, setReasonId] = useState("");
+  const save = (action: "in" | "out", at: string, reason?: { id: string; at: "start" | "end" }) => {
     writeQueue(
       enqueue(readQueue(), {
         clientId: crypto.randomUUID(),
         action,
-        at: new Date().toISOString(),
+        at,
         organizationId,
         employeeId,
         ...(action === "in" && Object.keys(choice).length ? { posting: choice } : {}),
+        ...(reason ? { reasonId: reason.id, reasonAt: reason.at } : {}),
       }),
     );
     setMessage(null);
+    setAsking(null);
+    setReasonId("");
     void flush();
   };
+  const stamp = (action: "in" | "out") => {
+    const at = new Date().toISOString();
+    const question = stampQuestion(
+      action,
+      at,
+      { candidates: stampPlans, openPlan },
+      reasons,
+      thresholdMinutes,
+    );
+    if (question) setAsking({ action, at, question });
+    else save(action, at);
+  };
+  const r = da.deviationReasons;
 
   return (
     <div
@@ -222,6 +260,50 @@ export function StampCard({
           </Button>
         )}
       </div>
+      {asking ? (
+        <fieldset
+          className="mt-4 grid gap-3 rounded-xl border bg-card p-4"
+          data-testid="stamp-reason"
+        >
+          <legend className="px-1 font-medium">
+            {asking.question.at === "start"
+              ? r.startReasonFor[asking.question.situation]!(formatMinutes(asking.question.minutes))
+              : r.endReasonFor[asking.question.situation]!(formatMinutes(asking.question.minutes))}
+          </legend>
+          <div className="grid gap-1">
+            {asking.question.options.map((o) => (
+              <label
+                key={o.id}
+                className="flex min-h-9 cursor-pointer items-center gap-2 text-sm pointer-coarse:min-h-11"
+              >
+                <input
+                  type="radio"
+                  name="stamp-reason"
+                  className="size-4 accent-primary"
+                  value={o.id}
+                  checked={reasonId === o.id}
+                  onChange={() => setReasonId(o.id)}
+                />
+                {o.name}
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!reasonId}
+              onClick={() =>
+                save(asking.action, asking.at, { id: reasonId, at: asking.question.at })
+              }
+            >
+              {asking.action === "in" ? <LogIn /> : <LogOut />}
+              {asking.action === "in" ? r.confirmIn : r.confirmOut}
+            </Button>
+            <Button variant="ghost" onClick={() => setAsking(null)}>
+              {r.cancel}
+            </Button>
+          </div>
+        </fieldset>
+      ) : null}
       {message ? (
         <p
           role="status"

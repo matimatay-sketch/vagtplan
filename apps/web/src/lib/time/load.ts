@@ -57,6 +57,11 @@ export type TimeRow = {
   plan: { start: string; end: string; breaks: DbBreak[] } | null;
   /** Work, on-call or a call-out (tilkald). */
   workKind: "work" | "on_call" | "call_out";
+  /** Deviation reasons chosen for the start and the end. */
+  startReasonId: string | null;
+  endReasonId: string | null;
+  /** Names of the chosen reasons (start, end), for display. */
+  reasonNames: string[];
   /** Times after the agreement's rounding (null while open). */
   settled: { start: string; end: string } | null;
   violations: Violation[];
@@ -122,37 +127,44 @@ export async function loadTimeOverview(
   const all = ((data ?? []) as unknown as RpcRow[])
     .filter((r) => !opts.onlyMine || r.is_mine)
     .filter((r) => !opts.departmentId || r.department_id === opts.departmentId)
-    .map((r): Omit<TimeRow, "settled" | "violations"> => ({
-      kind: r.row_kind === "missing" ? "missing" : "entry",
-      entryId: r.entry_id,
-      shiftId: r.shift_id,
-      employeeId: r.employee_id,
-      employeeName: r.employee_name,
-      employeeNumber: r.employee_number,
-      departmentId: r.department_id,
-      departmentName: r.department_name,
-      date: localParts(r.start_at).date,
-      start: r.start_at,
-      end: r.end_at,
-      breaks: (r.breaks ?? []) as DbBreak[],
-      projectAllocations: (r.project_allocations ?? []) as ProjectAllocation[],
-      postingAllocations: (r.posting_allocations ?? []) as PostingAllocation[],
-      supplementTypeIds: r.supplement_type_ids ?? [],
-      status: r.status,
-      source: r.source,
-      deviationReason: r.deviation_reason,
-      note: r.note,
-      offline: r.offline,
-      approvedAt: r.approved_at,
-      approvedBy: r.approved_by_email,
-      version: r.version,
-      isMine: r.is_mine,
-      plan:
-        r.plan_start && r.plan_end
-          ? { start: r.plan_start, end: r.plan_end, breaks: (r.plan_breaks ?? []) as DbBreak[] }
-          : null,
-      workKind: r.kind ?? "work",
-    }));
+    .map(
+      (
+        r,
+      ): Omit<
+        TimeRow,
+        "settled" | "violations" | "startReasonId" | "endReasonId" | "reasonNames"
+      > => ({
+        kind: r.row_kind === "missing" ? "missing" : "entry",
+        entryId: r.entry_id,
+        shiftId: r.shift_id,
+        employeeId: r.employee_id,
+        employeeName: r.employee_name,
+        employeeNumber: r.employee_number,
+        departmentId: r.department_id,
+        departmentName: r.department_name,
+        date: localParts(r.start_at).date,
+        start: r.start_at,
+        end: r.end_at,
+        breaks: (r.breaks ?? []) as DbBreak[],
+        projectAllocations: (r.project_allocations ?? []) as ProjectAllocation[],
+        postingAllocations: (r.posting_allocations ?? []) as PostingAllocation[],
+        supplementTypeIds: r.supplement_type_ids ?? [],
+        status: r.status,
+        source: r.source,
+        deviationReason: r.deviation_reason,
+        note: r.note,
+        offline: r.offline,
+        approvedAt: r.approved_at,
+        approvedBy: r.approved_by_email,
+        version: r.version,
+        isMine: r.is_mine,
+        plan:
+          r.plan_start && r.plan_end
+            ? { start: r.plan_start, end: r.plan_end, breaks: (r.plan_breaks ?? []) as DbBreak[] }
+            : null,
+        workKind: r.kind ?? "work",
+      }),
+    );
 
   const employeeIds = [...new Set(all.map((r) => r.employeeId))];
   const [agreements, settings, { data: employees }] = await Promise.all([
@@ -230,17 +242,50 @@ export async function loadTimeOverview(
     }
   }
 
-  const rows = all
-    .filter((r) => r.date >= opts.from)
-    .map((r) => ({
-      ...r,
-      settled: r.entryId ? (settledById.get(r.entryId) ?? null) : null,
-      // Remarks are for the approver; the employee's own view shows only rule breaches.
-      violations: r.entryId
-        ? (violationsById.get(r.entryId) ?? []).filter(
-            (v) => !opts.onlyMine || v.primitive !== "remark",
-          )
-        : [],
-    }));
+  const shown = all.filter((r) => r.date >= opts.from);
+  // Deviation reasons (not in time_overview): read with the same row access.
+  const entryIds = shown.flatMap((r) => (r.entryId ? [r.entryId] : []));
+  const reasonsById = new Map<
+    string,
+    {
+      start_reason_id: string | null;
+      end_reason_id: string | null;
+      start_reason: { name: string } | null;
+      end_reason: { name: string } | null;
+    }
+  >();
+  // In chunks, so a long period does not make the request URL too long.
+  for (let i = 0; i < entryIds.length; i += 150) {
+    const { data } = await supabase
+      .from("time_entry")
+      .select(
+        "id, start_reason_id, end_reason_id, start_reason:deviation_reason!time_entry_start_reason_fk (name), end_reason:deviation_reason!time_entry_end_reason_fk (name)",
+      )
+      .in("id", entryIds.slice(i, i + 150))
+      .or("start_reason_id.not.is.null,end_reason_id.not.is.null");
+    for (const x of data ?? []) reasonsById.set(x.id, x);
+  }
+  const rows = shown.map((r) => ({
+    ...r,
+    startReasonId: r.entryId ? (reasonsById.get(r.entryId)?.start_reason_id ?? null) : null,
+    endReasonId: r.entryId ? (reasonsById.get(r.entryId)?.end_reason_id ?? null) : null,
+    reasonNames: r.entryId
+      ? [
+          ...new Set(
+            [
+              reasonsById.get(r.entryId)?.start_reason?.name,
+              reasonsById.get(r.entryId)?.end_reason?.name,
+            ].filter((x): x is string => Boolean(x)),
+          ),
+        ]
+      : [],
+    settled: r.entryId ? (settledById.get(r.entryId) ?? null) : null,
+    // Remarks are for the approver; the employee's own view shows only rule breaches.
+    violations: r.entryId
+      ? (violationsById.get(r.entryId) ?? []).filter(
+          (v) => !opts.onlyMine || v.primitive !== "remark",
+        )
+      : [],
+  }));
   return { rows, daily, exempt };
 }

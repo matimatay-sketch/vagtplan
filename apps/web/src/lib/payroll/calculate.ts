@@ -5,6 +5,7 @@ import {
   ENGINE_VERSION,
   calculatePay,
   shiftsToIntervals,
+  type PayLine,
   type PayResult,
   type ShiftSupplementInput,
   type WorkIntervalInput,
@@ -16,6 +17,8 @@ import { zonedTime } from "@/lib/domain/schedule-time";
 import type { DbBreak } from "@/lib/domain/breaks";
 import { engineInputs } from "@/lib/absence/load";
 import { loadExpensePayLines } from "./expense-lines";
+import { payAdjustments, type DeviationReason, type PayAdjustments } from "@/lib/domain/deviation";
+import { da } from "@/lib/i18n/da";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
@@ -65,35 +68,48 @@ export async function calculateEmployee(
   const from = new Date(zonedTime(addDays(period.start, -MARGIN_DAYS))).toISOString();
   const to = new Date(zonedTime(addDays(period.end, MARGIN_DAYS + 1))).toISOString();
 
-  const [{ data: entries }, { data: absences }, { data: supplementTypes }, { data: settings }] =
-    await Promise.all([
-      supabase
-        .from("time_entry")
-        .select(
-          "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids",
-        )
-        .eq("employee_id", employeeId)
-        .is("superseded_at", null)
-        .is("archived_at", null)
-        .gte("start_at", from)
-        .lt("start_at", to),
-      supabase
-        .from("absence")
-        .select("id, type_code, from_date, to_date")
-        .eq("employee_id", employeeId)
-        .eq("status", "approved")
-        .lte("from_date", period.end)
-        .gte("to_date", period.start),
-      supabase
-        .from("supplement_type")
-        .select("id, name, pay_code, amount_type, amount")
-        .eq("organization_id", ctx.organization.id),
-      supabase
-        .from("organization_settings")
-        .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
-        .eq("organization_id", ctx.organization.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: entries },
+    { data: absences },
+    { data: supplementTypes },
+    { data: settings },
+    { data: reasonRows },
+  ] = await Promise.all([
+    supabase
+      .from("time_entry")
+      .select(
+        "id, shift_id, department_id, start_at, end_at, breaks, kind, status, posting_allocations, supplement_type_ids, start_reason_id, end_reason_id",
+      )
+      .eq("employee_id", employeeId)
+      .is("superseded_at", null)
+      .is("archived_at", null)
+      .gte("start_at", from)
+      .lt("start_at", to),
+    supabase
+      .from("absence")
+      .select("id, type_code, from_date, to_date")
+      .eq("employee_id", employeeId)
+      .eq("status", "approved")
+      .lte("from_date", period.end)
+      .gte("to_date", period.start),
+    supabase
+      .from("supplement_type")
+      .select("id, name, pay_code, amount_type, amount")
+      .eq("organization_id", ctx.organization.id),
+    supabase
+      .from("organization_settings")
+      .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
+    // Deviation reasons, also deleted ones (registrations keep their reason).
+    supabase
+      .from("deviation_reason")
+      .select(
+        "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type",
+      )
+      .eq("organization_id", ctx.organization.id),
+  ]);
+  const reasons = new Map((reasonRows ?? []).map((r) => [r.id, r as unknown as DeviationReason]));
   const normDefaults = normDefaultsFrom(settings);
   const approved = (entries ?? []).filter(
     (e) => e.end_at && (e.status === "approved" || (opts.includePending && e.status === "pending")),
@@ -168,6 +184,37 @@ export async function calculateEmployee(
       }),
     };
   });
+  // Deviation reasons: extra time as time off, missing time as absence.
+  const reasonTimeOff: PayAdjustments["timeOff"] = [];
+  const reasonAbsence: PayAdjustments["absence"] = [];
+  const workedWithReasons = worked.flatMap((i, k) => {
+    const e = approved[k]!;
+    const start = e.start_reason_id ? (reasons.get(e.start_reason_id) ?? null) : null;
+    const end = e.end_reason_id ? (reasons.get(e.end_reason_id) ?? null) : null;
+    if (!start && !end) return [i];
+    const p = e.shift_id ? plan.get(e.shift_id) : undefined;
+    const breaks = (e.breaks ?? []) as unknown as DbBreak[];
+    const adj = payAdjustments(
+      {
+        start: e.start_at,
+        end: e.end_at!,
+        unpaidBreakMinutes: breaks.filter((b) => !b.paid).reduce((s, b) => s + b.minutes, 0),
+      },
+      p ? { start: p.start_at, end: p.end_at } : null,
+      start,
+      end,
+    );
+    reasonTimeOff.push(...adj.timeOff);
+    reasonAbsence.push(...adj.absence);
+    return adj.parts.map((part, n) => ({
+      ...i,
+      id: n === 0 ? i.id : `${i.id}:${n}`,
+      start: part.start,
+      end: part.end,
+      plannedShiftId: part.overtimeAsTimeOff ? null : i.plannedShiftId,
+      overtimeAsTimeOff: part.overtimeAsTimeOff,
+    }));
+  });
   const planned: WorkIntervalInput[] = shiftsToIntervals(
     [...plan.entries()].map(([id, p]) => ({
       id,
@@ -181,16 +228,56 @@ export async function calculateEmployee(
   const result = calculatePay({
     ...input,
     period: { from: period.start, to: period.end },
-    worked,
+    worked: workedWithReasons,
     planned,
-    absences: (absences ?? []).map((a) => ({
-      id: a.id,
-      type: a.type_code,
-      from: a.from_date,
-      to: a.to_date,
-    })),
+    absences: [
+      ...(absences ?? []).map((a) => ({
+        id: a.id,
+        type: a.type_code,
+        from: a.from_date,
+        to: a.to_date,
+      })),
+      // Missing time with an absence reason (paid as the absence type says).
+      ...reasonAbsence
+        .filter((a) => a.date >= period.start && a.date <= period.end)
+        .map((a, n) => ({
+          id: `afvigelse-${n}`,
+          type: a.type,
+          from: a.date,
+          to: a.date,
+          minutesPerDay: a.minutes,
+        })),
+    ],
   });
-  return { result, pending };
+  // Time off credited by a reason's own factor (the minutes are not paid).
+  const timeOffLines: PayLine[] = Object.values(
+    reasonTimeOff.reduce<Record<string, { payCode: string; minutes: number; reason: string }>>(
+      (acc, x) => {
+        const g = (acc[`${x.payCode}|${x.reason}`] ??= { ...x, minutes: 0 });
+        g.minutes += x.minutes;
+        return acc;
+      },
+      {},
+    ),
+  ).map((x) => ({
+    payCode: x.payCode,
+    posting: {},
+    label: da.time.deviationTimeOff(x.reason),
+    unit: "time_off_minutes",
+    quantityMinutes: x.minutes,
+    rateOre: 0,
+    amountOre: 0,
+    explanation: {
+      ruleId: "afvigelsesaarsag",
+      primitive: "time_off_accrual",
+      source: x.reason,
+      layer: { agreementId: "organization", version: 1 },
+      todoJura: null,
+      note: null,
+      intervals: [],
+    },
+  }));
+  return { result: { ...result, lines: [...result.lines, ...timeOffLines] }, pending };
 }
 
 /** Calculates and saves a new pay run (the previous run is superseded). */

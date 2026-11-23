@@ -14,6 +14,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Field } from "@/components/form";
 import type { PostingDimension } from "@/lib/domain/posting";
 import { da } from "@/lib/i18n/da";
+import type { DeviationContext } from "@/lib/time/deviation-types";
 import { EntryDialog, type EntryDraft, type EntrySupplements } from "./entry-dialog";
 
 /**
@@ -25,11 +26,14 @@ export function RegisterForEmployee({
   defaultDate,
   posting,
   supplements,
+  deviation,
 }: {
   employees: { id: string; name: string; departmentId: string }[];
   defaultDate: string;
   posting: PostingDimension[];
   supplements: EntrySupplements;
+  /** Deviation reasons for the registration form. */
+  deviation?: DeviationContext;
 }) {
   const t = da.time;
   const [choosing, setChoosing] = useState(false);
@@ -92,7 +96,13 @@ export function RegisterForEmployee({
           </div>
         </DialogContent>
       </Dialog>
-      <EntryDialog draft={draft} posting={posting} supplements={supplements} onClose={close} />
+      <EntryDialog
+        draft={draft}
+        posting={posting}
+        supplements={supplements}
+        deviation={deviation}
+        onClose={close}
+      />
     </>
   );
 }

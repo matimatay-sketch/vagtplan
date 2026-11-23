@@ -68,6 +68,12 @@ export type WorkIntervalInput = {
    * Pay lines are split per posting. Values are opaque to the engine.
    */
   postings?: PostingRowInput[];
+  /**
+   * Overtime from this interval is taken as time off (the overtime rule's
+   * time_off_factor_bp and time-off pay code) instead of the rule's own
+   * compensation, e.g. when the employee chose "afspadsering" as the reason.
+   */
+  overtimeAsTimeOff?: boolean;
 };
 
 export type PostingRowInput = {

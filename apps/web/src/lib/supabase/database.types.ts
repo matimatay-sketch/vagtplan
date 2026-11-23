@@ -385,6 +385,26 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     }
                   ]
+                },"deviation_reason": {
+                  Row: {
+                    "absence_type": string | null,"applies_to": (string)[],"archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"sort_order": number,"time_off_factor_bp": number,"time_off_mode": string,"time_off_pay_code": string | null,"treatment": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absence_type"?: string | null,"applies_to": (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment": string
+                  }
+                  Update: {
+                    "absence_type"?: string | null,"applies_to"?: (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deviation_reason_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"email_outbox": {
                   Row: {
                     "attempts": number,"created_at": string,"id": string,"kind": string,"last_error": string | null,"next_attempt_at": string,"organization_id": string,"payload": NonNullable<Json>,"sent_at": string | null,"status": string,"user_id": string
@@ -751,14 +771,14 @@ isOneToOne: false
                   ]
                 },"organization_settings": {
                   Row: {
-                    "assistant_enabled": boolean,"custom_rules": NonNullable<Json>,"default_agreement_id": string | null,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
+                    "assistant_enabled": boolean,"custom_rules": NonNullable<Json>,"default_agreement_id": string | null,"deviation_threshold_minutes": number,"leave_rules": NonNullable<Json>,"norm_in_pay_on_call": boolean,"norm_in_pay_work": boolean,"norm_percent_on_call": number,"norm_percent_work": number,"notice_change_hours": number | null,"notice_publish_hours": number | null,"organization_id": string,"rule_handling": NonNullable<Json>,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"deviation_threshold_minutes"?: number,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id": string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Update: {
-                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
+                    "assistant_enabled"?: boolean,"custom_rules"?: NonNullable<Json>,"default_agreement_id"?: string | null,"deviation_threshold_minutes"?: number,"leave_rules"?: NonNullable<Json>,"norm_in_pay_on_call"?: boolean,"norm_in_pay_work"?: boolean,"norm_percent_on_call"?: number,"norm_percent_work"?: number,"notice_change_hours"?: number | null,"notice_publish_hours"?: number | null,"organization_id"?: string,"rule_handling"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1453,17 +1473,23 @@ isOneToOne: false
                   ]
                 },"time_entry": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"supplement_type_ids": (string)[],"updated_at": string
+                    "approved_at": string | null,"approved_by": string | null,"archived_at": string | null,"breaks": NonNullable<Json>,"client_id": string | null,"created_at": string,"created_by": string | null,"department_id": string,"deviation_reason": string | null,"employee_id": string,"end_at": string | null,"end_client_id": string | null,"end_reason_id": string | null,"id": string,"kind": Database["public"]['Enums']["time_entry_kind"],"note": string | null,"offline": boolean,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"shift_id": string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"start_reason_id": string | null,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at": string | null,"supersedes_id": string | null,"supplement_type_ids": (string)[],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id": string,"deviation_reason"?: string | null,"employee_id": string,"end_at"?: string | null,"end_client_id"?: string | null,"end_reason_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source": Database["public"]['Enums']["time_entry_source"],"start_at": string,"start_reason_id"?: string | null,"status": Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"archived_at"?: string | null,"breaks"?: NonNullable<Json>,"client_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"deviation_reason"?: string | null,"employee_id"?: string,"end_at"?: string | null,"end_client_id"?: string | null,"end_reason_id"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["time_entry_kind"],"note"?: string | null,"offline"?: boolean,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"shift_id"?: string | null,"source"?: Database["public"]['Enums']["time_entry_source"],"start_at"?: string,"start_reason_id"?: string | null,"status"?: Database["public"]['Enums']["time_entry_status"],"superseded_at"?: string | null,"supersedes_id"?: string | null,"supplement_type_ids"?: (string)[],"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "time_entry_end_reason_fk"
+      columns: ["organization_id","end_reason_id"]
+isOneToOne: false
+      referencedRelation: "deviation_reason"
+      referencedColumns: ["organization_id","id"]
+    },{
       foreignKeyName: "time_entry_organization_id_department_id_fkey"
       columns: ["organization_id","department_id"]
 isOneToOne: false
@@ -1492,6 +1518,12 @@ isOneToOne: false
       columns: ["organization_id","supersedes_id"]
 isOneToOne: false
       referencedRelation: "time_entry"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "time_entry_start_reason_fk"
+      columns: ["organization_id","start_reason_id"]
+isOneToOne: false
+      referencedRelation: "deviation_reason"
       referencedColumns: ["organization_id","id"]
     }
                   ]
