@@ -6,6 +6,8 @@ import { requireContext } from "@/lib/auth";
 import { fullName } from "@/lib/format";
 import { ImpersonationBanner } from "@/components/impersonation/banner";
 import { createClient } from "@/lib/supabase/server";
+import { hasDepartmentScope } from "@/lib/permissions";
+import { da } from "@/lib/i18n/da";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const ctx = await requireContext();
@@ -67,7 +69,19 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="fixed top-3 right-4 z-30 hidden md:block">
           <HelpToggle />
         </div>
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">
+          {/* Department-scoped rights only reach departments the user is responsible for. */}
+          {hasDepartmentScope(ctx.permissions) && ctx.responsibleDepartmentIds.length === 0 ? (
+            <p
+              role="status"
+              className="mb-6 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground"
+              data-testid="no-responsibility"
+            >
+              {da.users.noResponsibilityNotice}
+            </p>
+          ) : null}
+          {children}
+        </main>
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 py-1.5 backdrop-blur md:hidden">
           <Nav
             permissions={ctx.permissions}

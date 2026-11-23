@@ -212,7 +212,9 @@ export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
 export type Permissions = Partial<Record<PermissionKey, PermissionScope>>;
 
 export const SCOPE_LABELS: Record<PermissionScope, string> = {
-  departments: "Egne afdelinger",
+  // Departments the user is made responsible for (Afdelinger → Ansvarlige), not
+  // the departments the user works in as an employee.
+  departments: "Afdelinger, man er ansvarlig for",
   organization: "Hele virksomheden",
 };
 
@@ -293,4 +295,11 @@ export function normalizeGrants(input: Permissions): Permissions {
     }
   }
   return out;
+}
+
+/** Does the user have any permission limited to the departments they are responsible for? */
+export function hasDepartmentScope(perms: Permissions): boolean {
+  return Object.entries(perms).some(
+    ([key, scope]) => scope === "departments" && key !== "messages.send",
+  );
 }

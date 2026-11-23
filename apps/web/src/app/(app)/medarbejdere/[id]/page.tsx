@@ -21,7 +21,11 @@ import { ApproverForm } from "@/components/employees/approver-form";
 import { PostingDefaultsForm } from "@/components/posting/posting-defaults";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import type { PostingValues } from "@/lib/domain/posting";
-import { addManagerAction, removeManagerAction } from "@/lib/actions/departments";
+import {
+  addManagerAction,
+  addManagerForOwnDepartmentsAction,
+  removeManagerAction,
+} from "@/lib/actions/departments";
 import { canIn, requireContext } from "@/lib/auth";
 import { hasOrg, type PermissionKey } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -117,6 +121,15 @@ export default async function EmployeePage({
       ])
     : [{ data: null }, { data: [] as { department_id: string }[] }];
   const profileName = profiles?.find((p) => p.id === membership?.profile_id)?.name ?? null;
+  // A profile with department-scoped rights reaches only departments the user is responsible for.
+  const { data: departmentGrants } = membership?.profile_id
+    ? await supabase
+        .from("permission_grant")
+        .select("permission")
+        .eq("profile_id", membership.profile_id)
+        .eq("scope", "departments")
+        .neq("permission", "messages.send")
+    : { data: [] };
   // Possible personal time approvers: users of the organization, not the employee.
   const { data: members } = canManageUsers
     ? await supabase.rpc("organization_members", { org: ctx.organization.id })
@@ -455,7 +468,30 @@ export default async function EmployeePage({
                   </div>
                 ) : null}
                 <div className="grid gap-2" data-testid="responsible-departments">
-                  <div className="text-xs text-muted-foreground">{da.users.departments}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {da.users.departments}
+                    <HelpTip>{da.users.responsibilityHelp}</HelpTip>
+                  </div>
+                  {(departmentGrants ?? []).length > 0 && responsibleIds.length === 0 ? (
+                    <div
+                      role="status"
+                      className="grid gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
+                      data-testid="no-responsibility-warning"
+                    >
+                      {da.users.noResponsibilityWarning(employee.first_name)}
+                      {canManageUsers && employeeDepts.length > 0 ? (
+                        <form action={addManagerForOwnDepartmentsAction}>
+                          <input type="hidden" name="employee_id" value={employee.id} />
+                          <input type="hidden" name="user_id" value={employee.user_id} />
+                          <SubmitButton variant="outline" size="sm">
+                            {da.users.makeResponsibleForOwn(
+                              employeeDepts.map((d) => deptName.get(d) ?? "–").join(", "),
+                            )}
+                          </SubmitButton>
+                        </form>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
                     {responsibleIds.length === 0 ? (
                       <span className="text-sm text-muted-foreground">

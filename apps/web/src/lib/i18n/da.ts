@@ -724,6 +724,13 @@ export const da = {
     departments: "Ansvarlig for afdelinger",
     noDepartments: "Ingen",
     addResponsible: "Gør ansvarlig for afdeling",
+    noResponsibilityNotice:
+      "Du har rettigheder til afdelinger, du er ansvarlig for, men du er ikke sat som ansvarlig for nogen afdeling endnu. Derfor ser du ingen medarbejdere eller vagter. Bed en administrator om at gøre dig ansvarlig under Afdelinger eller på din medarbejderside.",
+    noResponsibilityWarning: (name: string) =>
+      `${name} har rettigheder til de afdelinger, brugeren er ansvarlig for, men er ikke ansvarlig for nogen afdeling. Derfor ser ${name} ingen medarbejdere eller vagter.`,
+    makeResponsibleForOwn: (depts: string) => `Gør ansvarlig for ${depts}`,
+    responsibilityHelp:
+      'Rettigheder med omfanget "Afdelinger, man er ansvarlig for" gælder kun de afdelinger, brugeren er sat som ansvarlig for her. Det er ikke nok at være medarbejder i afdelingen.',
     lastOwner: "Der skal altid være mindst én administrator.",
   },
   profiles: {
