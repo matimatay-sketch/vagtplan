@@ -373,29 +373,52 @@ function absenceMinutesOn(ctx: EngineContext, a: AbsenceInput, date: IsoDate): n
 type NormCredit = { date: IsoDate; minutes: number };
 
 /** Norm minutes for a unit: weekly norm per day (/7) summed, or the daily norm. */
+/** Planned paid minutes on a date that fall in its holiday time (from the half-day time on). */
+function plannedHolidayMinutes(
+  ctx: EngineContext,
+  d: IsoDate,
+  plannedPaid: readonly Span[],
+): number {
+  const h = ctx.holiday(d);
+  if (!h) return 0;
+  const start = h.from ? wallTime(d, h.from, ctx.tz) : startOfLocalDay(d, ctx.tz);
+  const end = startOfLocalDay(addDays(d, 1), ctx.tz);
+  let ms = 0;
+  for (const p of plannedPaid) ms += Math.max(0, Math.min(p.end, end) - Math.max(p.start, start));
+  return ms / MINUTE;
+}
+
 function unitNorm(
   rule: ResolvedRule & Rule<"overtime">,
   ctx: EngineContext,
   dates: IsoDate[],
   absences: readonly AbsenceInput[],
   credits: readonly NormCredit[],
+  plannedPaid: readonly Span[],
 ): number | null {
   let norm = 0;
   for (const d of dates) {
     const contract = ctx.contractOn(d);
     if (!contract) continue;
-    // A holiday on Monday–Friday takes 1/5 of the week (or the day's norm).
     // Days before the agreement's first version have no rules to look up.
     const normRule = ctx.hasRules(d) ? ctx.rule(d, "norm") : null;
-    const reduced =
-      normRule?.params.holiday_reduction === "one_fifth_on_weekdays" &&
-      isoWeekday(d) <= 5 &&
-      ctx.holiday(d) !== null;
+    const mode = normRule?.params.holiday_reduction ?? "none";
+    const holiday = mode === "none" ? null : ctx.holiday(d);
+    // one_fifth_on_weekdays: share of the day's norm taken (1, or ½ for a half day).
+    const share =
+      mode === "one_fifth_on_weekdays" && isoWeekday(d) <= 5 && holiday
+        ? holiday.from
+          ? 0.5
+          : 1
+        : 0;
+    const plannedOff = mode === "planned_shift" ? plannedHolidayMinutes(ctx, d, plannedPaid) : 0;
     if (rule.params.trigger === "daily_norm") {
       const daily = ctx.rule(d, "norm")?.params.daily_minutes ?? null;
       if (daily === null) return null;
-      if (!reduced) norm += daily;
-    } else norm += contract.weeklyNormMinutes / 7 - (reduced ? contract.weeklyNormMinutes / 5 : 0);
+      norm += Math.max(0, daily * (1 - share) - plannedOff);
+    } else
+      norm +=
+        contract.weeklyNormMinutes / 7 - (share * contract.weeklyNormMinutes) / 5 - plannedOff;
   }
   // Absence that counts towards the norm is treated as if worked first.
   for (const a of absences) {
@@ -488,6 +511,7 @@ function markOvertime(
   absences: readonly AbsenceInput[],
   plannedSpans: Span[],
   credits: readonly NormCredit[] = [],
+  plannedPaid: readonly Span[] = [],
 ): Segment[] {
   // Collect overtime rules (by id) that apply on any date, by priority.
   const rules = new Map<string, ResolvedRule & Rule<"overtime">>();
@@ -516,7 +540,10 @@ function markOvertime(
         pieces = [inside ? seg : { ...seg, overtime: { rule, tier: 0, window: null } }];
       } else {
         if (!norms.has(key))
-          norms.set(key, unitNorm(rule, ctx, unitDates(rule, ctx, key), absences, credits));
+          norms.set(
+            key,
+            unitNorm(rule, ctx, unitDates(rule, ctx, key), absences, credits, plannedPaid),
+          );
         const norm = norms.get(key)!;
         if (norm === null) {
           next.push(seg);
@@ -846,6 +873,14 @@ export function calculatePay(input: CalcPayInput): PayResult {
   const notes: PayNote[] = [];
   const planned = new Map(normalizeIntervals(input.planned ?? []).map((p) => [p.id, p]));
   const plannedSpans = [...planned.values()].map((p) => ({ start: p.start, end: p.end }));
+  // Paid planned work time, for norms that a holiday reduces by the planned shift.
+  const plannedPaid = [...planned.values()]
+    .filter((p) => p.kind === "work")
+    .flatMap((p) => {
+      const d = localDate(p.start, ctx.tz);
+      const paid = ctx.hasRules(d) ? (ctx.rule(d, "break")?.params.paid ?? false) : false;
+      return payPieces(p, paid);
+    });
   const worked = normalizeIntervals(input.worked).map((i) => applyRounding(ctx, i, planned));
   const absences = input.absences ?? [];
 
@@ -885,7 +920,7 @@ export function calculatePay(input: CalcPayInput): PayResult {
       ? [{ date: localDate(i.start, ctx.tz), minutes: (minutesOf(i) * i.normPercent) / 100 }]
       : [],
   );
-  segments = markOvertime(segments, ctx, absences, plannedSpans, credits);
+  segments = markOvertime(segments, ctx, absences, plannedSpans, credits, plannedPaid);
 
   // 3. Candidates, stacking and lines – only inside the pay period.
   const labels = (code: string) => {

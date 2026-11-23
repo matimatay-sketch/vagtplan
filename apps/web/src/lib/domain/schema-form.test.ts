@@ -25,7 +25,7 @@ describe("describeSchema", () => {
     expect(period.options.map((o) => o.value)).toEqual(["week", "weeks"]);
     expect(describeSchema(fields.holiday_reduction!)).toEqual({
       kind: "enum",
-      values: ["none", "one_fifth_on_weekdays"],
+      values: ["none", "one_fifth_on_weekdays", "planned_shift"],
     });
     expect(unwrap(fields.daily_minutes!).nullable).toBe(true);
     expect(describeSchema(fields.daily_minutes!)).toEqual({ kind: "number", int: true });

@@ -24,6 +24,7 @@ import {
   Plug,
   Menu,
   MessageSquare,
+  FileBarChart,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -151,6 +152,13 @@ const items: Item[] = [
     icon: CalendarX,
     anyOf: ["absence.view", "absence.manage", "absence.approve"],
     forApprovers: true,
+  },
+  {
+    href: "/rapporter",
+    group: "pay",
+    label: da.nav.reports,
+    icon: FileBarChart,
+    anyOf: ["reports.view"],
   },
   {
     href: "/projekter",

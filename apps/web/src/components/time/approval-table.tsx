@@ -97,10 +97,12 @@ export function ApprovalTable({
     r.status === "approved" &&
     (rights[r.departmentId]?.approve === true || approverOf.includes(r.employeeId)) &&
     (!r.isMine || approveOwn);
-  const unapprove = (id: string) =>
+  const unapprovableIds = rows.filter(unapprovable).map((r) => r.entryId!);
+  const unapprove = (ids: string[]) =>
     start(async () => {
-      const r = await unapproveTimeEntriesAction([id]);
+      const r = await unapproveTimeEntriesAction(ids);
       if (r.message) (r.ok ? toast.success : toast.error)(r.message);
+      setSelected((s) => new Set([...s].filter((id) => !ids.includes(id))));
     });
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -109,34 +111,71 @@ export function ApprovalTable({
       else n.add(id);
       return n;
     });
+  // One selection for both: approve acts on the waiting ones, unapprove on the approved ones.
+  const toApprove = approvableIds.filter((id) => selected.has(id));
+  const toUnapprove = unapprovableIds.filter((id) => selected.has(id));
   const approve = () =>
     start(async () => {
-      const r = await approveTimeEntriesAction([...selected]);
+      const r = await approveTimeEntriesAction(toApprove);
       if (r.message) (r.ok ? toast.success : toast.error)(r.message);
-      setSelected(new Set());
+      setSelected((s) => new Set([...s].filter((id) => !toApprove.includes(id))));
+    });
+  const selectGroup = (ids: string[], on: boolean) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      for (const id of ids)
+        if (on) n.add(id);
+        else n.delete(id);
+      return n;
     });
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="grid min-w-0 gap-4" data-testid="registrations">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="accent-primary"
-              checked={approvableIds.length > 0 && approvableIds.every((id) => selected.has(id))}
-              onChange={(e) => setSelected(new Set(e.target.checked ? approvableIds : []))}
-              disabled={approvableIds.length === 0}
-            />
-            {t.selectAll} ({approvableIds.length})
-          </label>
-          <Button
-            onClick={approve}
-            disabled={pending || selected.size === 0}
-            data-testid="approve-selected"
-          >
-            <CheckCheck /> {t.approveSelected} ({selected.size})
-          </Button>
+        <div
+          className="sticky top-16 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card/95 md:top-2 px-3 py-2 backdrop-blur"
+          data-testid="approval-toolbar"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {(
+              [
+                [t.selectPending, approvableIds, "select-pending"],
+                [t.selectApproved, unapprovableIds, "select-approved"],
+              ] as const
+            ).map(([label, ids, testId]) => (
+              <label
+                key={testId}
+                className="flex min-h-9 cursor-pointer items-center gap-2 text-sm pointer-coarse:min-h-11"
+              >
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  data-testid={testId}
+                  checked={ids.length > 0 && ids.every((id) => selected.has(id))}
+                  onChange={(e) => selectGroup(ids, e.target.checked)}
+                  disabled={ids.length === 0}
+                />
+                {label} ({ids.length})
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => unapprove(toUnapprove)}
+              disabled={pending || toUnapprove.length === 0}
+              data-testid="unapprove-selected"
+            >
+              <Undo2 /> {t.unapproveSelected} ({toUnapprove.length})
+            </Button>
+            <Button
+              onClick={approve}
+              disabled={pending || toApprove.length === 0}
+              data-testid="approve-selected"
+            >
+              <CheckCheck /> {t.approveSelected} ({toApprove.length})
+            </Button>
+          </div>
         </div>
 
         {employees.map((e) => {
@@ -180,6 +219,7 @@ export function ApprovalTable({
                           employeeId: e.id,
                           departmentId: e.departmentId,
                           date: dates[0]!,
+                          employeeName: e.name,
                         })
                       }
                     >
@@ -195,11 +235,11 @@ export function ApprovalTable({
                     className="grid grid-cols-[auto_1fr_auto] items-start gap-3 px-4 py-3"
                     data-testid={r.kind === "missing" ? "missing-row" : "approval-row"}
                   >
-                    {approvable(r) ? (
+                    {approvable(r) || unapprovable(r) ? (
                       <input
                         type="checkbox"
-                        className="mt-1 accent-primary"
-                        aria-label={`${t.approveSelected}: ${e.name} ${formatDay(r.date)}`}
+                        className="mt-1 size-4 accent-primary"
+                        aria-label={`${approvable(r) ? t.approveSelected : t.select}: ${e.name} ${formatDay(r.date)}`}
                         checked={selected.has(r.entryId!)}
                         onChange={() => toggle(r.entryId!)}
                       />
@@ -247,7 +287,34 @@ export function ApprovalTable({
                         </span>
                       ) : null}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {r.kind === "missing" && canManage && r.shiftId ? (
+                        <>
+                          <CompleteButton shiftIds={[r.shiftId]} label={t.completeAsPlanned} />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`${t.registerOtherTimes}: ${e.name} ${formatDay(r.date)}`}
+                            onClick={() =>
+                              setDraft({
+                                mode: "create",
+                                employeeId: e.id,
+                                departmentId: r.departmentId,
+                                date: r.date,
+                                employeeName: e.name,
+                                plan: {
+                                  shiftId: r.shiftId!,
+                                  start: r.start,
+                                  end: r.end!,
+                                  breaks: r.plan?.breaks ?? r.breaks,
+                                },
+                              })
+                            }
+                          >
+                            <Pencil /> {t.registerOtherTimes}
+                          </Button>
+                        </>
+                      ) : null}
                       {r.kind === "entry" && canManage && r.status === "pending" ? (
                         <Button
                           size="icon"
@@ -263,7 +330,7 @@ export function ApprovalTable({
                           size="sm"
                           variant="ghost"
                           disabled={pending}
-                          onClick={() => unapprove(r.entryId!)}
+                          onClick={() => unapprove([r.entryId!])}
                           data-testid="unapprove"
                         >
                           <Undo2 /> {t.unapprove}

@@ -21,7 +21,7 @@ import {
   timeEntryHistoryAction,
 } from "@/lib/actions/time";
 import { initialActionState } from "@/lib/actions/state";
-import { dbBreaksToForm, type EditableBreak } from "@/lib/domain/breaks";
+import { dbBreaksToForm, type DbBreak, type EditableBreak } from "@/lib/domain/breaks";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
 import type { SupplementOption } from "@/lib/time/supplements";
@@ -37,7 +37,16 @@ import {
 
 export type EntryDraft =
   | { mode: "edit" | "correct"; row: TimeRow }
-  | { mode: "create"; employeeId: string; departmentId: string | null; date: string };
+  | {
+      mode: "create";
+      employeeId: string;
+      departmentId: string | null;
+      date: string;
+      /** For a manager registering on behalf of the employee. */
+      employeeName?: string;
+      /** A planned shift without registration: its times are the starting point. */
+      plan?: { shiftId: string; start: string; end: string; breaks: DbBreak[] };
+    };
 
 /** Supplement types offered in the dialog; `chooseAll` for managers (the database checks it). */
 export type EntrySupplements = { options: SupplementOption[]; chooseAll: boolean };
@@ -58,7 +67,11 @@ export function EntryDialog({
       <DialogContent className="max-w-xl">
         {draft ? (
           <EntryForm
-            key={draft.mode === "create" ? `new-${draft.date}` : draft.row.entryId}
+            key={
+              draft.mode === "create"
+                ? `new-${draft.employeeId}-${draft.date}-${draft.plan?.shiftId ?? ""}`
+                : draft.row.entryId
+            }
             draft={draft}
             posting={posting}
             supplements={supplements}
@@ -83,6 +96,7 @@ function EntryForm({
 }) {
   const t = da.time;
   const row = draft.mode === "create" ? null : draft.row;
+  const plan = draft.mode === "create" ? draft.plan : undefined;
   const [state, action] = useActionState(
     draft.mode === "correct" ? correctTimeEntryAction : saveTimeEntryAction,
     initialActionState,
@@ -90,14 +104,18 @@ function EntryForm({
   const [removing, startRemove] = useTransition();
   const [values, setValues] = useState(() => ({
     date: row ? row.date : draft.mode === "create" ? draft.date : "",
-    start_time: row ? localParts(row.start).time : "08:00",
-    end_time: row?.end ? localParts(row.end).time : "16:00",
+    start_time: row ? localParts(row.start).time : plan ? localParts(plan.start).time : "08:00",
+    end_time: row?.end ? localParts(row.end).time : plan ? localParts(plan.end).time : "16:00",
     deviation_reason: draft.mode === "correct" ? "" : (row?.deviationReason ?? ""),
     note: row?.note ?? "",
     kind: row?.workKind === "call_out" ? "call_out" : "work",
   }));
   const [breaks, setBreaks] = useState<EditableBreak[]>(() =>
-    row ? dbBreaksToForm(row.breaks) : [{ start: "", minutes: 30, paid: false }],
+    row
+      ? dbBreaksToForm(row.breaks)
+      : plan
+        ? dbBreaksToForm(plan.breaks)
+        : [{ start: "", minutes: 30, paid: false }],
   );
   const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
     row ? postingToForm(row.postingAllocations) : [],
@@ -127,6 +145,8 @@ function EntryForm({
         </DialogTitle>
         <DialogDescription>
           {row ? `${row.employeeName} · ${row.departmentName}` : null}
+          {draft.mode === "create" && draft.employeeName ? draft.employeeName : null}
+          {plan ? ` · ${t.planned} ${timeRange(plan.start, plan.end)}` : null}
           {row?.plan ? ` · ${t.planned} ${timeRange(row.plan.start, row.plan.end)}` : null}
           {row && !row.plan ? ` · ${t.noPlan}` : null}
         </DialogDescription>
@@ -138,6 +158,7 @@ function EntryForm({
           <>
             <input type="hidden" name="employee_id" value={draft.employeeId} />
             <input type="hidden" name="department_id" value={draft.departmentId ?? ""} />
+            {plan ? <input type="hidden" name="shift_id" value={plan.shiftId} /> : null}
           </>
         ) : null}
         {draft.mode === "correct" ? null : (

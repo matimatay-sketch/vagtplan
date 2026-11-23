@@ -107,3 +107,59 @@ describe("organizationLayerFrom – leave rules", () => {
     ).toBeNull();
   });
 });
+
+describe("organizationLayerFrom – holiday norm reduction", () => {
+  it("is merged into every norm rule", () => {
+    expect(
+      organizationLayerFrom({
+        notice_publish_hours: null,
+        notice_change_hours: null,
+        leave_rules: { holiday_norm_reduction: "planned_shift" },
+      }),
+    ).toEqual({
+      rules: [
+        {
+          id: "org-normtid",
+          primitive: "norm",
+          merge_into: "primitive",
+          source: "Virksomhedens opsætning",
+          params: { holiday_reduction: "planned_shift" },
+        },
+      ],
+    });
+  });
+});
+
+describe("organizationLayerFrom – own rules", () => {
+  it("adds the organization's own remark rules to every agreement", () => {
+    const rule = {
+      id: "egen-lange-vagter",
+      label: "Lange vagter",
+      severity: "BLOCKING" as const,
+      params: {
+        code: "EGEN_LANGE_VAGTER",
+        message: "Vagten er over 10 timer",
+        show_in: ["schedule" as const],
+        condition: { type: "shift_longer_than" as const, minutes: 600 },
+      },
+    };
+    expect(
+      organizationLayerFrom({
+        notice_publish_hours: null,
+        notice_change_hours: null,
+        custom_rules: [rule],
+      }),
+    ).toEqual({
+      rules: [
+        {
+          id: "egen-lange-vagter",
+          primitive: "remark",
+          label: "Lange vagter",
+          source: "Virksomhedens opsætning",
+          severity: "BLOCKING",
+          params: rule.params,
+        },
+      ],
+    });
+  });
+});

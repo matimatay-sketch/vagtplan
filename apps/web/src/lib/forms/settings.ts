@@ -85,6 +85,7 @@ export const leaveRulesSchema = z
     entitlement_proration: choice(["none", "remaining_months"]),
     on_call_counts_as_rest: yesNo,
     leave_day_basis: choice(["weekdays", "planned_days"]),
+    holiday_norm_reduction: choice(["none", "one_fifth_on_weekdays", "planned_shift"]),
     transfer_allowed: yesNo,
     transfer_only_above_days: wholeDays,
     payout_allowed: yesNo,
@@ -96,6 +97,7 @@ export const leaveRulesSchema = z
     if (v.on_call_counts_as_rest !== undefined)
       out.on_call_counts_as_rest = v.on_call_counts_as_rest;
     if (v.leave_day_basis) out.leave_day_basis = v.leave_day_basis;
+    if (v.holiday_norm_reduction) out.holiday_norm_reduction = v.holiday_norm_reduction;
     if (v.transfer_allowed !== undefined) {
       out.transfer_allowed = v.transfer_allowed;
       if (v.transfer_allowed && v.transfer_only_above_days !== null)

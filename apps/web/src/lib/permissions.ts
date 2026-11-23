@@ -187,6 +187,12 @@ export const PERMISSIONS = [
     label: "Oprette API-nøgler og webhooks til andre systemer",
     scopes: ["organization"],
   },
+  {
+    key: "reports.view",
+    group: "Rapporter",
+    label: "Se rapporter (indholdet følger de øvrige rettigheder)",
+    scopes: ["departments", "organization"],
+  },
 ] as const satisfies readonly {
   key: string;
   group: string;

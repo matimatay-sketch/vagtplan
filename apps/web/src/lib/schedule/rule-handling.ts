@@ -1,4 +1,5 @@
 import type { RuleLayer } from "@vagtplan/rules-engine";
+import type { CustomRule } from "@/lib/forms/custom-rules";
 
 export type Handling = "block" | "allow";
 export type RuleHandlingMap = Partial<Record<string, Handling>>;
@@ -40,6 +41,8 @@ export type LeaveRules = {
   entitlement_proration?: "none" | "remaining_months";
   on_call_counts_as_rest?: boolean;
   leave_day_basis?: "weekdays" | "planned_days";
+  /** How a holiday reduces the norm: 1/5 of the week (½ on a half day) or the planned shift. */
+  holiday_norm_reduction?: "none" | "one_fifth_on_weekdays" | "planned_shift";
   transfer_allowed?: boolean;
   transfer_only_above_days?: number | null;
   payout_allowed?: boolean;
@@ -48,11 +51,13 @@ export type LeaveRules = {
 
 const ORG_SOURCE = "Virksomhedens opsætning";
 
-/** The organization layer for the rules engine: notice and leave settings. */
+/** The organization layer for the rules engine: notice, leave and holiday norm settings. */
 export function organizationLayerFrom(s: {
   notice_publish_hours: number | null;
   notice_change_hours: number | null;
   leave_rules?: LeaveRules | null;
+  /** The organization's own remark rules (on top of every agreement). */
+  custom_rules?: readonly CustomRule[] | null;
 }): { rules: RuleLayer[] } | null {
   const rules: RuleLayer[] = [];
   const params: Record<string, number> = {};
@@ -78,6 +83,9 @@ export function organizationLayerFrom(s: {
   merge("org-raadighed", "on_call", {
     ...(l.on_call_counts_as_rest !== undefined ? { counts_as_rest: l.on_call_counts_as_rest } : {}),
   });
+  merge("org-normtid", "norm", {
+    ...(l.holiday_norm_reduction ? { holiday_reduction: l.holiday_norm_reduction } : {}),
+  });
   merge("org-ferie", "vacation", {
     ...(l.leave_day_basis ? { leave_day_basis: l.leave_day_basis } : {}),
     ...(l.transfer_allowed !== undefined
@@ -92,5 +100,14 @@ export function organizationLayerFrom(s: {
       ? { payout: { allowed: l.payout_allowed, only_above_days: l.payout_only_above_days ?? null } }
       : {}),
   });
+  for (const r of s.custom_rules ?? [])
+    rules.push({
+      id: r.id,
+      primitive: "remark",
+      label: r.label,
+      source: ORG_SOURCE,
+      severity: r.severity,
+      params: r.params,
+    });
   return rules.length ? { rules } : null;
 }

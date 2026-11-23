@@ -112,7 +112,10 @@ test("cost centres: set up, default per employee, posted on a shift, split in pa
   // 4. Registered as planned (the posting follows the shift) and approved.
   await page.goto(`/tid/godkend?uge=${week}`);
   const emp = page.locator(`section[data-employee="${name}"]`);
-  await emp.getByRole("button", { name: /Gennemført som planlagt/ }).click();
+  await emp
+    .getByRole("button", { name: /Gennemført som planlagt/ })
+    .first()
+    .click();
   const row = emp.getByTestId("approval-row").filter({ hasText: "08:00–16:00" });
   await expect(row.getByTestId("row-posting")).toHaveText("1");
   await row.getByRole("checkbox").check();

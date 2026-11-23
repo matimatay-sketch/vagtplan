@@ -11,6 +11,8 @@ import {
   ruleHandlingFromForm,
   supplementTypeSchema,
 } from "@/lib/forms/settings";
+import { customRulesSchema } from "@/lib/forms/custom-rules";
+import type { Json } from "@/lib/supabase/database.types";
 import { da } from "@/lib/i18n/da";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
 
@@ -202,4 +204,25 @@ export async function saveDefaultAgreementAction(
   revalidateSettings();
   revalidatePath("/medarbejdere", "layout");
   return { ok: true, message: da.common.saved };
+}
+
+/** The organization's own remark rules (validated with the rules engine). */
+export async function saveCustomRulesAction(rules: unknown): Promise<ActionState> {
+  const ctx = await requireContext(["settings.manage"]);
+  const parsed = customRulesSchema.safeParse(rules);
+  if (!parsed.success) {
+    const custom = parsed.error.issues.find((i) => i.code === "custom");
+    return { message: custom?.message ?? da.customRules.invalid };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organization_settings")
+    .update({ custom_rules: parsed.data as unknown as NonNullable<Json> })
+    .eq("organization_id", ctx.organization.id)
+    .select("organization_id");
+  if (error) return { message: dbErrorMessage(error) };
+  if (!data?.length) return { message: da.common.notAllowed };
+  revalidateSettings();
+  revalidatePath("/tid", "layout");
+  return { ok: true, message: da.customRules.saved };
 }

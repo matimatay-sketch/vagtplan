@@ -39,6 +39,16 @@ export default async function TemplatesPage({ searchParams }: PageProps<"/lon/sk
       for (const [code, v] of Object.entries(doc.pay_codes))
         if (!codes.has(code)) codes.set(code, v.label);
   for (const s of supplements ?? []) if (!codes.has(s.pay_code)) codes.set(s.pay_code, s.name);
+  // Absence types (for templates with absence): vacation, feriefridage and the agreements' types.
+  codes.set("vacation", da.payroll.absenceCodes.vacation);
+  codes.set("extra", da.payroll.absenceCodes.extra);
+  for (const docs of Object.values(agreements.registry))
+    for (const doc of docs)
+      for (const r of doc.rules)
+        if (r.primitive === "absence")
+          for (const type of (r.params as { types?: { code: string; label: string }[] }).types ??
+            [])
+            if (!codes.has(type.code)) codes.set(type.code, type.label);
   const payCodes = [...codes]
     .map(([code, label]) => ({ code, label }))
     .sort((a, b) => a.code.localeCompare(b.code));

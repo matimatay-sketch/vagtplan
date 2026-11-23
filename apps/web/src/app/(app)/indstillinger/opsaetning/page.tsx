@@ -19,6 +19,7 @@ import {
 import { assistantState } from "@/lib/assistant/access";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { loadOrganizationSettings } from "@/lib/schedule/validate-week";
+import { CustomRulesForm } from "@/components/settings/custom-rules";
 import { da } from "@/lib/i18n/da";
 import {
   LeaveRulesForm,
@@ -168,6 +169,13 @@ export default async function SettingsPage() {
               <AlertDescription>{t.rulesWarning}</AlertDescription>
             </Alert>
             <RuleHandlingForm handling={settings.rule_handling} />
+            <section className="grid gap-3 border-t pt-4" aria-labelledby="custom-rules-title">
+              <h3 id="custom-rules-title" className="flex items-center gap-1 font-semibold">
+                {da.customRules.title}
+                <HelpTip>{da.customRules.lead}</HelpTip>
+              </h3>
+              <CustomRulesForm rules={settings.custom_rules} />
+            </section>
           </CardContent>
         </Card>
         <Card>

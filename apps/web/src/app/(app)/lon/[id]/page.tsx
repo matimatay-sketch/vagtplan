@@ -17,6 +17,7 @@ import { decimalHours } from "@/lib/domain/project-report";
 import { formatDate } from "@/lib/format";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
+import { templateOptions } from "@/lib/payroll/export-templates";
 import { formatKroner } from "@/lib/domain/numbers";
 import { postingText, type PostingValues } from "@/lib/domain/posting";
 import { loadPostingDimensions } from "@/lib/posting/load";
@@ -56,7 +57,11 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
       )
       .eq("pay_period_id", id)
       .is("superseded_at", null),
-    supabase.from("export_template").select("id, name").is("archived_at", null).order("name"),
+    supabase
+      .from("export_template")
+      .select("id, name, settings")
+      .is("archived_at", null)
+      .order("name"),
     loadPostingDimensions(supabase),
   ]);
   const runBy = new Map((runs ?? []).map((r) => [r.employee_id, r]));
@@ -88,7 +93,7 @@ export default async function PayPeriodPage({ params }: PageProps<"/lon/[id]">) 
             periodId={p.id}
             open={p.status === "open"}
             canManage={hasOrg(ctx.permissions, "payroll.manage")}
-            templates={templates ?? []}
+            templates={templateOptions(templates)}
           />
         }
       />

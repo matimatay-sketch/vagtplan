@@ -262,4 +262,93 @@ describe("windows and the norm", () => {
     const plain = run(days, [], "2026-05-11", "2026-05-17", rules("none"));
     expect(minutes(plain)).toEqual({});
   });
+
+  // Grundlovsdag (Friday 5 June 2026) as a half day: a holiday from 12:00.
+  const halfDay: RuleLayer = {
+    id: "helligdage",
+    params: {
+      holidays: ["kristi_himmelfartsdag", "grundlovsdag"],
+      partial: [{ key: "grundlovsdag", from: "12:00" }],
+    },
+  };
+  const normRules = (params: Record<string, unknown>): RuleLayer[] => [
+    halfDay,
+    {
+      id: "ot",
+      primitive: "overtime",
+      source: "x",
+      params: {
+        trigger: "weekly_norm",
+        tiers: [{ up_to_minutes: null, amount: A, pay_code: "OT_A" }],
+      },
+    },
+    { id: "norm", primitive: "norm", source: "x", params: { period: { type: "week" }, ...params } },
+  ];
+  const grundlovsWeek = [
+    ...["01", "02", "03", "04"].map((d) => shift(`2026-06-${d} 07:00`, `2026-06-${d} 15:00`)),
+    shift("2026-06-05 07:00", "2026-06-05 12:00"),
+  ]; // 32 h + 5 h = 37 h
+
+  it("a half holiday takes half of 1/5 of the weekly norm", () => {
+    // 37 h − 1/10 × 37 h = 33.3 h norm; 37 h worked → 3.7 h = 222 min overtime.
+    const r = run(
+      grundlovsWeek,
+      [],
+      "2026-06-01",
+      "2026-06-07",
+      normRules({ holiday_reduction: "one_fifth_on_weekdays" }),
+    );
+    expect(minutes(r)).toEqual({ OT_A: 222 });
+  });
+
+  it("a half holiday takes half the daily norm with the daily trigger", () => {
+    // Daily norm 7.4 h = 444 min, halved = 222 min; Friday 07–12 = 300 min → 78 min.
+    const rules = normRules({ holiday_reduction: "one_fifth_on_weekdays", daily_minutes: 444 });
+    (rules[1]!.params as Record<string, unknown>).trigger = "daily_norm";
+    const r = run(
+      [shift("2026-06-05 07:00", "2026-06-05 12:00")],
+      [],
+      "2026-06-05",
+      "2026-06-05",
+      rules,
+    );
+    expect(minutes(r)).toEqual({ OT_A: 78 });
+  });
+
+  it("planned_shift takes the planned hours that fall in holiday time", () => {
+    // Planned Friday 07–15; holiday from 12:00 → 3 h off the norm: 37 − 3 = 34 h.
+    // 37 h worked → 3 h = 180 min overtime.
+    const planned = [
+      ...["01", "02", "03", "04", "05"].map((d) =>
+        shift(`2026-06-${d} 07:00`, `2026-06-${d} 15:00`, { id: `p${d}` }),
+      ),
+    ];
+    const r = run(
+      grundlovsWeek,
+      planned,
+      "2026-06-01",
+      "2026-06-07",
+      normRules({ holiday_reduction: "planned_shift" }),
+    );
+    expect(minutes(r)).toEqual({ OT_A: 180 });
+  });
+
+  it("planned_shift takes the whole planned shift on a whole holiday, and nothing without one", () => {
+    // Kristi himmelfartsdag Thursday 14 May 2026, planned 07–15 → 8 h off: norm 29 h.
+    // Mon, Tue, Wed and Fri 8 h = 32 h → 3 h = 180 min.
+    const days = ["11", "12", "13", "15"].map((d) =>
+      shift(`2026-05-${d} 07:00`, `2026-05-${d} 15:00`),
+    );
+    const rules = normRules({ holiday_reduction: "planned_shift" });
+    const withPlan = run(
+      days,
+      [shift("2026-05-14 07:00", "2026-05-14 15:00", { id: "p" })],
+      "2026-05-11",
+      "2026-05-17",
+      rules,
+    );
+    expect(minutes(withPlan)).toEqual({ OT_A: 180 });
+    // No shift planned on the holiday: the norm stays 37 h, so 32 h is no overtime.
+    expect(minutes(run(days, [], "2026-05-11", "2026-05-17", rules))).toEqual({});
+  });
 });

@@ -20,6 +20,8 @@ import { loadPeriods } from "@/lib/payroll/periods";
 import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
 import { periodFocus } from "@/lib/domain/pay-periods";
+import { ExportDialog } from "@/components/payroll/export-dialog";
+import { templateOptions } from "@/lib/payroll/export-templates";
 import { todayIn } from "@/lib/domain/civil-date";
 
 export const metadata: Metadata = { title: "Løn" };
@@ -32,18 +34,40 @@ export default async function PayrollPage({ searchParams }: PageProps<"/lon">) {
   const showAll = (await searchParams).alle === "1";
   const focus = periodFocus(all, todayIn(ctx.organization.timezone));
   const periods = showAll ? all : focus.recent;
+  const canManage = hasOrg(ctx.permissions, "payroll.manage");
+  const { data: templateRows } = canManage
+    ? await supabase
+        .from("export_template")
+        .select("id, name, settings")
+        .is("archived_at", null)
+        .order("name")
+    : { data: [] };
+  // Newest first; the current period (or the one ready to run) is chosen.
+  const exportPeriods = [...all]
+    .sort((a, b) => b.start.localeCompare(a.start))
+    .map((p) => ({
+      id: p.id,
+      label: `${p.groupName}: ${formatDate(p.start)} – ${formatDate(p.end)}`,
+    }));
   return (
     <>
       <PageHeader
         title={t.title}
         help={t.lead}
         actions={
-          hasOrg(ctx.permissions, "payroll.manage") ? (
-            <Button asChild variant="outline">
-              <Link href="/lon/skabeloner">
-                <FileCog /> {t.templates}
-              </Link>
-            </Button>
+          canManage ? (
+            <>
+              <ExportDialog
+                periods={exportPeriods}
+                defaultPeriodId={focus.now[0]?.id ?? exportPeriods[0]?.id}
+                templates={templateOptions(templateRows)}
+              />
+              <Button asChild variant="outline">
+                <Link href="/lon/skabeloner">
+                  <FileCog /> {t.templates}
+                </Link>
+              </Button>
+            </>
           ) : null
         }
       />

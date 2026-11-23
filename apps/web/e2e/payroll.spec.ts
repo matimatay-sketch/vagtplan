@@ -45,7 +45,8 @@ test("approved time is calculated with explanations, the period is closed and ex
   await login(page, users.admin);
   await page.goto("/lon/skabeloner?skabelon=ny");
   const editor = page.getByTestId("template-editor");
-  await editor.getByLabel("Navn").fill(`Lønsystem ${Date.now().toString(36)}`);
+  const templateName = `Lønsystem ${Date.now().toString(36)}`;
+  await editor.getByLabel("Navn").fill(templateName);
   await expect(page.getByTestId("template-preview")).toContainText("Medarbejdernr.;Navn;Lønart");
   await editor.getByRole("button", { name: "Gem skabelon" }).click();
   await expect(page.getByText("Skabelonen er gemt.")).toBeVisible();
@@ -71,13 +72,62 @@ test("approved time is calculated with explanations, the period is closed and ex
   await expect(page.getByTestId("period-status")).toHaveText("Afsluttet");
   await expect(page.getByRole("button", { name: "Beregn alle" })).toHaveCount(0);
 
+  await page.getByTestId("export-file").click();
+  const dialog = page.getByTestId("export-dialog");
+  await dialog.getByLabel("Eksportskabelon").selectOption({ label: templateName });
+  await expect(dialog.getByTestId("export-content")).toHaveText(
+    "Kun lønregistreringer (lønlinjer)",
+  );
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("link", { name: "Eksportér" }).click(),
+    dialog.getByRole("link", { name: "Hent fil" }).click(),
   ]);
   const csv = await readFile((await download.path())!, "utf8");
   expect(csv.startsWith("﻿Medarbejdernr.;Navn;Lønart;Tekst;Timer;Sats;Beløb;Fra;Til\r\n")).toBe(
     true,
   );
   expect(csv).toContain("1002;Mads Medarbejder;NORMAL;Timeløn;4,00;150,00;600,00;");
+});
+
+test("the payroll page exports a file with a chosen template: pay and absence, days, dd/mm/yyyy", async ({
+  page,
+}) => {
+  await login(page, users.admin);
+  await page.goto("/lon/skabeloner?skabelon=ny");
+  const editor = page.getByTestId("template-editor");
+  const name = `Løn og fravær ${Date.now().toString(36)}`;
+  await editor.getByLabel("Navn").fill(name);
+  await editor.getByLabel("Datoformat").selectOption("dd/mm/yyyy");
+  await editor.getByLabel("Indhold").selectOption("both");
+  await editor.getByLabel("Fravær i").selectOption("days");
+  await editor.getByLabel("Kolonne 1", { exact: true }).selectOption("record_type");
+  await editor.getByLabel("Overskrift 1", { exact: true }).fill("Type");
+  // The preview shows a pay line and an absence row (2 days) with the chosen formats.
+  const preview = page.getByTestId("template-preview");
+  await expect(preview).toContainText("Løn;");
+  await expect(preview).toContainText("Fravær;");
+  await expect(preview).toContainText("04/01/2027");
+  await editor.getByRole("button", { name: "Gem skabelon" }).click();
+  await expect(page.getByText("Skabelonen er gemt.")).toBeVisible();
+
+  // On the payroll page: "Eksportér fil", choose the template and download.
+  await page.goto("/lon");
+  await page.getByTestId("export-file").click();
+  const dialog = page.getByTestId("export-dialog");
+  await expect(dialog.getByLabel("Lønperiode")).toBeVisible();
+  await dialog.getByLabel("Eksportskabelon").selectOption({ label: name });
+  await expect(dialog.getByTestId("export-content")).toHaveText(
+    "Både løn og fravær · Fravær i dage",
+  );
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    dialog.getByRole("link", { name: "Hent fil" }).click(),
+  ]);
+  const csv = await readFile((await download.path())!, "utf8");
+  expect(csv.startsWith("﻿Type;Navn;Lønart;")).toBe(true);
+  // Every data row is a pay line or an absence row, with dates as dd/mm/yyyy.
+  for (const line of csv.trim().split("\r\n").slice(1)) {
+    expect(line).toMatch(/^(Løn|Fravær);/);
+    expect(line).toMatch(/;\d{2}\/\d{2}\/\d{4};\d{2}\/\d{2}\/\d{4}$/);
+  }
 });

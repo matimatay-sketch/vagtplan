@@ -118,6 +118,14 @@ describe("leaveRulesSchema", () => {
       payout_allowed: false,
     });
   });
+  it("the holiday norm reduction is one of the engine's choices", () => {
+    expect(leaveRulesSchema.parse({ holiday_norm_reduction: "planned_shift" })).toEqual({
+      holiday_norm_reduction: "planned_shift",
+    });
+    expect(leaveRulesSchema.parse({ holiday_norm_reduction: "" })).toEqual({});
+    // An unknown value follows the agreement, like the other choices.
+    expect(leaveRulesSchema.parse({ holiday_norm_reduction: "x" })).toEqual({});
+  });
   it("a limit only applies when the move is allowed, and must be whole days 0–366", () => {
     expect(leaveRulesSchema.parse({ transfer_only_above_days: "20" })).toEqual({});
     const r = leaveRulesSchema.safeParse({

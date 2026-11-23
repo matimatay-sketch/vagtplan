@@ -9,6 +9,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Field } from "@/components/form";
 import { saveTemplateAction } from "@/lib/actions/payroll";
 import {
+  DATE_FORMATS,
   EXPORT_FIELDS,
   GENERIC_CSV,
   exportSettingsSchema,
@@ -43,7 +44,36 @@ const SAMPLE: ExportRow[] = [
     periodStart: "2027-01-04",
     periodEnd: "2027-01-17",
   },
+  {
+    kind: "absence",
+    employeeNumber: "1002",
+    employeeName: "Mads Medarbejder",
+    payCode: "sick",
+    label: "Sygdom",
+    unit: "absence",
+    quantityMinutes: 888,
+    quantityDays: 200,
+    rateOre: 0,
+    amountOre: 0,
+    periodStart: "2027-01-04",
+    periodEnd: "2027-01-17",
+    dateFrom: "2027-01-11",
+    dateTo: "2027-01-12",
+  },
 ];
+
+/** 4 January 2027 in the format, as an example in the list. */
+const exampleDate = (dateFormat: ExportSettings["dateFormat"]) =>
+  renderExport(
+    exportSettingsSchema.parse({
+      dateFormat,
+      header: false,
+      bom: false,
+      lineEnding: "lf",
+      columns: [{ field: "period_start" }],
+    }),
+    [SAMPLE[0]!],
+  ).text.trim();
 
 /** Builds an export template: format, columns and pay code mapping, with a live preview. */
 export function TemplateEditor({
@@ -117,13 +147,38 @@ export function TemplateEditor({
             value={s.dateFormat}
             onChange={(e) => set("dateFormat", e.target.value as ExportSettings["dateFormat"])}
           >
-            {(["yyyy-mm-dd", "dd-mm-yyyy", "dd.mm.yyyy", "ddmmyyyy"] as const).map((f) => (
+            {DATE_FORMATS.map((f) => (
               <option key={f} value={f}>
-                {f}
+                {t.dateFormats(f, exampleDate(f))}
               </option>
             ))}
           </NativeSelect>
         </Field>
+        <Field label={t.content} htmlFor="content">
+          <NativeSelect
+            id="content"
+            value={s.content}
+            onChange={(e) => set("content", e.target.value as ExportSettings["content"])}
+          >
+            {(["pay", "absence", "both"] as const).map((k) => (
+              <option key={k} value={k}>
+                {t.contents[k]}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        {s.content !== "pay" ? (
+          <Field label={t.absenceUnit} htmlFor="absenceUnit">
+            <NativeSelect
+              id="absenceUnit"
+              value={s.absenceUnit}
+              onChange={(e) => set("absenceUnit", e.target.value as ExportSettings["absenceUnit"])}
+            >
+              <option value="hours">{t.absenceUnits.hours}</option>
+              <option value="days">{t.absenceUnits.days}</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
         <Field label={t.grouping} htmlFor="grouping">
           <NativeSelect
             id="grouping"

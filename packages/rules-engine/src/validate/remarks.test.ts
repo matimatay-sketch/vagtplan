@@ -288,3 +288,24 @@ describe("remark: where it is shown and to whom it applies", () => {
     expect(schema.safeParse({ ...base, severity: "INFO" }).success).toBe(true);
   });
 });
+
+describe("remark from the organization layer (own rules on top of every agreement)", () => {
+  it("flags shifts under any agreement", () => {
+    const input = makeInput({});
+    const v = validateSchedule({
+      ...input,
+      organizationLayer: {
+        rules: [
+          remark("egen-lang", { type: "shift_longer_than", minutes: 720 }, { severity: "INFO" }),
+        ],
+      },
+      intervals: [shift("2027-08-23 06:00", "2027-08-23 20:00")],
+      from: "2027-08-23",
+      to: "2027-08-23",
+      context: "schedule",
+    }).violations.filter((x) => x.primitive === "remark");
+    expect(v.map((x) => [x.code, x.severity, x.message])).toEqual([
+      ["EGEN_LANG", "INFO", "Anmærkning egen-lang (14 t)"],
+    ]);
+  });
+});
