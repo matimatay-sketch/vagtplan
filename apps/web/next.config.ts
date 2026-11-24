@@ -4,6 +4,9 @@ import type { NextConfig } from "next";
 // RLS-scoped, so a static shell buys nothing. See CLAUDE.md.
 const nextConfig: NextConfig = {
   transpilePackages: ["@vagtplan/rules-engine"],
+  // The PDF guides are rendered on the server and include the screenshots.
+  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: { "/vejledninger/[slug]/pdf": ["./public/vejledninger/**"] },
   // Receipts (udlæg) are uploaded through a server action; the bucket allows 10 MiB.
   experimental: { serverActions: { bodySizeLimit: "11mb" } },
   async headers() {

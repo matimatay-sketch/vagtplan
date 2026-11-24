@@ -77,6 +77,26 @@ test("manager plans a week, overrides a blocking rule with a reason and publishe
   await expect(page.getByTestId("my-shift").first()).toContainText("14:00–22:00");
 });
 
+test("an employee sees the next published shift on the overview", async ({ page }) => {
+  // Tomorrow in Copenhagen, at an hour no other test uses.
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
+  const tomorrow = plus(today, 1);
+  const monday = plus(tomorrow, -((new Date(`${tomorrow}T00:00:00Z`).getUTCDay() + 6) % 7));
+  await login(page, users.manager);
+  await page.goto(`/vagtplan?uge=${monday}&visning=uge`);
+  await createShift(page, MADS, tomorrow, "05:00", "06:00");
+  await page.getByTestId("publish-button").click();
+  const dialog = page.getByTestId("publish-dialog");
+  for (const reason of await dialog.getByTestId("override-reason").all())
+    await reason.fill("Oversigten viser vagten");
+  await dialog.getByTestId("confirm-publish").click();
+  await expect(page.getByText(/Vagtplanen er offentliggjort/)).toBeVisible();
+  await page.context().clearCookies();
+
+  await login(page, users.employee);
+  await expect(page.getByTestId("my-shifts")).toContainText("05:00–06:00");
+});
+
 test("a shift across the spring DST change is shown and validated with real time", async ({
   page,
 }) => {

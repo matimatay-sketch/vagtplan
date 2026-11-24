@@ -9,12 +9,14 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "guides:screenshots": "GUIDE_SHOTS=1 playwright test e2e/guide-screenshots.spec.ts --project desktop --trace off"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
     "@capacitor/core": "8.6.0",
     "@dnd-kit/core": "^6.3.1",
+    "@react-pdf/renderer": "4.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "@vagtplan/rules-engine": "workspace:*",

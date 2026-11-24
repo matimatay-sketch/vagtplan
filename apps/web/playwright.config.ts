@@ -19,7 +19,14 @@ export default defineConfig({
     trace: "off",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /mobile\.spec\.ts/ },
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"] },
+      // The guide screenshots run only on request (pnpm guides:screenshots).
+      testIgnore: process.env.GUIDE_SHOTS
+        ? /mobile\.spec\.ts/
+        : /mobile\.spec\.ts|guide-screenshots/,
+    },
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: [

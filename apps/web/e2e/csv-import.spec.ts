@@ -80,7 +80,8 @@ test("departments, employees, shifts and balances are imported from CSV files af
   await expect(page.getByText("Ib Import").first()).toBeVisible();
 
   // Shifts: imported as drafts; the same file again changes nothing.
-  const monday = mondayAhead(9);
+  // Week 45 ahead: no other test uses it.
+  const monday = mondayAhead(45);
   const shifts = `medarbejdernummer;afdeling;dato;start;slut;pause (min);type;betegnelse\n1002;Butik;${monday};07:00;15:00;30;arbejde;Import ${stamp}\n`;
   await page.goto("/indlaes?type=shifts");
   panel = await checkFile(page, "shifts", shifts);

@@ -52,6 +52,7 @@ export const da = {
     payroll: "Løn",
     reports: "Rapporter",
     import: "Indlæs fra fil",
+    guides: "Vejledninger",
     agreements: "Overenskomster",
     posting: "Kontering",
     expenses: "Kørsel og udlæg",
@@ -1945,6 +1946,17 @@ export const da = {
       footer:
         "Du får denne e-mail, fordi din afdeling også sender beskeder på e-mail. Selve beskeden står kun i Turnus.",
     },
+  },
+  guides: {
+    title: "Vejledninger",
+    help: "Vejledninger i, hvordan Turnus bruges. Du ser de vejledninger, der passer til dine rettigheder. Hent dem som PDF for at printe eller dele dem.",
+    read: "Læs vejledningen",
+    pdf: "Hent som PDF",
+    pdfLabel: "Vejledning",
+    contents: "Indhold",
+    back: "Alle vejledninger",
+    sections: (n: number) => `${n} afsnit`,
+    pageOf: (n: number, total: number) => `Side ${n} af ${total}`,
   },
   importCsv: {
     missingColumn: (c: string) => `Kolonnen "${c}" mangler`,
