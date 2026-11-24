@@ -1947,6 +1947,30 @@ export const da = {
         "Du får denne e-mail, fordi din afdeling også sender beskeder på e-mail. Selve beskeden står kun i Turnus.",
     },
   },
+  autoSchedule: {
+    button: "Lav forslag",
+    title: "Lav et vagtplansforslag",
+    lead: "Vagtskabelonerne fordeles, så hver medarbejder kommer tæt på sin timenorm. Vagterne bliver kladder.",
+    help: "Turnus fordeler vagtskabelonerne på de valgte dage, så hver medarbejder kommer så tæt som muligt på sin timenorm. Fravær, eksisterende vagter og ønsker om fri respekteres, og ønsker om at arbejde bruges først. Forslaget kontrolleres mod reglerne, og vagter, der bryder en blokerende regel, planlægges om. Vagterne bliver kladder, som du kan rette eller kassere, før ugen offentliggøres. Der sendes ingen data uden for Turnus.",
+    templates: "Vagtskabeloner",
+    noTemplates: "Afdelingen har ingen vagtskabeloner. Opret dem under Vagtskabeloner først.",
+    days: "Dage",
+    make: "Lav forslag",
+    making: "Laver forslag …",
+    cancel: "Annullér",
+    chooseTemplates: "Vælg mindst én vagtskabelon",
+    chooseDays: "Vælg mindst én dag",
+    created: (n: number) => (n === 1 ? "1 kladdevagt oprettet." : `${n} kladdevagter oprettet.`),
+    dropped: (n: number) =>
+      n === 1 ? "1 vagt brød en regel og er udeladt." : `${n} vagter brød en regel og er udeladt.`,
+    nothing: "Der var ingen vagter at planlægge: alle er ved deres norm, eller dagene er optaget.",
+    noteLine: (name: string, planned: string, target: string) =>
+      `${name}: ${planned} af ${target} t`,
+    noteNoNorm: (name: string) => `${name}: ingen timenorm i kontrakten, ikke planlagt`,
+    proposalBanner: (n: number) =>
+      n === 1 ? "Ugen har 1 vagt fra et forslag." : `Ugen har ${n} vagter fra et forslag.`,
+    badge: "Forslag",
+  },
   guides: {
     title: "Vejledninger",
     help: "Vejledninger i, hvordan Turnus bruges. Du ser de vejledninger, der passer til dine rettigheder. Hent dem som PDF for at printe eller dele dem.",

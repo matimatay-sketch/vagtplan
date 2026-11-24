@@ -139,14 +139,14 @@ isOneToOne: false
                   ]
                 },"assistant_proposal": {
                   Row: {
-                    "created_at": string,"created_by": string,"department_id": string,"discarded_at": string | null,"id": string,"note": string | null,"organization_id": string,"week_start": string
+                    "created_at": string,"created_by": string,"department_id": string,"discarded_at": string | null,"id": string,"note": string | null,"organization_id": string,"source": string,"week_start": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string,"department_id": string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id": string,"week_start": string
+                    "created_at"?: string,"created_by"?: string,"department_id": string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id": string,"source"?: string,"week_start": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"department_id"?: string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id"?: string,"week_start"?: string
+                    "created_at"?: string,"created_by"?: string,"department_id"?: string,"discarded_at"?: string | null,"id"?: string,"note"?: string | null,"organization_id"?: string,"source"?: string,"week_start"?: string
                   }
                   Relationships: [
                     {

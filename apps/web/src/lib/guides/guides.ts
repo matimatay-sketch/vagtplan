@@ -193,6 +193,7 @@ export const GUIDES: Guide[] = [
           "Tryk Ny vagt i medarbejderens celle, udfyld start og slut, og tryk Gem vagt.",
           "Brug Kopiér forrige uge hertil for at starte fra sidste uges plan.",
         ],
+        tip: "Tryk Lav forslag for at få Turnus til at fordele vagtskabelonerne på ugen, så hver medarbejder kommer tæt på sin timenorm. Fravær og ønsker om fri respekteres, og reglerne kontrolleres. Vagterne bliver kladder, som du kan rette eller kassere.",
         image: "leder-vagtplan.jpg",
         imageAlt: "Vagtplanen for en uge med vagter pr. medarbejder",
       },

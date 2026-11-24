@@ -106,7 +106,7 @@ export const ShiftCard = React.forwardRef<
             className="rounded bg-accent px-1 text-[10px] font-medium text-accent-foreground no-underline"
             data-testid="proposal-badge"
           >
-            {da.assistant.badge}
+            {shift.proposalSource === "auto" ? da.autoSchedule.badge : da.assistant.badge}
           </span>
         ) : null}
         {shift.postingAllocations.length ? (

@@ -19,7 +19,7 @@ import { weekDates, weekStartOf, zonedTime } from "@/lib/domain/schedule-time";
 import { localInstants } from "@/lib/schedule/breaks";
 import { loadAgreements } from "@/lib/engine";
 import { loadPostingDimensions } from "@/lib/posting/load";
-import { validateWeek } from "@/lib/schedule/validate-week";
+import { archiveShifts, blockingFor } from "@/lib/schedule/proposals";
 import {
   ASSISTANT_MODEL,
   askProposal,
@@ -412,32 +412,6 @@ async function insertShifts(
     .select("id");
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => r.id);
-}
-
-async function archiveShifts(supabase: Client, ids: string[]) {
-  if (ids.length)
-    await supabase.from("shift").update({ archived_at: new Date().toISOString() }).in("id", ids);
-}
-
-/** Blocking violations the engine finds on the proposed shifts. */
-async function blockingFor(
-  supabase: Client,
-  ctx: AppContext,
-  employeeIds: string[],
-  weekStart: string,
-  shiftIds: string[],
-) {
-  if (shiftIds.length === 0) return [];
-  const proposed = new Set(shiftIds);
-  const violations = await validateWeek(supabase, {
-    organizationId: ctx.organization.id,
-    employeeIds,
-    weekStart,
-    timezone: ctx.organization.timezone,
-  });
-  return violations.filter(
-    (v) => v.severity === "BLOCKING" && v.intervalIds.some((id) => proposed.has(id)),
-  );
 }
 
 /** Discards a proposal: its shifts that were never published are archived. */

@@ -13,6 +13,7 @@ import { PublishButton } from "@/components/schedule/publish-dialog";
 import { CopyWeekButton } from "@/components/schedule/copy-week-button";
 import { RealtimeRefresh } from "@/components/schedule/realtime-refresh";
 import { ProposeButton } from "@/components/assistant/propose-button";
+import { AutoScheduleButton } from "@/components/schedule/auto-schedule-button";
 import { ProposalBanner } from "@/components/assistant/proposal-banner";
 import { assistantState } from "@/lib/assistant/access";
 import { requireContext } from "@/lib/auth";
@@ -80,7 +81,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
     assistantState(supabase, ctx),
     supabase
       .from("assistant_proposal")
-      .select("id, note, shift!shift_proposal_fk (id, archived_at, published)")
+      .select("id, note, source, shift!shift_proposal_fk (id, archived_at, published)")
       .eq("department_id", department.id)
       .eq("week_start", weekStart)
       .is("discarded_at", null)
@@ -90,6 +91,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
     .map((p) => ({
       id: p.id,
       note: p.note,
+      source: p.source,
       shiftCount: p.shift.filter((s) => s.archived_at === null).length,
     }))
     .filter((p) => p.shiftCount > 0);
@@ -118,6 +120,15 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
         }
         actions={
           <>
+            {board.canManage ? (
+              <AutoScheduleButton
+                departmentId={department.id}
+                weekStart={weekStart}
+                templates={board.templates
+                  .filter((tpl) => tpl.kind === "work")
+                  .map((tpl) => ({ id: tpl.id, name: tpl.name, time: `${tpl.start}–${tpl.end}` }))}
+              />
+            ) : null}
             {canPropose ? (
               <ProposeButton departmentId={department.id} weekStart={weekStart} />
             ) : null}

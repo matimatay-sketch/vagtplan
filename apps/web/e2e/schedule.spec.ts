@@ -220,6 +220,53 @@ test("copy previous week and use a shift template", async ({ page }) => {
   );
 });
 
+test("the built-in proposal fills the week from the templates by the employees' norms", async ({
+  page,
+}) => {
+  // Week 50 ahead: no other test uses it.
+  const week = mondayIn(50);
+  await login(page, users.manager);
+  await page.goto("/vagtplan/skabeloner");
+  const name = `Dag ${Date.now().toString(36)}`;
+  await page.getByLabel("Navn").fill(name);
+  await page.getByLabel("Start").fill("08:00");
+  await page.getByLabel("Slut").fill("16:00");
+  await page.getByRole("button", { name: "Ny skabelon" }).click();
+  await expect(page.getByRole("cell", { name, exact: true })).toBeVisible();
+
+  await page.goto(`/vagtplan?uge=${week}&visning=uge`);
+  await page.getByTestId("auto-schedule-button").click();
+  const dialog = page.getByTestId("auto-schedule-dialog");
+  // Only the new template (other tests make templates too); Monday to Friday is chosen already.
+  for (const box of await dialog
+    .getByRole("group", { name: "Vagtskabeloner" })
+    .getByRole("checkbox")
+    .all())
+    await box.uncheck();
+  await dialog.getByLabel(new RegExp(name)).check();
+  await dialog.getByTestId("auto-schedule-make").click();
+  await expect(page.getByText(/kladdevagter oprettet/)).toBeVisible();
+
+  const banner = page.getByTestId("proposal-banner");
+  await expect(banner).toContainText("vagter fra et forslag");
+  // The template gets the default 30-minute unpaid break: 7.5 hours a shift.
+  // Lise (37 t) gets five shifts, Mads (25 t) three, Ida (8 t) one.
+  await expect(banner).toContainText("Lise Leder: 37,5 af 37 t");
+  await expect(banner).toContainText("Mads Medarbejder: 22,5 af 25 t");
+  await expect(banner).toContainText("Ida Ung: 7,5 af 8 t");
+  await expect(cell(page, "Lise Leder", week).getByTestId("shift-card")).toContainText(
+    "08:00–16:00",
+  );
+  await expect(page.getByTestId("proposal-badge").first()).toHaveText("Forslag");
+  // No shifts on the weekend, which was not chosen.
+  await expect(cell(page, "Lise Leder", plus(week, 5)).getByTestId("shift-card")).toHaveCount(0);
+
+  // The proposal can be discarded as a whole.
+  await banner.getByRole("button", { name: "Kassér forslaget" }).click();
+  await expect(page.getByText("Forslaget er kasseret.")).toBeVisible();
+  await expect(page.getByTestId("proposal-badge")).toHaveCount(0);
+});
+
 test("an employee registers a wish for a day off and the manager sees it", async ({ page }) => {
   const week = mondayIn(11);
   const day = plus(week, 2);
