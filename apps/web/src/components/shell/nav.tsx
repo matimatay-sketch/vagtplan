@@ -25,6 +25,7 @@ import {
   Menu,
   MessageSquare,
   FileBarChart,
+  Upload,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -152,6 +153,13 @@ const items: Item[] = [
     icon: CalendarX,
     anyOf: ["absence.view", "absence.manage", "absence.approve"],
     forApprovers: true,
+  },
+  {
+    href: "/indlaes",
+    group: "staff",
+    label: da.nav.import,
+    icon: Upload,
+    anyOf: ["departments.manage", "employees.manage", "schedule.manage", "absence.manage"],
   },
   {
     href: "/rapporter",

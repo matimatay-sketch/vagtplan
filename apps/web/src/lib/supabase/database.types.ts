@@ -1780,6 +1780,18 @@ isOneToOne: false
               "admin_email": string,"employee_id": string,"employee_name": string
             }[]
                            },
+"import_balances":
+{ Args: { "p_org": string,"p_rows": Json }; Returns: number
+                           },
+"import_departments":
+{ Args: { "p_org": string,"p_rows": Json }; Returns: number
+                           },
+"import_employees":
+{ Args: { "p_org": string,"p_rows": Json }; Returns: number
+                           },
+"import_shifts":
+{ Args: { "p_org": string,"p_rows": Json }; Returns: number
+                           },
 "is_platform_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
