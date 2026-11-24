@@ -48,8 +48,9 @@ export type BoardShift = {
   breaks: DbBreak[];
   supplementTypeIds: string[];
   postingAllocations: PostingAllocation[];
-  /** Set when the shift came from an AI proposal. */
+  /** Set when the shift came from a proposal (AI or built-in). */
   proposalId: string | null;
+  proposalSource: "assistant" | "auto" | null;
   label: string | null;
   kind: "work" | "on_call";
   /** Share counting towards the norm (null = the default for the kind). */
@@ -153,7 +154,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, label, kind, norm_percent, norm_in_pay, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, proposal:assistant_proposal!shift_proposal_fk (source), label, kind, norm_percent, norm_in_pay, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -315,6 +316,7 @@ export async function loadWeek(
     supplementTypeIds: s.supplement_type_ids,
     postingAllocations: s.posting_allocations as unknown as PostingAllocation[],
     proposalId: s.proposal_id,
+    proposalSource: (s.proposal?.source as "assistant" | "auto" | undefined) ?? null,
     label: s.label,
     kind: s.kind,
     normPercent: s.norm_percent,

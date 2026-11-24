@@ -14,7 +14,7 @@ export function ProposalBanner({
   proposals,
   canManage,
 }: {
-  proposals: { id: string; shiftCount: number; note: string | null }[];
+  proposals: { id: string; shiftCount: number; note: string | null; source: string }[];
   canManage: boolean;
 }) {
   const [busy, start] = useTransition();
@@ -25,7 +25,10 @@ export function ProposalBanner({
         <Alert key={p.id} className="mb-4" data-testid="proposal-banner">
           <AlertDescription className="grid gap-2">
             <span className="flex items-center gap-2 font-medium text-foreground">
-              <Sparkles className="size-4" /> {t.proposalBanner(p.shiftCount)}
+              <Sparkles className="size-4" />{" "}
+              {p.source === "auto"
+                ? da.autoSchedule.proposalBanner(p.shiftCount)
+                : t.proposalBanner(p.shiftCount)}
             </span>
             {p.note ? <span className="whitespace-pre-wrap">{p.note}</span> : null}
             {canManage ? (
