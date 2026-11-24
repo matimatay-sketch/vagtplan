@@ -118,16 +118,13 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
     { data: departments },
     { data: celebrations },
   ] = await Promise.all([
+    // Employees cannot read the shift table; published_shifts is what they see.
     ctx.employee
-      ? supabase
-          .from("shift")
-          .select("id, published")
-          .not("published", "is", null)
-          .is("archived_at", null)
-          .gte("start_at", new Date(zonedTime(addDays(today, -1))).toISOString())
-          .lt("start_at", in14)
-          .order("start_at")
-      : Promise.resolve({ data: [] as { id: string; published: unknown }[] }),
+      ? supabase.rpc("published_shifts", {
+          p_from: new Date(zonedTime(addDays(today, -1))).toISOString(),
+          p_to: in14,
+        })
+      : Promise.resolve({ data: [] }),
     approves
       ? supabase
           .from("time_entry")
@@ -192,9 +189,15 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
     end_at: string;
     label?: string | null;
   };
-  const myShifts = (upcoming ?? [])
-    .map((x) => x.published as unknown as Snap)
-    .filter((p) => p.employee_id === ctx.employee?.id && p.end_at > nowIso)
+  const myShifts: Snap[] = (upcoming ?? [])
+    .filter((p) => p.is_mine && Date.parse(p.end_at) > Date.parse(nowIso))
+    .sort((a, b) => a.start_at.localeCompare(b.start_at))
+    .map((p) => ({
+      employee_id: p.employee_id,
+      start_at: p.start_at,
+      end_at: p.end_at,
+      label: p.label,
+    }))
     .slice(0, 5);
   const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const canPostIn = (dept: string | null) =>

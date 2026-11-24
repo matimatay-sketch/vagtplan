@@ -54,7 +54,7 @@ describe("calendarFeed", () => {
     expect(ics).toContain("DTSTART:20260329T060000Z");
   });
 
-  it("names on-call shifts and labels, and escapes text", () => {
+  it("names on-call (rådighed) shifts and labels, and escapes text", () => {
     const ics = calendarFeed(
       [
         {
@@ -68,7 +68,7 @@ describe("calendarFeed", () => {
       ],
       { name: "x", now },
     );
-    expect(ics).toContain("SUMMARY:Tilkald · Lukker\\, kasse\\; vagt\r\n");
+    expect(ics).toContain("SUMMARY:Rådighed · Lukker\\, kasse\\; vagt\r\n");
   });
 
   it("folds lines longer than 75 octets", () => {
