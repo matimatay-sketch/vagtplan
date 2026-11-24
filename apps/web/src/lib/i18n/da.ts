@@ -774,6 +774,13 @@ export const da = {
         `${perms === 1 ? "1 rettighed" : `${perms} rettigheder`} · ${users === 1 ? "1 bruger" : `${users} brugere`}`,
     },
   },
+  dayparts: {
+    legend: "Vagtens farve viser, hvornår på døgnet den starter",
+    morning: "Morgen",
+    day: "Dag",
+    evening: "Aften",
+    night: "Nat",
+  },
   schedule: {
     title: "Vagtplan",
     week: (n: number) => `Uge ${n}`,

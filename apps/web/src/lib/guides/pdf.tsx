@@ -5,9 +5,9 @@ import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@
 import type { Guide } from "./guides";
 import { da } from "@/lib/i18n/da";
 
-const ink = "#141a2e";
-const muted = "#4b5563";
-const primary = "#3340a8";
+const ink = "#16212e";
+const muted = "#4e5b67";
+const primary = "#1d6a72";
 
 const s = StyleSheet.create({
   page: {

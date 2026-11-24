@@ -23,6 +23,7 @@ import { removeAvailabilityAction } from "@/lib/actions/availability";
 import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
+import { daypartOf } from "@/lib/domain/daypart";
 import { AvailabilityForm } from "./availability-form";
 import {
   CancellationButton,
@@ -186,21 +187,19 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
                     <div
                       key={s.id}
                       data-testid={s.is_mine ? "my-shift" : "colleague-shift"}
+                      data-daypart={daypartOf(s.start_at)}
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm",
-                        s.is_mine ? "bg-primary text-primary-foreground" : "bg-muted",
+                        "flex items-center justify-between gap-3 rounded-lg border-l-4 px-3 py-2 text-sm",
+                        s.is_mine
+                          ? "border-l-(color:--dp) bg-(color:--dp-surface)"
+                          : "border-l-(color:--dp)/40 bg-muted",
                       )}
                     >
                       <span className="grid">
                         <span className="font-semibold tabular">
                           {timeRange(s.start_at, s.end_at)}
                         </span>
-                        <span
-                          className={cn(
-                            "text-xs",
-                            s.is_mine ? "opacity-80" : "text-muted-foreground",
-                          )}
-                        >
+                        <span className={cn("text-xs", "text-muted-foreground")}>
                           {s.is_mine ? s.department_name : s.employee_name || da.schedule.openShift}
                           {s.label ? ` · ${s.label}` : ""}
                         </span>

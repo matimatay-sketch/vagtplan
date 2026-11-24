@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/server";
 import { findActiveContract } from "@/lib/domain/contracts";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { localParts, timeRange, zonedTime } from "@/lib/domain/schedule-time";
+import { daypartOf } from "@/lib/domain/daypart";
 import { da } from "@/lib/i18n/da";
 import { StampCard } from "@/components/time/stamp-card";
 import { loadTimeOverview } from "@/lib/time/load";
@@ -342,9 +343,10 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
                     <Link
                       key={p.start_at}
                       href="/min-vagtplan"
-                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2 hover:bg-muted"
+                      data-daypart={daypartOf(p.start_at)}
+                      className="flex items-center justify-between gap-2 rounded-lg border-l-4 border-l-(color:--dp) bg-(color:--dp-surface) px-3 py-2 hover:brightness-[0.97]"
                     >
-                      <span className="capitalize">
+                      <span className="capitalize tabular">
                         {localParts(p.start_at).date === today
                           ? da.dashboard.today
                           : formatDate(localParts(p.start_at).date)}
