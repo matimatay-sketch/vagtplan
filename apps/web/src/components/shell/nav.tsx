@@ -27,6 +27,7 @@ import {
   FileBarChart,
   Upload,
   BookOpen,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -116,6 +117,20 @@ const items: Item[] = [
     anyOf: ["schedule.manage"],
   },
   { href: "/tid", group: "mine", label: da.nav.time, icon: Timer, anyOf: [], needsEmployee: true },
+  {
+    href: "/aktiviteter",
+    group: "approvals",
+    label: da.nav.activities,
+    icon: Zap,
+    anyOf: [
+      "schedule.manage",
+      "time.approve",
+      "absence.approve",
+      "absence.manage",
+      "expenses.manage",
+    ],
+    forApprovers: true,
+  },
   {
     href: "/tid/godkend",
     group: "approvals",
@@ -326,6 +341,7 @@ const BAR_PRIORITY = [
   "/min-vagtplan",
   "/tid",
   "/vagtplan",
+  "/aktiviteter",
   "/beskeder",
   "/tid/godkend",
   "/fravaer",
@@ -334,7 +350,7 @@ const BAR_PRIORITY = [
 const APPROVER_BAR_PRIORITY = [
   "/oversigt",
   "/vagtplan",
-  "/tid/godkend",
+  "/aktiviteter",
   "/beskeder",
   "/min-vagtplan",
   "/tid",

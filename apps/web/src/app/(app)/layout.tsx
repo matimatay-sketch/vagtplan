@@ -1,6 +1,7 @@
 import { Logo } from "@/components/brand/logo";
 import { HelpToggle } from "@/components/help/help";
 import { Nav } from "@/components/shell/nav";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import { UserMenu } from "@/components/shell/user-menu";
 import { requireContext } from "@/lib/auth";
 import { fullName } from "@/lib/format";
@@ -80,6 +81,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               {da.users.noResponsibilityNotice}
             </p>
           ) : null}
+          <SectionTabs
+            permissions={ctx.permissions}
+            hasEmployee={Boolean(ctx.employee)}
+            isApprover={ctx.timeApproverOf.length > 0}
+          />
           {children}
         </main>
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 py-1.5 backdrop-blur md:hidden">

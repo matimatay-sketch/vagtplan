@@ -15,6 +15,7 @@ import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form"
 import {
   BreaksEditor,
   SupplementPicker,
+  CompetencePicker,
   type SupplementOption,
 } from "@/components/schedule/breaks-editor";
 import { createTemplateAction, updateTemplateAction } from "@/lib/actions/schedule";
@@ -33,6 +34,7 @@ export type EditableTemplate = {
   end_time: string;
   breaks: TemplateBreak[];
   supplement_type_ids: string[];
+  required_competence_ids?: string[];
   posting_values: Record<string, string>;
   label: string | null;
   kind: "work" | "on_call";
@@ -50,6 +52,7 @@ export function TemplateForm({
   normDefaults,
   template,
   onDone,
+  competences = [],
 }: {
   departments: { id: string; name: string }[];
   allowOrgWide: boolean;
@@ -58,6 +61,7 @@ export function TemplateForm({
   normDefaults: NormDefaults;
   template?: EditableTemplate;
   onDone?: () => void;
+  competences?: { id: string; name: string }[];
 }) {
   const tp = template;
   const [state, action] = useActionState(
@@ -69,6 +73,7 @@ export function TemplateForm({
     tp ? templateBreaksToForm(tp.breaks) : [{ start: "", minutes: 30, paid: false }],
   );
   const [supplements, setSupplements] = useState<string[]>(tp?.supplement_type_ids ?? []);
+  const [required, setRequired] = useState<string[]>(tp?.required_competence_ids ?? []);
   const [postingValues, setPostingValues] = useState<Record<string, string>>(
     tp?.posting_values ?? {},
   );
@@ -176,6 +181,7 @@ export function TemplateForm({
       <div className="grid gap-4 lg:grid-cols-2">
         <BreaksEditor value={breaks} onChange={setBreaks} error={state.errors?.breaks} />
         <SupplementPicker options={supplementTypes} value={supplements} onChange={setSupplements} />
+        <CompetencePicker options={competences} value={required} onChange={setRequired} />
       </div>
       <div>
         <SubmitButton>{tp ? t.saveTemplate : t.newTemplate}</SubmitButton>

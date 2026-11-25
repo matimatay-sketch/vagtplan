@@ -28,6 +28,9 @@ import { findActiveContract } from "@/lib/domain/contracts";
 import { addDays, todayIn } from "@/lib/domain/civil-date";
 import { localParts, timeRange, zonedTime } from "@/lib/domain/schedule-time";
 import { daypartOf } from "@/lib/domain/daypart";
+import { NextShiftCard } from "@/components/dashboard/next-shift";
+import { OpenShiftList } from "@/components/shifts/open-shift-list";
+import { loadOpenShiftsForMe } from "@/lib/schedule/open-shifts";
 import { da } from "@/lib/i18n/da";
 import { StampCard } from "@/components/time/stamp-card";
 import { loadTimeOverview } from "@/lib/time/load";
@@ -194,6 +197,32 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
     end_at: string;
     label?: string | null;
   };
+  // "Næste vagt": the next (or current) own shift, and who else works then.
+  const nextShift =
+    (upcoming ?? [])
+      .filter((p) => p.is_mine && Date.parse(p.end_at) > Date.parse(nowIso))
+      .sort((a, b) => a.start_at.localeCompare(b.start_at))[0] ?? null;
+  const colleaguesOnNext = nextShift
+    ? [
+        ...new Set(
+          (upcoming ?? [])
+            .filter(
+              (p) =>
+                !p.is_mine &&
+                p.employee_id &&
+                p.start_at < nextShift.end_at &&
+                p.end_at > nextShift.start_at,
+            )
+            .map((p) => p.employee_name.split(" ")[0]!),
+        ),
+      ]
+    : [];
+  const [{ data: unread }, openShifts] = ctx.employee
+    ? await Promise.all([
+        supabase.rpc("unread_message_count", { p_org: ctx.organization.id }),
+        loadOpenShiftsForMe(supabase, ctx.organization.id, 14),
+      ])
+    : [{ data: 0 }, []];
   const myShifts: Snap[] = (upcoming ?? [])
     .filter((p) => p.is_mine && Date.parse(p.end_at) > Date.parse(nowIso))
     .sort((a, b) => a.start_at.localeCompare(b.start_at))
@@ -283,6 +312,35 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
         title={t.greeting(firstName)}
         lead={ctx.profile.name}
       />
+      {nextShift ? (
+        <NextShiftCard
+          shift={nextShift}
+          today={today}
+          colleagues={colleaguesOnNext}
+          unread={unread ?? 0}
+        />
+      ) : null}
+      {openShifts.length ? (
+        <section
+          className="mb-6 grid gap-3"
+          aria-labelledby="open-shifts-h"
+          data-testid="dashboard-open-shifts"
+        >
+          <h2
+            id="open-shifts-h"
+            className="flex items-center justify-between text-base font-semibold"
+          >
+            {da.openShifts.title}
+            <Link
+              href="/min-vagtplan"
+              className="text-sm font-normal text-primary underline-offset-4 hover:underline"
+            >
+              {da.dashboard.seeSchedule}
+            </Link>
+          </h2>
+          <OpenShiftList rows={openShifts.slice(0, 3)} />
+        </section>
+      ) : null}
       {stamping ? (
         <section className="mb-6" aria-label={da.dashboard.todayTitle} data-testid="today">
           <StampCard

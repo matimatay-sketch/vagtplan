@@ -35,11 +35,12 @@ export default async function TemplatesPage() {
     { data: supplementTypes },
     postingDimensions,
     { data: settings },
+    { data: competences },
   ] = await Promise.all([
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
+        "id, name, start_time, end_time, breaks, supplement_type_ids, required_competence_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -62,6 +63,12 @@ export default async function TemplatesPage() {
       .select("norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call")
       .eq("organization_id", ctx.organization.id)
       .maybeSingle(),
+    supabase
+      .from("competence")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
   ]);
   const normDefaults = normDefaultsFrom(settings);
   const valueName = new Map(
@@ -98,6 +105,7 @@ export default async function TemplatesPage() {
             allowOrgWide={orgWide}
             supplementTypes={supplementOptions}
             posting={postingDimensions}
+            competences={competences ?? []}
           />
         </CardContent>
       </Card>
@@ -164,6 +172,7 @@ export default async function TemplatesPage() {
                       allowOrgWide={orgWide}
                       supplementTypes={supplementOptions}
                       posting={postingDimensions}
+                      competences={competences ?? []}
                       template={{
                         ...tpl,
                         breaks: tpl.breaks as unknown as TemplateBreak[],

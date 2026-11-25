@@ -499,7 +499,7 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
         />
       )}
       {visibleExpenses.length > 0 ? (
-        <Card className="mt-6">
+        <Card className="mt-6 scroll-mt-20" id="udlaeg">
           <CardHeader>
             <CardTitle>{da.expenses.approveTitle}</CardTitle>
           </CardHeader>

@@ -47,3 +47,33 @@ export async function swapViolations(
   }
   return out;
 }
+
+/**
+ * New blocking violations if the shifts were held by other employees (open
+ * shifts taken, requests approved). Same rule as for swaps: only violations
+ * that were not there before count. Service client: only after the database
+ * has confirmed the actor may see the shifts.
+ */
+export async function reassignViolations(
+  db: Service,
+  organizationId: string,
+  reassign: Record<string, string>,
+  timezone: string,
+): Promise<EmployeeViolation[]> {
+  const ids = Object.keys(reassign);
+  if (ids.length === 0) return [];
+  const { data: shifts } = await db.from("shift").select("id, start_at").in("id", ids);
+  const weeks = [...new Set((shifts ?? []).map((s) => weekStartOf(localParts(s.start_at).date)))];
+  const employeeIds = [...new Set(Object.values(reassign))];
+  const out: EmployeeViolation[] = [];
+  for (const weekStart of weeks) {
+    const opts = { organizationId, employeeIds, weekStart, timezone, trusted: true };
+    const [before, after] = await Promise.all([
+      validateWeek(db, opts),
+      validateWeek(db, { ...opts, reassign }),
+    ]);
+    const known = new Set(before.map(violationKey));
+    out.push(...after.filter((v) => v.handling === "block" && !known.has(violationKey(v))));
+  }
+  return out;
+}

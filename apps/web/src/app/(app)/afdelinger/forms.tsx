@@ -44,6 +44,7 @@ export function DepartmentMessagingForm({
   messageEmail,
   availability,
   organizationAvailability,
+  openShiftApproval = true,
 }: {
   id: string;
   name: string;
@@ -52,6 +53,7 @@ export function DepartmentMessagingForm({
   /** Wishes in this department; null follows the organization. */
   availability: boolean | null;
   organizationAvailability: boolean;
+  openShiftApproval?: boolean;
 }) {
   const [state, action] = useActionState(updateDepartmentMessagingAction, initialActionState);
   const t = da.departments;
@@ -65,6 +67,14 @@ export function DepartmentMessagingForm({
           defaultChecked={swapRequiresApproval}
         />
         {t.swapApproval}
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox
+          id={`dm-${id}-open-shifts`}
+          name="open_shift_requires_approval"
+          defaultChecked={openShiftApproval}
+        />
+        {da.openShifts.requireApproval}
       </label>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox id={`dm-${id}-email`} name="message_email" defaultChecked={messageEmail} />

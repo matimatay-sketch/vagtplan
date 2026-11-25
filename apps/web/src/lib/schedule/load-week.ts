@@ -50,6 +50,10 @@ export type BoardShift = {
   end: string;
   breaks: DbBreak[];
   supplementTypeIds: string[];
+  /** Competences the shift requires. */
+  requiredCompetenceIds: string[];
+  /** Names of required competences the employee lacks on the day (a warning on the card). */
+  missingCompetences: string[];
   postingAllocations: PostingAllocation[];
   /** Set when the shift came from a proposal (AI or built-in). */
   proposalId: string | null;
@@ -112,6 +116,8 @@ export type BoardTemplate = {
   end: string;
   breaks: TemplateBreak[];
   supplementTypeIds: string[];
+  /** Competences the shift requires. */
+  requiredCompetenceIds: string[];
   /** Default posting for the whole shift ({dimension id: value id}). */
   postingValues: Record<string, string>;
   label: string | null;
@@ -130,6 +136,8 @@ export type WeekBoard = {
   absences: BoardAbsence[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
+  /** The organization's competences (for "Kræver kompetencer"). */
+  competences: { id: string; name: string }[];
   /** Posting dimensions with the values available in this department. */
   posting: PostingDimension[];
   /** The organization's norm percent defaults per shift kind. */
@@ -159,7 +167,7 @@ export async function loadWeek(
     supabase
       .from("shift")
       .select(
-        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, posting_allocations, proposal_id, proposal:assistant_proposal!shift_proposal_fk (source), label, kind, norm_percent, norm_in_pay, status, published, archived_at, template_id",
+        "id, employee_id, start_at, end_at, breaks, supplement_type_ids, required_competence_ids, posting_allocations, proposal_id, proposal:assistant_proposal!shift_proposal_fk (source), label, kind, norm_percent, norm_in_pay, status, published, archived_at, template_id",
       )
       .eq("department_id", departmentId)
       .lt("start_at", to)
@@ -168,7 +176,7 @@ export async function loadWeek(
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, supplement_type_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
+        "id, name, start_time, end_time, breaks, supplement_type_ids, required_competence_ids, posting_values, label, kind, norm_percent, norm_in_pay, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -315,6 +323,39 @@ export async function loadWeek(
     }
   }
 
+  // Competences: the names, and what each employee holds (for the warning on the card).
+  const [{ data: competenceRows }, { data: heldRows }] = await Promise.all([
+    supabase
+      .from("competence")
+      .select("id, name, archived_at")
+      .eq("organization_id", ctx.organization.id),
+    supabase
+      .from("employee_competence")
+      .select("employee_id, competence_id, valid_from, valid_to")
+      .in(
+        "employee_id",
+        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+      )
+      .is("archived_at", null),
+  ]);
+  const competenceName = new Map((competenceRows ?? []).map((c) => [c.id, c.name]));
+  const missingFor = (employeeId: string | null, start: string, required: string[]) => {
+    if (!employeeId || required.length === 0) return [];
+    const day = localParts(start).date;
+    return required
+      .filter(
+        (c) =>
+          !(heldRows ?? []).some(
+            (h) =>
+              h.employee_id === employeeId &&
+              h.competence_id === c &&
+              h.valid_from <= day &&
+              (h.valid_to === null || h.valid_to >= day),
+          ),
+      )
+      .map((c) => competenceName.get(c) ?? "?");
+  };
+
   const normDefaults = normDefaultsFrom(settings);
   const cancelledShifts = new Set((openCancellations ?? []).map((c) => c.shift_id));
   const boardShifts: BoardShift[] = visibleShifts.map((s) => ({
@@ -324,6 +365,8 @@ export async function loadWeek(
     end: s.end_at,
     breaks: s.breaks as unknown as DbBreak[],
     supplementTypeIds: s.supplement_type_ids,
+    requiredCompetenceIds: s.required_competence_ids,
+    missingCompetences: missingFor(s.employee_id, s.start_at, s.required_competence_ids),
     postingAllocations: s.posting_allocations as unknown as PostingAllocation[],
     proposalId: s.proposal_id,
     proposalSource: (s.proposal?.source as "assistant" | "auto" | undefined) ?? null,
@@ -398,12 +441,16 @@ export async function loadWeek(
       end: t.end_time.slice(0, 5),
       breaks: t.breaks as unknown as TemplateBreak[],
       supplementTypeIds: t.supplement_type_ids,
+      requiredCompetenceIds: t.required_competence_ids,
       postingValues: (t.posting_values ?? {}) as Record<string, string>,
       label: t.label,
       kind: t.kind,
       normPercent: t.norm_percent,
       normInPay: t.norm_in_pay,
     })),
+    competences: (competenceRows ?? [])
+      .filter((c) => !c.archived_at)
+      .map((c) => ({ id: c.id, name: c.name })),
     // Only the supplements of this department ("Gælder for").
     supplementTypes: (supplementTypes ?? [])
       .filter((t) => t.department_ids.length === 0 || t.department_ids.includes(departmentId))

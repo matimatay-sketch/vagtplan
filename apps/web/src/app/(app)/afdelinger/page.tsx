@@ -36,7 +36,7 @@ export default async function DepartmentsPage() {
     supabase
       .from("department")
       .select(
-        "id, name, posting_defaults, swap_requires_approval, message_email, availability_enabled",
+        "id, name, posting_defaults, swap_requires_approval, message_email, availability_enabled, open_shift_requires_approval",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -140,6 +140,7 @@ export default async function DepartmentsPage() {
                         messageEmail={d.message_email}
                         availability={d.availability_enabled}
                         organizationAvailability={organizationAvailability}
+                        openShiftApproval={d.open_shift_requires_approval}
                       />
                       {d.message_email && !emailConfigured() ? (
                         <p className="mt-2 text-xs text-muted-foreground">{t.emailNotConfigured}</p>

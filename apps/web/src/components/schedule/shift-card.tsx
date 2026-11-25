@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { AlertTriangle, Info, OctagonAlert, PhoneCall, Tags } from "lucide-react";
+import { AlertTriangle, Info, OctagonAlert, PhoneCall, ShieldAlert, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeRange } from "@/lib/domain/schedule-time";
 import { daypartOf } from "@/lib/domain/daypart";
@@ -79,7 +79,21 @@ export const ShiftCard = React.forwardRef<
     >
       <span className="flex items-center justify-between gap-1">
         <span className="font-semibold tabular">{timeRange(shift.start, shift.end)}</span>
-        <ViolationIcon violations={shift.violations} />
+        <span className="flex items-center gap-0.5">
+          {shift.missingCompetences?.length ? (
+            <span
+              className="inline-flex"
+              title={da.competences.lacking(shift.missingCompetences.join(", "))}
+              data-testid="missing-competence"
+            >
+              <ShieldAlert
+                className="size-3.5 text-warning-foreground"
+                aria-label={da.competences.lacking(shift.missingCompetences.join(", "))}
+              />
+            </span>
+          ) : null}
+          <ViolationIcon violations={shift.violations} />
+        </span>
       </span>
       <span className="flex items-center gap-1 truncate text-muted-foreground">
         {shift.kind === "on_call" ? <PhoneCall className="size-3" /> : null}

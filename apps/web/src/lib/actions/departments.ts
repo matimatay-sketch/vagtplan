@@ -126,6 +126,7 @@ export async function updateDepartmentMessagingAction(
       swap_requires_approval: z.string().nullish(),
       message_email: z.string().nullish(),
       availability_enabled: z.enum(["inherit", "on", "off"]).default("inherit"),
+      open_shift_requires_approval: z.string().nullish(),
     })
     .safeParse(Object.fromEntries(formData));
   if (!input.success) return { message: da.common.unknownError };

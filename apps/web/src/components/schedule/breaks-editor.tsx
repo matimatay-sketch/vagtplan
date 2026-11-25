@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "@/components/help/help";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +134,47 @@ export function SupplementPicker({
               />
               {o.name}
               <span className="text-xs text-muted-foreground">{formatSupplementAmount(o)}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** "Kræver kompetencer": chips like the supplements, sent as a JSON list. */
+export function CompetencePicker({
+  options,
+  value,
+  onChange,
+}: {
+  options: { id: string; name: string }[];
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <fieldset className="grid gap-1.5" data-testid="competence-picker">
+      <legend className="mb-1 flex items-center text-sm font-medium">
+        {da.competences.required}
+        <HelpTip>{da.competences.requiredHelp}</HelpTip>
+      </legend>
+      <input type="hidden" name="required_competence_ids" value={JSON.stringify(value)} />
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => {
+          const on = value.includes(o.id);
+          return (
+            <label
+              key={o.id}
+              className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-sm has-checked:border-primary has-checked:bg-secondary"
+            >
+              <input
+                type="checkbox"
+                className="accent-primary"
+                checked={on}
+                onChange={() => onChange(on ? value.filter((x) => x !== o.id) : [...value, o.id])}
+              />
+              {o.name}
             </label>
           );
         })}

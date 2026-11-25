@@ -7,6 +7,8 @@ import { da } from "@/lib/i18n/da";
 import { dbErrorMessage, type ActionState } from "./state";
 
 const t = da.employeeGroups;
+const TABLES = { group: "employee_group", competence: "competence" } as const;
+const kind = z.enum(["group", "competence"]);
 const name = z.string().trim().min(1, da.validation.required).max(80, da.validation.tooLong);
 
 function revalidate() {
@@ -38,16 +40,19 @@ export async function saveEmployeeGroupAction(
 }
 
 /** Deletes (archives) a group; its employees lose it. */
-export async function archiveEmployeeGroupAction(id: string): Promise<ActionState> {
+export async function archiveEmployeeGroupAction(
+  id: string,
+  k: "group" | "competence" = "group",
+): Promise<ActionState> {
   await requireContext(["settings.manage"]);
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("employee_group")
+    .from(TABLES[kind.parse(k)])
     .update({ archived_at: new Date().toISOString() })
     .eq("id", z.guid().parse(id))
     .select("id");
   if (error) return { message: dbErrorMessage(error) };
   if (!data?.length) return { message: da.common.notAllowed };
   revalidate();
-  return { ok: true, message: t.removed };
+  return { ok: true, message: k === "group" ? t.removed : da.competences.removed };
 }

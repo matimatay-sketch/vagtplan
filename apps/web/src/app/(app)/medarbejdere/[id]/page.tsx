@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EmployeeCompetences } from "@/components/employees/employee-competences";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import { EndContractForm, NewContractForm } from "@/components/employees/contract-forms";
 import { InviteForm } from "@/components/employees/invite-form";
@@ -73,6 +74,8 @@ export default async function EmployeePage({
     { data: payPeriodGroups },
     { data: profiles },
     { data: groups },
+    { data: competences },
+    { data: heldRows },
   ] = await Promise.all([
     supabase
       .from("department")
@@ -108,6 +111,18 @@ export default async function EmployeePage({
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
+    supabase
+      .from("competence")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("employee_competence")
+      .select("id, competence_id, valid_from, valid_to, document_path")
+      .eq("employee_id", employee.id)
+      .is("archived_at", null)
+      .order("valid_from", { ascending: false }),
   ]);
 
   // Login: permission profile and departments the user is responsible for.
@@ -306,6 +321,30 @@ export default async function EmployeePage({
               </CardContent>
             </Card>
           ) : null}
+
+          <Card data-testid="employee-competences-card">
+            <CardHeader>
+              <CardTitle>
+                {da.competences.employeeTitle}
+                <HelpTip>{da.competences.employeeHelp}</HelpTip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EmployeeCompetences
+                employeeId={employee.id}
+                held={(heldRows ?? []).map((h) => ({
+                  id: h.id,
+                  name: (competences ?? []).find((c) => c.id === h.competence_id)?.name ?? "?",
+                  validFrom: h.valid_from,
+                  validTo: h.valid_to,
+                  hasDocument: !!h.document_path,
+                }))}
+                competences={competences ?? []}
+                canEdit={canEdit}
+                today={today}
+              />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

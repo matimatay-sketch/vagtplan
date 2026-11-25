@@ -93,31 +93,42 @@ export default async function SettingsPage() {
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null),
   ]);
-  const [{ data: reasonRows }, engine, { data: departmentRows }, { data: groupRows }] =
-    await Promise.all([
-      supabase
-        .from("deviation_reason")
-        .select(
-          "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type, department_ids, agreement_ids, employee_group_ids",
-        )
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("sort_order")
-        .order("name"),
-      loadAgreements(supabase),
-      supabase
-        .from("department")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      supabase
-        .from("employee_group")
-        .select("id, name")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-    ]);
+  const [
+    { data: reasonRows },
+    engine,
+    { data: departmentRows },
+    { data: groupRows },
+    { data: competenceRows },
+  ] = await Promise.all([
+    supabase
+      .from("deviation_reason")
+      .select(
+        "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type, department_ids, agreement_ids, employee_group_ids",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("sort_order")
+      .order("name"),
+    loadAgreements(supabase),
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("employee_group")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("competence")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+  ]);
   const nameOf = new Map(
     [...(departmentRows ?? []), ...(agreements ?? []), ...(groupRows ?? [])].map((x) => [
       x.id,
@@ -396,6 +407,17 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <EmployeeGroups groups={groupRows ?? []} />
+          </CardContent>
+        </Card>
+        <Card data-testid="competences-card">
+          <CardHeader>
+            <CardTitle>
+              {da.competences.title}
+              <HelpTip>{da.competences.help}</HelpTip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmployeeGroups groups={competenceRows ?? []} kind="competence" />
           </CardContent>
         </Card>
         <Card data-testid="employee-options">

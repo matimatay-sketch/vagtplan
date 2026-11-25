@@ -24,6 +24,8 @@ import { formatDate } from "@/lib/format";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
 import { daypartOf } from "@/lib/domain/daypart";
+import { OpenShiftList } from "@/components/shifts/open-shift-list";
+import { loadOpenShiftsForMe } from "@/lib/schedule/open-shifts";
 import { AvailabilityForm } from "./availability-form";
 import {
   CancellationButton,
@@ -53,21 +55,23 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
   );
   const dates = weekDates(weekStart);
   const supabase = await createClient();
-  const [{ data: shifts }, { data: availability }, { data: wishesAllowed }] = await Promise.all([
-    supabase.rpc("published_shifts", {
-      p_from: new Date(zonedTime(weekStart)).toISOString(),
-      p_to: new Date(zonedTime(addDays(weekStart, 7))).toISOString(),
-    }),
-    supabase
-      .from("availability")
-      .select("id, date, kind, from_time, to_time, note")
-      .eq("employee_id", ctx.employee.id)
-      .is("archived_at", null)
-      .gte("date", today)
-      .order("date")
-      .limit(60),
-    supabase.rpc("availability_allowed", { p_employee_id: ctx.employee.id }),
-  ]);
+  const [{ data: shifts }, { data: availability }, { data: wishesAllowed }, openShifts] =
+    await Promise.all([
+      supabase.rpc("published_shifts", {
+        p_from: new Date(zonedTime(weekStart)).toISOString(),
+        p_to: new Date(zonedTime(addDays(weekStart, 7))).toISOString(),
+      }),
+      supabase
+        .from("availability")
+        .select("id, date, kind, from_time, to_time, note")
+        .eq("employee_id", ctx.employee.id)
+        .is("archived_at", null)
+        .gte("date", today)
+        .order("date")
+        .limit(60),
+      supabase.rpc("availability_allowed", { p_employee_id: ctx.employee.id }),
+      loadOpenShiftsForMe(supabase, ctx.organization.id),
+    ]);
   // Wishes switched off: no new ones; wishes already made are shown, so they can be removed.
   const showWishes = wishesAllowed !== false || (availability ?? []).length > 0;
   const list = shifts ?? [];
@@ -170,6 +174,19 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
       />
       <div className={cn("grid gap-6", showWishes && "lg:grid-cols-[1fr_22rem]")}>
         <section aria-label={t.mine} className="grid content-start gap-3" data-testid="my-week">
+          {openShifts.length ? (
+            <Card className="gap-3 py-4" data-testid="open-shifts-card">
+              <CardHeader className="px-4">
+                <CardTitle className="text-sm">
+                  {da.openShifts.title}
+                  <HelpTip>{da.openShifts.help}</HelpTip>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4">
+                <OpenShiftList rows={openShifts} />
+              </CardContent>
+            </Card>
+          ) : null}
           <p className="text-sm text-muted-foreground">
             {t.mine}:{" "}
             <span className="font-medium text-foreground tabular">{formatHours(total)} t</span>

@@ -113,6 +113,7 @@ describe("templateFormSchema", () => {
       end_time: "16:00",
       breaks: [{ start: "12:00", minutes: 30, paid: false, nextDay: false }],
       supplement_type_ids: [],
+      required_competence_ids: [],
       posting_values: {},
       label: null,
       kind: "work",

@@ -28,7 +28,7 @@ import type {
   BoardTemplate,
 } from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
-import { BreaksEditor, SupplementPicker } from "./breaks-editor";
+import { BreaksEditor, CompetencePicker, SupplementPicker } from "./breaks-editor";
 import { PostingEditor } from "@/components/posting/posting-editor";
 import {
   defaultPostingRows,
@@ -56,6 +56,7 @@ type Props = {
   employees: BoardEmployee[];
   templates: BoardTemplate[];
   supplementTypes: BoardSupplementType[];
+  competenceOptions?: { id: string; name: string }[];
   posting: PostingDimension[];
   normDefaults: NormDefaults;
 };
@@ -88,6 +89,7 @@ function ShiftForm({
   employees,
   templates,
   supplementTypes,
+  competenceOptions = [],
   posting,
   normDefaults,
 }: Props & { draft: ShiftDraft; onDone: () => void }) {
@@ -117,6 +119,9 @@ function ShiftForm({
   const [supplements, setSupplements] = useState<string[]>(
     () => s?.supplementTypeIds ?? first?.supplementTypeIds ?? [],
   );
+  const [competences, setCompetences] = useState<string[]>(
+    () => s?.requiredCompetenceIds ?? first?.requiredCompetenceIds ?? [],
+  );
   const [postingRows, setPostingRows] = useState<EditablePostingRow[]>(() =>
     s ? postingToForm(s.postingAllocations) : defaultPostingRows(first?.postingValues),
   );
@@ -145,6 +150,7 @@ function ShiftForm({
     }));
     setBreaks(templateBreaksToForm(tpl.breaks));
     setSupplements(tpl.supplementTypeIds);
+    setCompetences(tpl.requiredCompetenceIds);
     if (Object.keys(tpl.postingValues).length)
       setPostingRows(defaultPostingRows(tpl.postingValues));
   };
@@ -287,6 +293,11 @@ function ShiftForm({
               )}
               value={supplements}
               onChange={setSupplements}
+            />
+            <CompetencePicker
+              options={competenceOptions}
+              value={competences}
+              onChange={setCompetences}
             />
             <PostingEditor
               dimensions={posting}

@@ -287,6 +287,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"competence": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "competence_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"contract": {
                   Row: {
                     "agreement_id": string,"created_at": string,"employee_id": string,"exempt_from_registration": boolean,"exemption_reason": string | null,"exemption_since": string | null,"id": string,"local_agreement_id": string | null,"organization_id": string,"overrides": NonNullable<Json>,"pay_form": Database["public"]['Enums']["pay_form"],"pay_period_group_id": string,"pay_step": string | null,"seniority_date": string | null,"staff_group": string | null,"valid_from": string,"valid_to": string | null,"weekly_norm_minutes": number
@@ -373,14 +393,14 @@ isOneToOne: false
                   ]
                 },"department": {
                   Row: {
-                    "archived_at": string | null,"availability_enabled": boolean | null,"created_at": string,"id": string,"message_email": boolean,"name": string,"organization_id": string,"posting_defaults": NonNullable<Json>,"swap_requires_approval": boolean
+                    "archived_at": string | null,"availability_enabled": boolean | null,"created_at": string,"id": string,"message_email": boolean,"name": string,"open_shift_requires_approval": boolean,"organization_id": string,"posting_defaults": NonNullable<Json>,"swap_requires_approval": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"availability_enabled"?: boolean | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name": string,"organization_id": string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
+                    "archived_at"?: string | null,"availability_enabled"?: boolean | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name": string,"open_shift_requires_approval"?: boolean,"organization_id": string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
                   }
                   Update: {
-                    "archived_at"?: string | null,"availability_enabled"?: boolean | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name"?: string,"organization_id"?: string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
+                    "archived_at"?: string | null,"availability_enabled"?: boolean | null,"created_at"?: string,"id"?: string,"message_email"?: boolean,"name"?: string,"open_shift_requires_approval"?: boolean,"organization_id"?: string,"posting_defaults"?: NonNullable<Json>,"swap_requires_approval"?: boolean
                   }
                   Relationships: [
                     {
@@ -471,6 +491,38 @@ isOneToOne: false
       referencedColumns: ["organization_id","id"]
     },{
       foreignKeyName: "employee_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"employee_competence": {
+                  Row: {
+                    "archived_at": string | null,"competence_id": string,"created_at": string,"document_path": string | null,"employee_id": string,"id": string,"note": string | null,"organization_id": string,"valid_from": string,"valid_to": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"competence_id": string,"created_at"?: string,"document_path"?: string | null,"employee_id": string,"id"?: string,"note"?: string | null,"organization_id": string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"competence_id"?: string,"created_at"?: string,"document_path"?: string | null,"employee_id"?: string,"id"?: string,"note"?: string | null,"organization_id"?: string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "employee_competence_organization_id_competence_id_fkey"
+      columns: ["organization_id","competence_id"]
+isOneToOne: false
+      referencedRelation: "competence"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "employee_competence_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "employee_competence_organization_id_fkey"
       columns: ["organization_id"]
 isOneToOne: false
       referencedRelation: "organization"
@@ -818,6 +870,44 @@ isOneToOne: false
       columns: ["organization_id"]
 isOneToOne: false
       referencedRelation: "organization"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"open_shift_request": {
+                  Row: {
+                    "created_at": string,"decided_at": string | null,"decided_by": string | null,"department_id": string,"employee_id": string,"id": string,"organization_id": string,"shift_id": string,"status": Database["public"]['Enums']["open_shift_request_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"department_id": string,"employee_id": string,"id"?: string,"organization_id": string,"shift_id": string,"status"?: Database["public"]['Enums']["open_shift_request_status"]
+                  }
+                  Update: {
+                    "created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"department_id"?: string,"employee_id"?: string,"id"?: string,"organization_id"?: string,"shift_id"?: string,"status"?: Database["public"]['Enums']["open_shift_request_status"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "open_shift_request_organization_id_department_id_fkey"
+      columns: ["organization_id","department_id"]
+isOneToOne: false
+      referencedRelation: "department"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "open_shift_request_organization_id_employee_id_fkey"
+      columns: ["organization_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employee"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "open_shift_request_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "open_shift_request_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shift"
       referencedColumns: ["id"]
     }
                   ]
@@ -1381,14 +1471,14 @@ isOneToOne: false
                   ]
                 },"shift": {
                   Row: {
-                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"norm_in_pay": boolean | null,"norm_percent": number | null,"note": string | null,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"proposal_id": string | null,"published": Json | null,"published_at": string | null,"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
+                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"created_by": string | null,"department_id": string,"employee_id": string | null,"end_at": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"norm_in_pay": boolean | null,"norm_percent": number | null,"note": string | null,"organization_id": string,"posting_allocations": NonNullable<Json>,"project_allocations": NonNullable<Json>,"proposal_id": string | null,"published": Json | null,"published_at": string | null,"required_competence_ids": (string)[],"rollout_id": string | null,"rotation_slot_id": string | null,"start_at": string,"status": Database["public"]['Enums']["shift_status"],"supplement_type_ids": (string)[],"template_id": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"note"?: string | null,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id": string,"employee_id"?: string | null,"end_at": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"note"?: string | null,"organization_id": string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"required_competence_ids"?: (string)[],"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at": string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"note"?: string | null,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"department_id"?: string,"employee_id"?: string | null,"end_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"note"?: string | null,"organization_id"?: string,"posting_allocations"?: NonNullable<Json>,"project_allocations"?: NonNullable<Json>,"proposal_id"?: string | null,"published"?: Json | null,"published_at"?: string | null,"required_competence_ids"?: (string)[],"rollout_id"?: string | null,"rotation_slot_id"?: string | null,"start_at"?: string,"status"?: Database["public"]['Enums']["shift_status"],"supplement_type_ids"?: (string)[],"template_id"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1519,14 +1609,14 @@ isOneToOne: false
                   ]
                 },"shift_template": {
                   Row: {
-                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"department_id": string | null,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"name": string,"norm_in_pay": boolean | null,"norm_percent": number | null,"organization_id": string,"posting_values": NonNullable<Json>,"project_id": string | null,"start_time": string,"supplement_type_ids": (string)[]
+                    "archived_at": string | null,"breaks": NonNullable<Json>,"created_at": string,"department_id": string | null,"end_time": string,"id": string,"kind": Database["public"]['Enums']["shift_kind"],"label": string | null,"name": string,"norm_in_pay": boolean | null,"norm_percent": number | null,"organization_id": string,"posting_values": NonNullable<Json>,"project_id": string | null,"required_competence_ids": (string)[],"start_time": string,"supplement_type_ids": (string)[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name": string,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"organization_id": string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"start_time": string,"supplement_type_ids"?: (string)[]
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time": string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name": string,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"organization_id": string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"required_competence_ids"?: (string)[],"start_time": string,"supplement_type_ids"?: (string)[]
                   }
                   Update: {
-                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name"?: string,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"start_time"?: string,"supplement_type_ids"?: (string)[]
+                    "archived_at"?: string | null,"breaks"?: NonNullable<Json>,"created_at"?: string,"department_id"?: string | null,"end_time"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["shift_kind"],"label"?: string | null,"name"?: string,"norm_in_pay"?: boolean | null,"norm_percent"?: number | null,"organization_id"?: string,"posting_values"?: NonNullable<Json>,"project_id"?: string | null,"required_competence_ids"?: (string)[],"start_time"?: string,"supplement_type_ids"?: (string)[]
                   }
                   Relationships: [
                     {
@@ -1851,6 +1941,9 @@ isOneToOne: false
 "decide_expense_items":
 { Args: { "p_decision": string,"p_expense_ids": (string)[],"p_note"?: string,"p_trip_ids": (string)[] }; Returns: number
                            },
+"decide_open_shift_request":
+{ Args: { "p_actor": string,"p_approve": boolean,"p_id": string }; Returns: undefined
+                           },
 "email_claim":
 { Args: { "p_limit"?: number }; Returns: {
               "attempts": number,"email": string,"id": string,"kind": string,"payload": Json
@@ -1893,6 +1986,9 @@ isOneToOne: false
               "department_names": string,"is_leader": boolean,"name": string,"user_id": string
             }[]
                            },
+"missing_competences":
+{ Args: { "p_employee_id": string,"p_shift_id": string }; Returns: (string)[]
+                           },
 "my_conversations":
 { Args: { "p_org": string }; Returns: {
               "hidden": boolean,"id": string,"last_body": string,"last_kind": Database["public"]['Enums']["message_kind"],"last_message_at": string,"participant_names": string,"subject": string,"unread": number
@@ -1901,6 +1997,11 @@ isOneToOne: false
 "my_permissions":
 { Args: { "org": string }; Returns: {
               "permission": string,"scope": Database["public"]['Enums']["permission_scope"]
+            }[]
+                           },
+"open_shifts_for_me":
+{ Args: { "p_from": string,"p_organization_id": string,"p_to": string }; Returns: {
+              "department_id": string,"department_name": string,"end_at": string,"label": string,"missing_competence_ids": (string)[],"request_id": string,"required_competence_ids": (string)[],"requires_approval": boolean,"shift_id": string,"start_at": string
             }[]
                            },
 "organization_members":
@@ -2036,6 +2137,9 @@ isOneToOne: false
               "can_decide": boolean,"conversation_id": string,"created_at": string,"decision_note": string,"department_name": string,"id": string,"is_requester": boolean,"is_target": boolean,"note": string,"requester_name": string,"requires_approval": boolean,"shift_end": string,"shift_start": string,"status": Database["public"]['Enums']["swap_status"],"target_name": string,"target_shift_end": string,"target_shift_start": string
             }[]
                            },
+"take_open_shift":
+{ Args: { "p_actor": string,"p_shift_id": string }; Returns: string
+                           },
 "time_approvees":
 { Args: { "p_org": string }; Returns: string[]
                            },
@@ -2076,10 +2180,13 @@ isOneToOne: false
                            },
 "webhook_result":
 { Args: { "p_error": string,"p_id": string,"p_ok": boolean,"p_status": number }; Returns: undefined
+                           },
+"withdraw_open_shift_request":
+{ Args: { "p_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","cancellation_status": "open"|"resolved"|"withdrawn","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","message_kind": "text"|"swap"|"cancellation"|"system"|"reminder","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","swap_status": "proposed"|"accepted"|"completed"|"declined"|"rejected"|"cancelled","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
+            "absence_status": "requested"|"approved"|"rejected"|"cancelled","agreement_kind": "base"|"agreement"|"local","agreement_version_status": "draft"|"published"|"archived","availability_kind": "unavailable"|"available"|"wish_off"|"wish_work","cancellation_status": "open"|"resolved"|"withdrawn","leave_posting_kind": "accrual"|"usage"|"reversal"|"transfer"|"payout"|"adjustment","message_kind": "text"|"swap"|"cancellation"|"system"|"reminder","open_shift_request_status": "requested"|"approved"|"rejected"|"withdrawn","pay_form": "hourly"|"monthly","pay_frequency": "weekly"|"biweekly"|"monthly","pay_period_status": "open"|"closed","permission_scope": "departments"|"organization","shift_kind": "work"|"on_call","shift_status": "draft"|"published","supplement_amount_type": "per_hour"|"fixed"|"percent","swap_status": "proposed"|"accepted"|"completed"|"declined"|"rejected"|"cancelled","time_entry_kind": "work"|"on_call"|"call_out","time_entry_source": "stamp"|"planned"|"manual","time_entry_status": "open"|"pending"|"approved"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2195,7 +2302,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"cancellation_status": ["open", "resolved", "withdrawn"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"message_kind": ["text", "swap", "cancellation", "system", "reminder"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"swap_status": ["proposed", "accepted", "completed", "declined", "rejected", "cancelled"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
+            "absence_status": ["requested", "approved", "rejected", "cancelled"],"agreement_kind": ["base", "agreement", "local"],"agreement_version_status": ["draft", "published", "archived"],"availability_kind": ["unavailable", "available", "wish_off", "wish_work"],"cancellation_status": ["open", "resolved", "withdrawn"],"leave_posting_kind": ["accrual", "usage", "reversal", "transfer", "payout", "adjustment"],"message_kind": ["text", "swap", "cancellation", "system", "reminder"],"open_shift_request_status": ["requested", "approved", "rejected", "withdrawn"],"pay_form": ["hourly", "monthly"],"pay_frequency": ["weekly", "biweekly", "monthly"],"pay_period_status": ["open", "closed"],"permission_scope": ["departments", "organization"],"shift_kind": ["work", "on_call"],"shift_status": ["draft", "published"],"supplement_amount_type": ["per_hour", "fixed", "percent"],"swap_status": ["proposed", "accepted", "completed", "declined", "rejected", "cancelled"],"time_entry_kind": ["work", "on_call", "call_out"],"time_entry_source": ["stamp", "planned", "manual"],"time_entry_status": ["open", "pending", "approved"]
           }
         }
 } as const

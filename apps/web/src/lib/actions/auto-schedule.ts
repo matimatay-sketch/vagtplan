@@ -67,7 +67,7 @@ export async function autoScheduleAction(raw: z.input<typeof input>): Promise<Au
     supabase
       .from("shift_template")
       .select(
-        "id, name, start_time, end_time, breaks, kind, label, supplement_type_ids, department_id",
+        "id, name, start_time, end_time, breaks, kind, label, supplement_type_ids, required_competence_ids, department_id",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -180,6 +180,7 @@ export async function autoScheduleAction(raw: z.input<typeof input>): Promise<Au
         kind: tpl.kind,
         label: tpl.label,
         supplement_type_ids: tpl.supplement_type_ids,
+        required_competence_ids: tpl.required_competence_ids,
         proposal_id: proposal.id,
       };
     });
