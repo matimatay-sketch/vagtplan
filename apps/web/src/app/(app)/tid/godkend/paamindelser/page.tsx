@@ -9,7 +9,10 @@ import { ReminderActions, ReminderForm } from "@/components/time/reminders";
 import { requireContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hasOrg } from "@/lib/permissions";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { addDays, todayIn } from "@/lib/domain/civil-date";
+import { localParts } from "@/lib/domain/schedule-time";
+import { nextReminderDate, type ReminderFrequency } from "@/lib/domain/reminder-schedule";
 import type { ReminderKind } from "@/lib/forms/reminders";
 import { da } from "@/lib/i18n/da";
 
@@ -19,6 +22,34 @@ export const metadata: Metadata = { title: "Påmindelser" };
 export default async function RemindersPage() {
   const ctx = await requireContext(["reminders.manage"]);
   const t = da.reminders;
+  const today = todayIn(ctx.organization.timezone);
+  type Schedule = {
+    frequency: string;
+    weekdays: number[];
+    day_of_month: number;
+    month: number;
+    last_sent_at: string | null;
+  };
+  const scheduleOf = (r: Schedule) => ({
+    frequency: r.frequency as ReminderFrequency,
+    weekdays: r.weekdays,
+    dayOfMonth: r.day_of_month,
+    month: r.month,
+  });
+  const scheduleLabel = (r: Schedule) =>
+    r.frequency === "monthly"
+      ? t.autoMonthly(r.day_of_month)
+      : r.frequency === "quarterly"
+        ? t.autoQuarterly(r.day_of_month, r.month)
+        : r.frequency === "yearly"
+          ? t.autoYearly(r.day_of_month, t.monthNames[r.month - 1]!)
+          : t.autoOn(r.weekdays.map((d) => t.weekdayNames[d - 1]).join(", "));
+  // Already sent today: the next one is from tomorrow.
+  const nextOf = (r: Schedule) =>
+    nextReminderDate(
+      scheduleOf(r),
+      r.last_sent_at && localParts(r.last_sent_at).date >= today ? addDays(today, 1) : today,
+    );
   const supabase = await createClient();
   const orgWide = hasOrg(ctx.permissions, "reminders.manage");
   const [{ data: allDepartments }, { data: rules }, { data: links }] = await Promise.all([
@@ -31,7 +62,7 @@ export default async function RemindersPage() {
     supabase
       .from("reminder_rule")
       .select(
-        "id, name, kind, department_ids, employee_ids, lookback_days, note, auto, weekdays, last_sent_at, last_sent_count",
+        "id, name, kind, department_ids, employee_ids, lookback_days, note, auto, weekdays, frequency, day_of_month, month, last_sent_at, last_sent_count",
       )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
@@ -114,9 +145,7 @@ export default async function RemindersPage() {
                       <span className="font-medium">{r.name}</span>
                       <Badge variant="secondary">{t.shortKinds[r.kind as ReminderKind]}</Badge>
                       <Badge variant={r.auto ? "default" : "outline"}>
-                        {r.auto
-                          ? t.autoOn(r.weekdays.map((d) => t.weekdayNames[d - 1]).join(", "))
-                          : t.manualOnly}
+                        {r.auto ? scheduleLabel(r) : t.manualOnly}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -125,6 +154,7 @@ export default async function RemindersPage() {
                       {r.last_sent_at
                         ? t.lastSent(formatDateTime(r.last_sent_at), r.last_sent_count ?? 0)
                         : t.neverSent}
+                      {r.auto && nextOf(r) ? ` · ${t.nextSend(formatDate(nextOf(r)!))}` : ""}
                     </p>
                     <ReminderActions id={r.id} />
                     <LazyDetails className="text-sm" summary={t.editTitle}>
@@ -143,6 +173,9 @@ export default async function RemindersPage() {
                             note: r.note,
                             auto: r.auto,
                             weekdays: r.weekdays,
+                            frequency: r.frequency as ReminderFrequency,
+                            day_of_month: r.day_of_month,
+                            month: r.month,
                           }}
                         />
                       </div>

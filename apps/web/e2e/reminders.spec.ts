@@ -75,6 +75,16 @@ test("a manager sets up a reminder about missing registrations and sends it; the
   await expect(rule).toContainText("Manglende registrering");
   await expect(rule).toContainText("Automatisk: Man, Ons, Tor, Fre");
 
+  // It can also repeat on a day each quarter.
+  await rule.getByText("Ret påmindelsen").click();
+  const edit = rule.getByTestId("reminder-form");
+  await edit.getByLabel("Gentag").selectOption({ label: "Hvert kvartal" });
+  await edit.getByLabel("Dag i måneden").fill("31");
+  await edit.getByLabel("Måned i kvartalet").selectOption({ index: 2 });
+  await edit.getByRole("button", { name: "Gem påmindelse" }).click();
+  await expect(rule).toContainText("Automatisk den 31. i kvartalets 3. måned");
+  await expect(rule).toContainText("Næste gang:");
+
   // Who gets it, then send now.
   await rule.getByRole("button", { name: "Hvem får den?" }).click();
   await expect(rule.getByTestId("reminder-preview")).toContainText(IDA);

@@ -25,7 +25,32 @@ describe("reminderRuleSchema", () => {
       note: "Husk det",
       auto: true,
       weekdays: [1, 5],
+      frequency: "weekly",
+      day_of_month: 1,
+      month: 1,
     });
+  });
+
+  it("repeats monthly, quarterly or yearly on a day of the month", () => {
+    const fd = new FormData();
+    fd.set("name", "Kvartal");
+    fd.set("kind", "time_approval");
+    fd.set("lookback_days", "93");
+    fd.set("auto", "on");
+    fd.set("frequency", "quarterly");
+    fd.set("day_of_month", "31");
+    fd.set("month", "3");
+    expect(reminderRuleSchema.parse(fd)).toMatchObject({
+      frequency: "quarterly",
+      day_of_month: 31,
+      month: 3,
+      weekdays: [],
+    });
+    fd.set("month", "4");
+    expect(reminderRuleSchema.safeParse(fd).error?.issues[0]?.path).toEqual(["month"]);
+    fd.set("frequency", "yearly");
+    fd.set("day_of_month", "32");
+    expect(reminderRuleSchema.safeParse(fd).error?.issues[0]?.path).toEqual(["day_of_month"]);
   });
 
   it("empty lists mean everyone; auto off without weekdays is fine", () => {

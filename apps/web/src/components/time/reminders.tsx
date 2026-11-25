@@ -16,6 +16,7 @@ import {
 import { initialActionState } from "@/lib/actions/state";
 import { REMINDER_KINDS, type ReminderKind } from "@/lib/forms/reminders";
 import { da } from "@/lib/i18n/da";
+import { REMINDER_FREQUENCIES, type ReminderFrequency } from "@/lib/domain/reminder-schedule";
 
 const t = da.reminders;
 
@@ -29,6 +30,9 @@ export type ReminderRuleValues = {
   note: string;
   auto: boolean;
   weekdays: number[];
+  frequency: ReminderFrequency;
+  day_of_month: number;
+  month: number;
 };
 
 const checkbox = "size-4 accent-primary";
@@ -54,6 +58,9 @@ export function ReminderForm({
     initial?.department_ids ?? (requireDepartment ? departments.map((d) => d.id) : []),
   );
   const [auto, setAuto] = useState(initial?.auto ?? false);
+  const [frequency, setFrequency] = useState<ReminderFrequency>(
+    (state.values?.frequency as ReminderFrequency | undefined) ?? initial?.frequency ?? "weekly",
+  );
   useEffect(() => {
     if (state.ok && state.message) {
       toast.success(state.message);
@@ -172,6 +179,71 @@ export function ReminderForm({
         </label>
         <p className="text-xs text-muted-foreground">{t.autoHelp}</p>
         {auto ? (
+          <Field label={t.frequency} htmlFor={`${p}frequency`} className="w-fit">
+            <NativeSelect
+              id={`${p}frequency`}
+              name="frequency"
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as ReminderFrequency)}
+            >
+              {REMINDER_FREQUENCIES.map((f) => (
+                <option key={f} value={f}>
+                  {t.frequencies[f]}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
+        {auto && frequency !== "weekly" ? (
+          <div className="flex flex-wrap gap-4">
+            <Field
+              label={t.dayOfMonth}
+              htmlFor={`${p}day`}
+              error={err("day_of_month")}
+              help={t.dayHelp}
+            >
+              <Input
+                id={`${p}day`}
+                name="day_of_month"
+                type="number"
+                min={1}
+                max={31}
+                className="w-24"
+                defaultValue={state.values?.day_of_month ?? String(initial?.day_of_month ?? 1)}
+              />
+            </Field>
+            {frequency === "quarterly" ? (
+              <Field label={t.quarterMonth} htmlFor={`${p}qmonth`} error={err("month")}>
+                <NativeSelect
+                  id={`${p}qmonth`}
+                  name="month"
+                  defaultValue={String(Math.min(initial?.month ?? 1, 3))}
+                >
+                  {t.quarterMonths.map((label, i) => (
+                    <option key={label} value={i + 1}>
+                      {label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            ) : frequency === "yearly" ? (
+              <Field label={t.monthOfYear} htmlFor={`${p}month`} error={err("month")}>
+                <NativeSelect
+                  id={`${p}month`}
+                  name="month"
+                  defaultValue={String(initial?.month ?? 1)}
+                >
+                  {t.monthNames.map((label, i) => (
+                    <option key={label} value={i + 1}>
+                      {label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
+        {auto && frequency === "weekly" ? (
           <div className="flex flex-wrap gap-x-4" role="group" aria-label={t.weekdays}>
             {t.weekdayNames.map((name, i) => (
               <label key={name} className={choice}>

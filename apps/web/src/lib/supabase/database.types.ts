@@ -1179,14 +1179,14 @@ isOneToOne: false
                   ]
                 },"reminder_rule": {
                   Row: {
-                    "archived_at": string | null,"auto": boolean,"created_at": string,"created_by": string | null,"department_ids": (string)[],"employee_ids": (string)[],"id": string,"kind": string,"last_sent_at": string | null,"last_sent_count": number | null,"lookback_days": number,"name": string,"note": string,"organization_id": string,"weekdays": (number)[]
+                    "archived_at": string | null,"auto": boolean,"created_at": string,"created_by": string | null,"day_of_month": number,"department_ids": (string)[],"employee_ids": (string)[],"frequency": string,"id": string,"kind": string,"last_sent_at": string | null,"last_sent_count": number | null,"lookback_days": number,"month": number,"name": string,"note": string,"organization_id": string,"weekdays": (number)[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"department_ids"?: (string)[],"employee_ids"?: (string)[],"id"?: string,"kind": string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"name": string,"note"?: string,"organization_id": string,"weekdays"?: (number)[]
+                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"day_of_month"?: number,"department_ids"?: (string)[],"employee_ids"?: (string)[],"frequency"?: string,"id"?: string,"kind": string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"month"?: number,"name": string,"note"?: string,"organization_id": string,"weekdays"?: (number)[]
                   }
                   Update: {
-                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"department_ids"?: (string)[],"employee_ids"?: (string)[],"id"?: string,"kind"?: string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"name"?: string,"note"?: string,"organization_id"?: string,"weekdays"?: (number)[]
+                    "archived_at"?: string | null,"auto"?: boolean,"created_at"?: string,"created_by"?: string | null,"day_of_month"?: number,"department_ids"?: (string)[],"employee_ids"?: (string)[],"frequency"?: string,"id"?: string,"kind"?: string,"last_sent_at"?: string | null,"last_sent_count"?: number | null,"lookback_days"?: number,"month"?: number,"name"?: string,"note"?: string,"organization_id"?: string,"weekdays"?: (number)[]
                   }
                   Relationships: [
                     {

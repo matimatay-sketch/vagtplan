@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { da } from "@/lib/i18n/da";
+import { REMINDER_FREQUENCIES } from "@/lib/domain/reminder-schedule";
 
 export const REMINDER_KINDS = [
   "missing_registration",
@@ -24,6 +25,9 @@ export const reminderRuleSchema = z
     note: String(fd.get("note") ?? ""),
     auto: fd.get("auto") === "on",
     weekdays: fd.getAll("weekdays").map(String),
+    frequency: String(fd.get("frequency") ?? "weekly"),
+    day_of_month: String(fd.get("day_of_month") ?? "1"),
+    month: String(fd.get("month") ?? "1"),
   }))
   .pipe(
     z
@@ -45,10 +49,23 @@ export const reminderRuleSchema = z
             .regex(/^[1-7]$/)
             .transform(Number),
         ),
+        frequency: z.enum(REMINDER_FREQUENCIES),
+        day_of_month: z
+          .string()
+          .regex(/^\d{1,2}$/, t.dayInvalid)
+          .transform(Number)
+          .pipe(z.number().int().min(1, t.dayInvalid).max(31, t.dayInvalid)),
+        month: z
+          .string()
+          .regex(/^\d{1,2}$/)
+          .transform(Number)
+          .pipe(z.number().int().min(1).max(12)),
       })
       .superRefine((v, ctx) => {
-        if (v.auto && v.weekdays.length === 0)
+        if (v.auto && v.frequency === "weekly" && v.weekdays.length === 0)
           ctx.addIssue({ code: "custom", path: ["weekdays"], message: t.weekdaysRequired });
+        if (v.frequency === "quarterly" && v.month > 3)
+          ctx.addIssue({ code: "custom", path: ["month"], message: t.quarterMonthInvalid });
       }),
   );
 export type ReminderRuleInput = z.output<typeof reminderRuleSchema>;
