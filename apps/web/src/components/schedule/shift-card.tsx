@@ -3,6 +3,7 @@ import * as React from "react";
 import { AlertTriangle, Info, OctagonAlert, PhoneCall, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeRange } from "@/lib/domain/schedule-time";
+import { daypartOf } from "@/lib/domain/daypart";
 import type { BoardShift } from "@/lib/schedule/load-week";
 import { da } from "@/lib/i18n/da";
 
@@ -63,12 +64,10 @@ export const ShiftCard = React.forwardRef<
       data-testid="shift-card"
       data-shift-id={shift.id}
       data-status={shift.removed ? "removed" : shift.changed ? "changed" : shift.status}
+      data-daypart={daypartOf(shift.start)}
       aria-label={`${timeRange(shift.start, shift.end)} ${shift.label ?? ""} – ${shiftStateLabel(shift)}`}
       className={cn(
-        "group/shift relative flex w-full flex-col gap-0.5 rounded-md border px-2 py-1.5 text-left text-xs leading-tight transition-shadow outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        shift.kind === "on_call"
-          ? "border-primary/30 bg-secondary"
-          : "border-primary/20 bg-primary/10",
+        "group/shift relative flex w-full flex-col gap-0.5 rounded-md border border-l-4 border-(color:--dp)/35 border-l-(color:--dp) bg-(color:--dp-surface) px-2 py-1.5 text-left text-xs leading-tight transition-shadow outline-none focus-visible:ring-2 focus-visible:ring-ring",
         shift.status === "draft" && !shift.removed && "border-dashed bg-card",
         shift.changed && "border-l-4 border-l-warning",
         shift.removed && "opacity-60 line-through",

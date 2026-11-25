@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NativeSelect } from "@/components/ui/native-select";
 import { WeekBoard } from "@/components/schedule/week-board";
+import { DaypartLegend } from "@/components/schedule/daypart-legend";
 import { DayBoard } from "@/components/schedule/day-board";
 import { PublishButton } from "@/components/schedule/publish-dialog";
 import { CopyWeekButton } from "@/components/schedule/copy-week-button";
@@ -256,17 +257,23 @@ export default async function SchedulePage({ searchParams }: PageProps<"/vagtpla
             ))}
           </div>
           <DayBoard board={board} date={day} />
+          <div className="mt-2">
+            <DaypartLegend />
+          </div>
         </>
       ) : (
         <>
           <WeekBoard board={board} dates={dates} today={today} />
-          {board.canManage ? (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CalendarDays className="size-3.5" />
-              <span className="pointer-coarse:hidden">{t.dragHint}</span>
-              <span className="hidden pointer-coarse:inline">{t.touchHint}</span>
-            </p>
-          ) : null}
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+            {board.canManage ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="size-3.5" />
+                <span className="pointer-coarse:hidden">{t.dragHint}</span>
+                <span className="hidden pointer-coarse:inline">{t.touchHint}</span>
+              </p>
+            ) : null}
+            <DaypartLegend />
+          </div>
         </>
       )}
     </>

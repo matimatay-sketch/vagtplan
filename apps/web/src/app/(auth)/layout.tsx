@@ -1,5 +1,13 @@
-import { Logo } from "@/components/brand/logo";
+import { DAYPARTS, type Daypart } from "@/lib/domain/daypart";
+import { Logo, NIGHT_DAYPART_COLORS } from "@/components/brand/logo";
 import { brand } from "@/lib/brand";
+
+/** The decorative week: each bar takes the colour of the part of the day it starts in. */
+const daypartOfHour = (h: number) =>
+  DAYPARTS.reduce(
+    (part, d) => (h >= Number(d.from.slice(0, 2)) ? d.part : part),
+    "night" as Daypart,
+  );
 
 const week = [
   { day: "Man", bars: [[8, 16]] },
@@ -29,8 +37,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
                   {bars.map(([from, to]) => (
                     <span
                       key={from}
-                      className="absolute inset-y-0.5 rounded bg-signal/90"
+                      className="absolute inset-y-0.5 rounded"
                       style={{
+                        background: NIGHT_DAYPART_COLORS[daypartOfHour(from)],
                         left: `${(from / 24) * 100}%`,
                         width: `${((to - from) / 24) * 100}%`,
                       }}

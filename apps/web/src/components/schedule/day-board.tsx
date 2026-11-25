@@ -3,6 +3,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { barPosition, localParts, timeRange } from "@/lib/domain/schedule-time";
+import { daypartOf } from "@/lib/domain/daypart";
 import { resizeShiftAction } from "@/lib/actions/schedule";
 import { trackSaving } from "@/lib/schedule/saving";
 import type { BoardShift, WeekBoard as Board } from "@/lib/schedule/load-week";
@@ -70,15 +71,15 @@ function Bar({
     <div
       className={cn(
         "absolute inset-y-1.5 flex items-center overflow-hidden rounded-md border text-xs",
-        shift.status === "draft"
-          ? "border-dashed border-primary/40 bg-card"
-          : "border-primary/30 bg-primary/15",
+        "border-l-4 border-(color:--dp)/40 border-l-(color:--dp)",
+        shift.status === "draft" ? "border-dashed bg-card" : "bg-(color:--dp-surface)",
         shift.changed && "border-l-4 border-l-warning",
         shift.removed && "opacity-50 line-through",
         shift.violations.some((v) => v.severity === "BLOCKING") && "ring-1 ring-destructive/60",
       )}
       style={{ left: `${pos.left * 100}%`, width: `${pos.width * 100}%` }}
       data-testid="day-bar"
+      data-daypart={daypartOf(shift.start)}
       data-shift-id={shift.id}
     >
       {resizable && !pos.clippedStart ? (
