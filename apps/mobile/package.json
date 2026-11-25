@@ -6,7 +6,7 @@
     "sync": "node scripts/write-www.mjs && cap sync",
     "android": "cap open android",
     "ios": "cap open ios",
-    "assets": "capacitor-assets generate --assetPath assets"
+    "assets": "capacitor-assets generate --assetPath assets --iconBackgroundColor '#16212e' --iconBackgroundColorDark '#16212e' --splashBackgroundColor '#f2f5f4' --splashBackgroundColorDark '#0f1a22'"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "8.6.0",

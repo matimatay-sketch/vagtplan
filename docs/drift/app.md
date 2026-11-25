@@ -64,6 +64,15 @@ pnpm assets      # ikoner og splash-skærm fra assets/ (første gang og ved nyt 
 3. **Build → Generate Signed App Bundle** med jeres upload-nøgle. Gem nøglen sikkert, for den kan ikke erstattes uden Google.
 4. Upload `.aab`-filen i Play Console.
 
+## Test appen, før den kommer i butikkerne
+
+`TURNUS_APP_URL` og `TURNUS_APP_ID` er ikke indstillinger i Vercel eller GitHub. De sættes i terminalen, når du bygger appen (se trin 2), og bestemmer, hvilken server appen åbner. Til en test kan du bruge Vercel-adressen for main eller for en forhåndsvisning, fx `TURNUS_APP_URL=https://vagtplan-xxx.vercel.app`.
+
+- **Android på din egen telefon (gratis):** Slå udviklertilstand og USB-fejlfinding til på telefonen, tilslut den, og tryk ▶ (Run) i Android Studio. Uden telefon kan du vælge en emulator i Android Studio.
+- **iPhone på din egen telefon:** Tilslut iPhonen, vælg den i Xcode, og tryk ▶. Med et gratis Apple-id virker appen i 7 dage og uden push. Push kræver Apple Developer-kontoen.
+- **Testere uden kabel:** Upload bygget til **TestFlight** (App Store Connect) eller **Intern test** (Play Console), og inviter testerne via e-mail. Det kræver de betalte konti, men ikke at appen er godkendt til butikken.
+- **Push:** virker først, når `google-services.json`/`GoogleService-Info.plist` ligger i projektet, og `FCM_SERVICE_ACCOUNT` er sat i Vercel for den server, appen åbner.
+
 ## 3. Butikkerne
 
 Til begge butikker:
