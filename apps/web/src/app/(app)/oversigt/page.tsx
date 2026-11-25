@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
 import { stampNeedsLocation } from "@/lib/time/location";
+import { reasonsForEmployee } from "@/lib/time/deviation-types";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -91,7 +92,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
         const [overview, posting, deviation, plans, needsLocation] = await Promise.all([
           loadTimeOverview(supabase, ctx, { from: addDays(today, -1), to: today, onlyMine: true }),
           stampPostingFor(supabase, id),
-          loadDeviationContext(supabase, ctx.organization.id),
+          loadDeviationContext(supabase, ctx.organization.id, [id]),
           loadStampPlans(supabase, id),
           stampNeedsLocation(supabase, ctx.organization.id, id),
         ]);
@@ -289,7 +290,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
             employeeId={stamping.employeeId}
             openSince={stamping.openSince}
             posting={stamping.posting}
-            reasons={stamping.deviation.reasons}
+            reasons={reasonsForEmployee(stamping.deviation, stamping.employeeId)}
             thresholdMinutes={stamping.deviation.thresholdMinutes}
             stampPlans={stamping.plans}
             openPlan={stamping.openPlan}

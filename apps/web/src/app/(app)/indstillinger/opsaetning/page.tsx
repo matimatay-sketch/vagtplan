@@ -27,6 +27,7 @@ import {
 } from "@/components/settings/deviation-reasons";
 import { LazyDetails } from "@/components/lazy-details";
 import { EmployeeOptionToggle } from "@/components/settings/employee-options";
+import { EmployeeGroups } from "@/components/settings/employee-groups";
 import { loadAgreements } from "@/lib/engine";
 import type { DeviationReason } from "@/lib/domain/deviation";
 import { da } from "@/lib/i18n/da";
@@ -61,7 +62,9 @@ export default async function SettingsPage() {
     loadOrganizationSettings(supabase, ctx.organization.id),
     supabase
       .from("supplement_type")
-      .select("id, name, pay_code, amount_type, amount, employee_selectable")
+      .select(
+        "id, name, pay_code, amount_type, amount, employee_selectable, department_ids, agreement_ids",
+      )
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
@@ -90,19 +93,58 @@ export default async function SettingsPage() {
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null),
   ]);
-  const [{ data: reasonRows }, engine] = await Promise.all([
-    supabase
-      .from("deviation_reason")
-      .select(
-        "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type",
-      )
-      .eq("organization_id", ctx.organization.id)
-      .is("archived_at", null)
-      .order("sort_order")
-      .order("name"),
-    loadAgreements(supabase),
-  ]);
-  const reasons = (reasonRows ?? []) as unknown as DeviationReason[];
+  const [{ data: reasonRows }, engine, { data: departmentRows }, { data: groupRows }] =
+    await Promise.all([
+      supabase
+        .from("deviation_reason")
+        .select(
+          "id, name, applies_to, treatment, time_off_mode, time_off_factor_bp, time_off_pay_code, absence_type, department_ids, agreement_ids, employee_group_ids",
+        )
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("sort_order")
+        .order("name"),
+      loadAgreements(supabase),
+      supabase
+        .from("department")
+        .select("id, name")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+      supabase
+        .from("employee_group")
+        .select("id, name")
+        .eq("organization_id", ctx.organization.id)
+        .is("archived_at", null)
+        .order("name"),
+    ]);
+  const nameOf = new Map(
+    [...(departmentRows ?? []), ...(agreements ?? []), ...(groupRows ?? [])].map((x) => [
+      x.id,
+      x.name,
+    ]),
+  );
+  // "Gælder for: Butik; Detail" (empty when it applies to everyone).
+  const scopeText = (x: {
+    department_ids?: string[];
+    agreement_ids?: string[];
+    employee_group_ids?: string[];
+  }) => {
+    const parts = [x.department_ids, x.agreement_ids, x.employee_group_ids]
+      .filter((l): l is string[] => !!l && l.length > 0)
+      .map((l) => l.map((id) => nameOf.get(id) ?? "?").join(", "));
+    return parts.length ? da.scope.summary(parts) : "";
+  };
+  const scope = {
+    departments: departmentRows ?? [],
+    agreements: (agreements ?? []).map((a) => ({ id: a.id, name: a.name })),
+    groups: groupRows ?? [],
+  };
+  const reasons = (reasonRows ?? []) as unknown as (DeviationReason & {
+    department_ids: string[];
+    agreement_ids: string[];
+    employee_group_ids: string[];
+  })[];
   // Absence types in the organization's agreements (for "the missing time becomes absence").
   const absenceTypes = new Map<string, string>();
   for (const docs of Object.values(engine.registry))
@@ -248,12 +290,21 @@ export default async function SettingsPage() {
                           {" · "}
                           {r.applies_to.map((x) => da.deviationReasons.situations[x]).join(", ")}
                         </span>
+                        {scopeText(r) ? (
+                          <span className="text-xs text-muted-foreground" data-testid="scope-text">
+                            {scopeText(r)}
+                          </span>
+                        ) : null}
                       </div>
                       <ArchiveDeviationReasonButton id={r.id} name={r.name} />
                     </div>
                     <LazyDetails className="text-sm" summary={da.deviationReasons.edit}>
                       <div className="mt-3">
-                        <DeviationReasonForm initial={r} absenceTypes={absenceTypeList} />
+                        <DeviationReasonForm
+                          initial={r}
+                          absenceTypes={absenceTypeList}
+                          scope={scope}
+                        />
                       </div>
                     </LazyDetails>
                   </li>
@@ -262,7 +313,7 @@ export default async function SettingsPage() {
             )}
             <div className="grid gap-2 border-t pt-4">
               <h3 className="font-semibold">{da.deviationReasons.newTitle}</h3>
-              <DeviationReasonForm absenceTypes={absenceTypeList} />
+              <DeviationReasonForm absenceTypes={absenceTypeList} scope={scope} />
             </div>
           </CardContent>
         </Card>
@@ -274,7 +325,7 @@ export default async function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <SupplementTypeForm />
+            <SupplementTypeForm scope={scope} />
             <ul className="grid gap-2" data-testid="supplement-types">
               {(supplements ?? []).length === 0 ? (
                 <li className="text-sm text-muted-foreground">{t.noSupplements}</li>
@@ -290,9 +341,17 @@ export default async function SettingsPage() {
                     <span className="ml-2 font-mono text-xs text-muted-foreground">
                       {s.pay_code}
                     </span>
+                    {scopeText(s) ? (
+                      <span
+                        className="block text-xs text-muted-foreground"
+                        data-testid="scope-text"
+                      >
+                        {scopeText(s)}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="ml-auto flex items-center gap-2">
-                    <EditSupplementButton supplement={s} />
+                    <EditSupplementButton supplement={s} scope={scope} />
                     <form action={setSupplementSelectableAction}>
                       <input type="hidden" name="id" value={s.id} />
                       <input
@@ -326,6 +385,17 @@ export default async function SettingsPage() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+        <Card data-testid="employee-groups-card">
+          <CardHeader>
+            <CardTitle>
+              {da.employeeGroups.title}
+              <HelpTip>{da.employeeGroups.help}</HelpTip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmployeeGroups groups={groupRows ?? []} />
           </CardContent>
         </Card>
         <Card data-testid="employee-options">

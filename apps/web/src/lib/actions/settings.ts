@@ -12,6 +12,7 @@ import {
   supplementTypeSchema,
 } from "@/lib/forms/settings";
 import { customRulesSchema } from "@/lib/forms/custom-rules";
+import { groupsFromForm, scopeFromForm } from "@/lib/forms/scope";
 import { deviationReasonSchema, deviationThresholdSchema } from "@/lib/forms/deviation-reasons";
 import type { Json } from "@/lib/supabase/database.types";
 import { da } from "@/lib/i18n/da";
@@ -68,9 +69,11 @@ export async function createSupplementTypeAction(
   const parsed = supplementTypeSchema.safeParse(values);
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("supplement_type")
-    .insert({ ...parsed.data, organization_id: ctx.organization.id });
+  const { error } = await supabase.from("supplement_type").insert({
+    ...parsed.data,
+    ...scopeFromForm(formData),
+    organization_id: ctx.organization.id,
+  });
   if (error)
     return {
       message: dbErrorMessage(error, { "23505": "Der findes allerede et tillæg med det navn." }),
@@ -94,7 +97,7 @@ export async function updateSupplementTypeAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("supplement_type")
-    .update(parsed.data)
+    .update({ ...parsed.data, ...scopeFromForm(formData) })
     .eq("id", id.data)
     .select("id");
   if (error)
@@ -239,7 +242,12 @@ export async function saveDeviationReasonAction(
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values };
   const id = z.guid().safeParse(values.id).data;
   const supabase = await createClient();
-  const row = { ...parsed.data, organization_id: ctx.organization.id };
+  const row = {
+    ...parsed.data,
+    ...scopeFromForm(formData),
+    ...groupsFromForm(formData),
+    organization_id: ctx.organization.id,
+  };
   const { data, error } = id
     ? await supabase.from("deviation_reason").update(row).eq("id", id).select("id")
     : await supabase.from("deviation_reason").insert(row).select("id");

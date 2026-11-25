@@ -19,17 +19,21 @@ type Employee = {
   school_obligation_ends_on: string | null;
   hired_on: string | null;
   stamp_anywhere: boolean;
+  employee_group_id: string | null;
 };
 
 export function EmployeeForm({
   action,
   employee,
   departments,
+  groups = [],
   submitLabel,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   employee?: Employee;
   departments?: { id: string; name: string }[];
+  /** The organization's employee groups (Medarbejdergruppe). */
+  groups?: { id: string; name: string }[];
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
@@ -77,6 +81,22 @@ export function EmployeeForm({
         >
           <Input type="date" {...f("hired_on", employee?.hired_on)} />
         </Field>
+        {groups.length ? (
+          <Field
+            label={da.employeeGroups.employeeField}
+            htmlFor="employee_group_id"
+            error={state.errors?.employee_group_id}
+          >
+            <NativeSelect {...f("employee_group_id", employee?.employee_group_id ?? "")}>
+              <option value="">{da.employeeGroups.noGroup}</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
         {departments ? (
           <Field label={t.department} htmlFor="department_id" error={state.errors?.department_id}>
             <NativeSelect

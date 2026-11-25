@@ -89,12 +89,16 @@ export default async function ApproveTimePage({ searchParams }: PageProps<"/tid/
   const isWeek = range.from === weekStartOf(range.from) && dates.length === 7;
   const filters = parseTimeFilters(sp);
 
-  const [overview, posting, supplementOptions, deviation] = await Promise.all([
+  const [overview, posting, supplementOptions] = await Promise.all([
     loadTimeOverview(supabase, ctx, { from: range.from, to: range.to, departmentId }),
     loadPostingDimensions(supabase),
     loadSupplementOptions(supabase, ctx.organization.id),
-    loadDeviationContext(supabase, ctx.organization.id),
   ]);
+  const deviation = await loadDeviationContext(
+    supabase,
+    ctx.organization.id,
+    overview.rows.map((r) => r.employeeId),
+  );
   const accessible = overview.rows.filter(
     (r) => rights[r.departmentId] || approverOf.has(r.employeeId),
   );

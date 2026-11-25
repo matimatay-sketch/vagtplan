@@ -1,4 +1,5 @@
 "use client";
+import { ScopeFields, type ScopeOptions } from "@/components/settings/scope-fields";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -47,9 +48,15 @@ export function DeviationThresholdForm({ minutes }: { minutes: number }) {
 export function DeviationReasonForm({
   initial,
   absenceTypes,
+  scope,
 }: {
-  initial?: DeviationReason;
+  initial?: DeviationReason & {
+    department_ids?: string[];
+    agreement_ids?: string[];
+    employee_group_ids?: string[];
+  };
   absenceTypes: { code: string; label: string }[];
+  scope?: ScopeOptions;
 }) {
   const [state, action] = useActionState(saveDeviationReasonAction, initialActionState);
   const router = useRouter();
@@ -174,6 +181,7 @@ export function DeviationReasonForm({
           </NativeSelect>
         </Field>
       ) : null}
+      {scope ? <ScopeFields prefix={p} options={scope} initial={initial} /> : null}
       <div>
         <SubmitButton>{initial ? t.save : t.create}</SubmitButton>
       </div>

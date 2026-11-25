@@ -39,6 +39,8 @@ export type BoardSupplementType = {
   name: string;
   amountType: "per_hour" | "fixed" | "percent";
   amount: number;
+  /** "Gælder for": only employees on these agreements (empty = all). */
+  agreementIds: string[];
 };
 
 export type BoardShift = {
@@ -78,6 +80,8 @@ export type BoardEmployee = {
   weekMinutes: number;
   /** Contract norm for the week (prorated per day), null without contract access. */
   normMinutes: number | null;
+  /** Agreement and local agreement of the contracts in the week (for "Gælder for"). */
+  agreementIds: string[];
   /** Violations not tied to a single shift (weekly rest, averages …). */
   violations: BoardViolation[];
 };
@@ -226,14 +230,16 @@ export async function loadWeek(
     }),
     supabase
       .from("contract")
-      .select("employee_id, valid_from, valid_to, weekly_norm_minutes")
+      .select(
+        "employee_id, valid_from, valid_to, weekly_norm_minutes, agreement_id, local_agreement_id",
+      )
       .in(
         "employee_id",
         employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
       ),
     supabase
       .from("supplement_type")
-      .select("id, name, amount_type, amount")
+      .select("id, name, amount_type, amount, department_ids, agreement_ids")
       .eq("organization_id", ctx.organization.id)
       .is("archived_at", null)
       .order("name"),
@@ -353,6 +359,19 @@ export async function loadWeek(
           0,
         ),
       normMinutes: normFor(e.id),
+      agreementIds: [
+        ...new Set(
+          (contracts ?? [])
+            .filter(
+              (c) =>
+                c.employee_id === e.id &&
+                c.valid_from <= weekDays[6]! &&
+                (c.valid_to === null || c.valid_to >= weekDays[0]!),
+            )
+            .flatMap((c) => [c.agreement_id, c.local_agreement_id])
+            .filter((x): x is string => !!x),
+        ),
+      ],
       violations: byEmployee.get(e.id) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "da"));
@@ -385,12 +404,16 @@ export async function loadWeek(
       normPercent: t.norm_percent,
       normInPay: t.norm_in_pay,
     })),
-    supplementTypes: (supplementTypes ?? []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      amountType: t.amount_type,
-      amount: t.amount,
-    })),
+    // Only the supplements of this department ("Gælder for").
+    supplementTypes: (supplementTypes ?? [])
+      .filter((t) => t.department_ids.length === 0 || t.department_ids.includes(departmentId))
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        amountType: t.amount_type,
+        amount: t.amount,
+        agreementIds: t.agreement_ids,
+      })),
     posting: availablePosting(postingDimensions, departmentId),
     normDefaults,
     pendingCount: (shifts ?? []).filter(

@@ -14,12 +14,20 @@ export const metadata: Metadata = { title: "Ny medarbejder" };
 export default async function NewEmployeePage() {
   const ctx = await requireContext(["employees.manage"]);
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("department")
-    .select("id, name")
-    .eq("organization_id", ctx.organization.id)
-    .is("archived_at", null)
-    .order("name");
+  const [{ data }, { data: groups }] = await Promise.all([
+    supabase
+      .from("department")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("employee_group")
+      .select("id, name")
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+  ]);
   const departments = (data ?? []).filter((d) => canIn(ctx, "employees.manage", d.id));
   return (
     <>
@@ -39,6 +47,7 @@ export default async function NewEmployeePage() {
           <EmployeeForm
             action={createEmployeeAction}
             departments={departments}
+            groups={groups ?? []}
             submitLabel={da.common.create}
           />
         </CardContent>

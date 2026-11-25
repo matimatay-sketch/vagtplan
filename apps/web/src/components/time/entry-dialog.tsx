@@ -25,7 +25,7 @@ import { dbBreaksToForm, type DbBreak, type EditableBreak } from "@/lib/domain/b
 import { reasonsFor, situations } from "@/lib/domain/deviation";
 import { localInstants } from "@/lib/schedule/breaks";
 import { formatMinutes } from "@vagtplan/rules-engine";
-import type { DeviationContext } from "@/lib/time/deviation-types";
+import { reasonsForEmployee, type DeviationContext } from "@/lib/time/deviation-types";
 import { localParts, timeRange } from "@/lib/domain/schedule-time";
 import type { TimeRow } from "@/lib/time/load";
 import type { SupplementOption } from "@/lib/time/supplements";
@@ -151,6 +151,7 @@ function EntryForm({
 
   const reasons = reasonOptions(
     deviation,
+    draft.mode === "create" ? draft.employeeId : draft.row.employeeId,
     values.date,
     values.start_time,
     values.end_time,
@@ -338,6 +339,7 @@ function EntryForm({
 /** The deviation reasons that fit the times typed (start and end against the plan, or none). */
 function reasonOptions(
   deviation: DeviationContext | undefined,
+  employeeId: string,
   date: string,
   startTime: string,
   endTime: string,
@@ -359,8 +361,9 @@ function reasonOptions(
     : s.start
       ? { kind: s.start.kind, minutes: s.start.minutes }
       : null;
-  const startOptions = start ? reasonsFor(start.kind, deviation.reasons) : [];
-  const endOptions = s.end ? reasonsFor(s.end.kind, deviation.reasons) : [];
+  const options = reasonsForEmployee(deviation, employeeId);
+  const startOptions = start ? reasonsFor(start.kind, options) : [];
+  const endOptions = s.end ? reasonsFor(s.end.kind, options) : [];
   if (startOptions.length === 0 && endOptions.length === 0) return null;
   return { start, end: s.end, startOptions, endOptions };
 }

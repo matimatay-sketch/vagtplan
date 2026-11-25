@@ -1,20 +1,26 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import type { DeviationContext, ReasonOption } from "./deviation-types";
+import { loadWho } from "./who";
+import { todayIn } from "@/lib/domain/civil-date";
 
 export type { DeviationContext, ReasonOption };
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
-/** The organization's deviation reasons in use and the threshold for asking. */
+/**
+ * The organization's deviation reasons in use and the threshold for asking,
+ * with who the given employees are (the reasons that apply to them).
+ */
 export async function loadDeviationContext(
   supabase: Client,
   organizationId: string,
+  employeeIds: readonly string[] = [],
 ): Promise<DeviationContext> {
-  const [{ data: reasons }, { data: settings }] = await Promise.all([
+  const [{ data: reasons }, { data: settings }, who] = await Promise.all([
     supabase
       .from("deviation_reason")
-      .select("id, name, applies_to")
+      .select("id, name, applies_to, department_ids, agreement_ids, employee_group_ids")
       .eq("organization_id", organizationId)
       .is("archived_at", null)
       .order("sort_order")
@@ -24,10 +30,12 @@ export async function loadDeviationContext(
       .select("deviation_threshold_minutes")
       .eq("organization_id", organizationId)
       .maybeSingle(),
+    loadWho(supabase, employeeIds, todayIn("Europe/Copenhagen")),
   ]);
   return {
     reasons: (reasons ?? []) as unknown as ReasonOption[],
     thresholdMinutes: settings?.deviation_threshold_minutes ?? 5,
+    who,
   };
 }
 

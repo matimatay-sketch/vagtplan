@@ -9,6 +9,8 @@ export type SupplementOption = {
   payCode: string;
   employeeSelectable: boolean;
   archived: boolean;
+  department_ids: string[];
+  agreement_ids: string[];
 };
 
 /** The organization's supplement types (archived ones too, so old rows keep their names). */
@@ -18,7 +20,7 @@ export async function loadSupplementOptions(
 ): Promise<SupplementOption[]> {
   const { data } = await supabase
     .from("supplement_type")
-    .select("id, name, pay_code, employee_selectable, archived_at")
+    .select("id, name, pay_code, employee_selectable, archived_at, department_ids, agreement_ids")
     .eq("organization_id", organizationId)
     .order("name");
   return (data ?? []).map((s) => ({
@@ -27,5 +29,7 @@ export async function loadSupplementOptions(
     payCode: s.pay_code,
     employeeSelectable: s.employee_selectable,
     archived: s.archived_at !== null,
+    department_ids: s.department_ids,
+    agreement_ids: s.agreement_ids,
   }));
 }

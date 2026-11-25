@@ -1,4 +1,5 @@
 "use client";
+import { ScopeFields, type ScopeOptions } from "@/components/settings/scope-fields";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -135,15 +136,20 @@ export type EditableSupplement = {
   amount_type: "per_hour" | "fixed" | "percent";
   amount: number;
   employee_selectable: boolean;
+  department_ids: string[];
+  agreement_ids: string[];
 };
 
 /** Creates a supplement type, or edits `supplement` (applies to pay calculated from now on). */
 export function SupplementTypeForm({
   supplement,
   onDone,
+  scope,
 }: {
   supplement?: EditableSupplement;
   onDone?: () => void;
+  /** Departments and agreements the supplement can be limited to. */
+  scope?: ScopeOptions;
 } = {}) {
   const sp = supplement;
   const [state, action] = useActionState(
@@ -195,13 +201,28 @@ export function SupplementTypeForm({
         <Checkbox name="employee_selectable" defaultChecked={sp?.employee_selectable} />
         {t.employeeSelectable}
       </label>
+      {scope ? (
+        <div className="sm:col-span-5">
+          <ScopeFields
+            prefix={idp || "new-supplement-"}
+            options={{ departments: scope.departments, agreements: scope.agreements }}
+            initial={sp}
+          />
+        </div>
+      ) : null}
       <div className="sm:col-span-5">{state.ok ? null : <FormMessage state={state} />}</div>
     </form>
   );
 }
 
 /** "Ret" on a supplement type: the form in a dialog. */
-export function EditSupplementButton({ supplement }: { supplement: EditableSupplement }) {
+export function EditSupplementButton({
+  supplement,
+  scope,
+}: {
+  supplement: EditableSupplement;
+  scope?: ScopeOptions;
+}) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   return (
@@ -221,7 +242,7 @@ export function EditSupplementButton({ supplement }: { supplement: EditableSuppl
           <DialogTitle>{t.editSupplement}</DialogTitle>
           <DialogDescription>{t.editSupplementHelp}</DialogDescription>
         </DialogHeader>
-        <SupplementTypeForm supplement={supplement} onDone={close} />
+        <SupplementTypeForm supplement={supplement} onDone={close} scope={scope} />
       </DialogContent>
     </Dialog>
   );

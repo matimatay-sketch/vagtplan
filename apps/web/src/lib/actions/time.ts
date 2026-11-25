@@ -14,6 +14,7 @@ import { formBreaksToDb, localInstants } from "@/lib/schedule/breaks";
 import { da } from "@/lib/i18n/da";
 import { reasonsFor, situations } from "@/lib/domain/deviation";
 import { loadDeviationContext } from "@/lib/time/deviation-context";
+import { reasonsForEmployee } from "@/lib/time/deviation-types";
 import type { Json } from "@/lib/supabase/database.types";
 import { dbErrorMessage, formValues, type ActionState } from "./state";
 
@@ -128,21 +129,23 @@ async function planFor(
 async function resolveReasons(
   supabase: Supabase,
   orgId: string,
+  employeeId: string | null | undefined,
   times: { start_at: string; end_at: string },
   plan: { start: string; end: string } | null,
   f: { start_reason_id?: string | null; end_reason_id?: string | null },
 ): Promise<
   { startReason: string | null; endReason: string | null } | { errors: Record<string, string> }
 > {
-  const deviation = await loadDeviationContext(supabase, orgId);
+  const deviation = await loadDeviationContext(supabase, orgId, employeeId ? [employeeId] : []);
+  const options = reasonsForEmployee(deviation, employeeId);
   const sit = situations(
     { start: times.start_at, end: times.end_at },
     plan,
     deviation.thresholdMinutes,
   );
   const startSituation = sit.unplanned ? "unplanned" : (sit.start?.kind ?? null);
-  const startOptions = startSituation ? reasonsFor(startSituation, deviation.reasons) : [];
-  const endOptions = sit.end ? reasonsFor(sit.end.kind, deviation.reasons) : [];
+  const startOptions = startSituation ? reasonsFor(startSituation, options) : [];
+  const endOptions = sit.end ? reasonsFor(sit.end.kind, options) : [];
   const startReason = startOptions.some((r) => r.id === f.start_reason_id)
     ? f.start_reason_id!
     : null;
@@ -202,7 +205,14 @@ export async function saveTimeEntryAction(
   const plan = await planFor(supabase, shiftId, times.start_at);
   // A deviation reason is required where one is set up for the situation and the
   // deviation is over the threshold; otherwise a written reason as before.
-  const reasons = await resolveReasons(supabase, ctx.organization.id, times, plan, f);
+  const reasons = await resolveReasons(
+    supabase,
+    ctx.organization.id,
+    existing?.employee_id ?? f.employee_id ?? ctx.employee?.id,
+    times,
+    plan,
+    f,
+  );
   if ("errors" in reasons) return { errors: reasons.errors, values };
   const { startReason, endReason } = reasons;
   if (
@@ -335,12 +345,19 @@ export async function correctTimeEntryAction(
   const supabase = await createClient();
   const { data: current } = await supabase
     .from("time_entry")
-    .select("shift_id, organization_id")
+    .select("shift_id, organization_id, employee_id")
     .eq("id", f.id)
     .maybeSingle();
   if (!current) return { message: da.common.notAllowed, values };
   const plan = await planFor(supabase, current.shift_id, times.start_at);
-  const reasons = await resolveReasons(supabase, current.organization_id, times, plan, f);
+  const reasons = await resolveReasons(
+    supabase,
+    current.organization_id,
+    current.employee_id,
+    times,
+    plan,
+    f,
+  );
   if ("errors" in reasons) return { errors: reasons.errors, values };
   const { data: newId, error } = await supabase.rpc("correct_time_entry", {
     p_id: f.id,

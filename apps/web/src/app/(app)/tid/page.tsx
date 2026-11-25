@@ -11,10 +11,14 @@ import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { stampPostingFor } from "@/lib/time/stamp-context";
 import { stampNeedsLocation } from "@/lib/time/location";
+import { reasonsForEmployee } from "@/lib/time/deviation-types";
+import { inScope, type Who } from "@/lib/domain/scope";
 import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
 import { da } from "@/lib/i18n/da";
 
 export const metadata: Metadata = { title: "Tid" };
+
+const NOBODY: Who = { departmentIds: null, agreementIds: null, groupId: undefined };
 
 const DAYS = 14;
 
@@ -40,7 +44,7 @@ export default async function TimePage() {
   const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
   const stampPosting = await stampPostingFor(supabase, ctx.employee.id, posting);
   const [deviation, stampPlans, needsLocation] = await Promise.all([
-    loadDeviationContext(supabase, ctx.organization.id),
+    loadDeviationContext(supabase, ctx.organization.id, [ctx.employee.id]),
     loadStampPlans(supabase, ctx.employee.id),
     stampNeedsLocation(supabase, ctx.organization.id, ctx.employee.id),
   ]);
@@ -56,7 +60,7 @@ export default async function TimePage() {
           employeeId={ctx.employee.id}
           openSince={open?.start ?? null}
           posting={stampPosting}
-          reasons={deviation.reasons}
+          reasons={reasonsForEmployee(deviation, ctx.employee.id)}
           thresholdMinutes={deviation.thresholdMinutes}
           stampPlans={stampPlans}
           openPlan={open?.plan ? { start: open.plan.start, end: open.plan.end } : null}
@@ -66,7 +70,15 @@ export default async function TimePage() {
           rows={overview.rows}
           daily={overview.daily[ctx.employee.id] ?? {}}
           posting={posting}
-          supplements={{ options: supplementOptions, chooseAll: false }}
+          supplements={{
+            // The employee may only add supplements that apply to them ("Gælder for").
+            options: supplementOptions.map((o) =>
+              o.employeeSelectable && !inScope(o, deviation.who[ctx.employee!.id] ?? NOBODY)
+                ? { ...o, employeeSelectable: false }
+                : o,
+            ),
+            chooseAll: false,
+          }}
           deviation={deviation}
           employeeId={ctx.employee.id}
           dates={dates}

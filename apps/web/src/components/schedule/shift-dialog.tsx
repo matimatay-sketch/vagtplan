@@ -37,6 +37,18 @@ import {
   type PostingDimension,
 } from "@/lib/domain/posting";
 
+/** A supplement limited to agreements fits employees on one of them (an open shift: all). */
+function supplementFits(
+  o: BoardSupplementType,
+  employee: { agreementIds: string[] } | undefined,
+): boolean {
+  return (
+    o.agreementIds.length === 0 ||
+    !employee ||
+    employee.agreementIds.some((a) => o.agreementIds.includes(a))
+  );
+}
+
 export type ShiftDraft = { shift?: BoardShift; employeeId: string | null; date: string };
 
 type Props = {
@@ -265,7 +277,14 @@ function ShiftForm({
               />
             </div>
             <SupplementPicker
-              options={supplementTypes}
+              options={supplementTypes.filter(
+                (o) =>
+                  supplements.includes(o.id) ||
+                  supplementFits(
+                    o,
+                    employees.find((e) => e.id === values.employee_id),
+                  ),
+              )}
               value={supplements}
               onChange={setSupplements}
             />

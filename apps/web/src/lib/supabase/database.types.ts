@@ -413,14 +413,14 @@ isOneToOne: false
                   ]
                 },"deviation_reason": {
                   Row: {
-                    "absence_type": string | null,"applies_to": (string)[],"archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string,"sort_order": number,"time_off_factor_bp": number,"time_off_mode": string,"time_off_pay_code": string | null,"treatment": string
+                    "absence_type": string | null,"agreement_ids": (string)[],"applies_to": (string)[],"archived_at": string | null,"created_at": string,"department_ids": (string)[],"employee_group_ids": (string)[],"id": string,"name": string,"organization_id": string,"sort_order": number,"time_off_factor_bp": number,"time_off_mode": string,"time_off_pay_code": string | null,"treatment": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "absence_type"?: string | null,"applies_to": (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment": string
+                    "absence_type"?: string | null,"agreement_ids"?: (string)[],"applies_to": (string)[],"archived_at"?: string | null,"created_at"?: string,"department_ids"?: (string)[],"employee_group_ids"?: (string)[],"id"?: string,"name": string,"organization_id": string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment": string
                   }
                   Update: {
-                    "absence_type"?: string | null,"applies_to"?: (string)[],"archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment"?: string
+                    "absence_type"?: string | null,"agreement_ids"?: (string)[],"applies_to"?: (string)[],"archived_at"?: string | null,"created_at"?: string,"department_ids"?: (string)[],"employee_group_ids"?: (string)[],"id"?: string,"name"?: string,"organization_id"?: string,"sort_order"?: number,"time_off_factor_bp"?: number,"time_off_mode"?: string,"time_off_pay_code"?: string | null,"treatment"?: string
                   }
                   Relationships: [
                     {
@@ -453,17 +453,23 @@ isOneToOne: false
                   ]
                 },"employee": {
                   Row: {
-                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"login_placeholder": boolean,"organization_id": string,"phone": string | null,"posting_defaults": NonNullable<Json>,"school_obligated": boolean,"school_obligation_ends_on": string | null,"show_celebrations": boolean,"stamp_anywhere": boolean,"terminated_on": string | null,"user_id": string | null
+                    "approver_user_id": string | null,"archived_at": string | null,"birth_date": string,"created_at": string,"email": string | null,"employee_group_id": string | null,"employee_number": string,"first_name": string,"hired_on": string | null,"id": string,"last_name": string,"login_placeholder": boolean,"organization_id": string,"phone": string | null,"posting_defaults": NonNullable<Json>,"school_obligated": boolean,"school_obligation_ends_on": string | null,"show_celebrations": boolean,"stamp_anywhere": boolean,"terminated_on": string | null,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"login_placeholder"?: boolean,"organization_id": string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"stamp_anywhere"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date": string,"created_at"?: string,"email"?: string | null,"employee_group_id"?: string | null,"employee_number": string,"first_name": string,"hired_on"?: string | null,"id"?: string,"last_name": string,"login_placeholder"?: boolean,"organization_id": string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"stamp_anywhere"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Update: {
-                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"login_placeholder"?: boolean,"organization_id"?: string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"stamp_anywhere"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
+                    "approver_user_id"?: string | null,"archived_at"?: string | null,"birth_date"?: string,"created_at"?: string,"email"?: string | null,"employee_group_id"?: string | null,"employee_number"?: string,"first_name"?: string,"hired_on"?: string | null,"id"?: string,"last_name"?: string,"login_placeholder"?: boolean,"organization_id"?: string,"phone"?: string | null,"posting_defaults"?: NonNullable<Json>,"school_obligated"?: boolean,"school_obligation_ends_on"?: string | null,"show_celebrations"?: boolean,"stamp_anywhere"?: boolean,"terminated_on"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "employee_group_fk"
+      columns: ["organization_id","employee_group_id"]
+isOneToOne: false
+      referencedRelation: "employee_group"
+      referencedColumns: ["organization_id","id"]
+    },{
       foreignKeyName: "employee_organization_id_fkey"
       columns: ["organization_id"]
 isOneToOne: false
@@ -495,6 +501,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "employee"
       referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"employee_group": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"organization_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"organization_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"organization_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "employee_group_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organization"
+      referencedColumns: ["id"]
     }
                   ]
                 },"expense": {
@@ -1539,14 +1565,14 @@ isOneToOne: false
                   ]
                 },"supplement_type": {
                   Row: {
-                    "amount": number,"amount_type": Database["public"]['Enums']["supplement_amount_type"],"archived_at": string | null,"created_at": string,"employee_selectable": boolean,"id": string,"name": string,"organization_id": string,"pay_code": string
+                    "agreement_ids": (string)[],"amount": number,"amount_type": Database["public"]['Enums']["supplement_amount_type"],"archived_at": string | null,"created_at": string,"department_ids": (string)[],"employee_selectable": boolean,"id": string,"name": string,"organization_id": string,"pay_code": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount": number,"amount_type": Database["public"]['Enums']["supplement_amount_type"],"archived_at"?: string | null,"created_at"?: string,"employee_selectable"?: boolean,"id"?: string,"name": string,"organization_id": string,"pay_code": string
+                    "agreement_ids"?: (string)[],"amount": number,"amount_type": Database["public"]['Enums']["supplement_amount_type"],"archived_at"?: string | null,"created_at"?: string,"department_ids"?: (string)[],"employee_selectable"?: boolean,"id"?: string,"name": string,"organization_id": string,"pay_code": string
                   }
                   Update: {
-                    "amount"?: number,"amount_type"?: Database["public"]['Enums']["supplement_amount_type"],"archived_at"?: string | null,"created_at"?: string,"employee_selectable"?: boolean,"id"?: string,"name"?: string,"organization_id"?: string,"pay_code"?: string
+                    "agreement_ids"?: (string)[],"amount"?: number,"amount_type"?: Database["public"]['Enums']["supplement_amount_type"],"archived_at"?: string | null,"created_at"?: string,"department_ids"?: (string)[],"employee_selectable"?: boolean,"id"?: string,"name"?: string,"organization_id"?: string,"pay_code"?: string
                   }
                   Relationships: [
                     {
