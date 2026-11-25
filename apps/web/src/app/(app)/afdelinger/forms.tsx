@@ -3,6 +3,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Field, FormMessage, SubmitButton, fieldProps } from "@/components/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NativeSelect } from "@/components/ui/native-select";
 import { HelpTip } from "@/components/help/help";
 import { createDepartmentAction, updateDepartmentMessagingAction } from "@/lib/actions/departments";
 import { initialActionState } from "@/lib/actions/state";
@@ -41,11 +42,16 @@ export function DepartmentMessagingForm({
   name,
   swapRequiresApproval,
   messageEmail,
+  availability,
+  organizationAvailability,
 }: {
   id: string;
   name: string;
   swapRequiresApproval: boolean;
   messageEmail: boolean;
+  /** Wishes in this department; null follows the organization. */
+  availability: boolean | null;
+  organizationAvailability: boolean;
 }) {
   const [state, action] = useActionState(updateDepartmentMessagingAction, initialActionState);
   const t = da.departments;
@@ -64,6 +70,26 @@ export function DepartmentMessagingForm({
         <Checkbox id={`dm-${id}-email`} name="message_email" defaultChecked={messageEmail} />
         {t.messageEmail}
         <HelpTip>{t.messageEmailHelp}</HelpTip>
+      </label>
+      <label className="grid gap-1 text-sm" htmlFor={`dm-${id}-availability`}>
+        <span className="flex items-center">
+          {t.availability}
+          <HelpTip>{da.employeeOptions.wishesHelp}</HelpTip>
+        </span>
+        <NativeSelect
+          id={`dm-${id}-availability`}
+          name="availability_enabled"
+          className="w-fit"
+          defaultValue={availability === null ? "inherit" : availability ? "on" : "off"}
+        >
+          <option value="inherit">
+            {t.availabilityInherit(
+              organizationAvailability ? da.employeeOptions.on : da.employeeOptions.off,
+            )}
+          </option>
+          <option value="on">{da.employeeOptions.on}</option>
+          <option value="off">{da.employeeOptions.off}</option>
+        </NativeSelect>
       </label>
       <SubmitButton variant="outline" size="sm" className="w-fit">
         {t.saveMessaging}

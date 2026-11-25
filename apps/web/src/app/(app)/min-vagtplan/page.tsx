@@ -53,7 +53,7 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
   );
   const dates = weekDates(weekStart);
   const supabase = await createClient();
-  const [{ data: shifts }, { data: availability }] = await Promise.all([
+  const [{ data: shifts }, { data: availability }, { data: wishesAllowed }] = await Promise.all([
     supabase.rpc("published_shifts", {
       p_from: new Date(zonedTime(weekStart)).toISOString(),
       p_to: new Date(zonedTime(addDays(weekStart, 7))).toISOString(),
@@ -66,7 +66,10 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
       .gte("date", today)
       .order("date")
       .limit(60),
+    supabase.rpc("availability_allowed", { p_employee_id: ctx.employee.id }),
   ]);
+  // Wishes switched off: no new ones; wishes already made are shown, so they can be removed.
+  const showWishes = wishesAllowed !== false || (availability ?? []).length > 0;
   const list = shifts ?? [];
   const mine = list.filter((s) => s.is_mine);
 
@@ -165,7 +168,7 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
           </div>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className={cn("grid gap-6", showWishes && "lg:grid-cols-[1fr_22rem]")}>
         <section aria-label={t.mine} className="grid content-start gap-3" data-testid="my-week">
           <p className="text-sm text-muted-foreground">
             {t.mine}:{" "}
@@ -244,51 +247,59 @@ export default async function MySchedulePage({ searchParams }: PageProps<"/min-v
             );
           })}
         </section>
-        <Card className="content-start">
-          <CardHeader>
-            <CardTitle>
-              {t.availabilityTitle}
-              <HelpTip>{t.availabilityLead}</HelpTip>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <AvailabilityForm defaultDate={addDays(today, 1)} />
-            <ul className="grid gap-1.5" data-testid="my-availability">
-              {(availability ?? []).length === 0 ? (
-                <li className="text-sm text-muted-foreground">{t.noAvailability}</li>
-              ) : null}
-              {(availability ?? []).map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-3 py-1.5 text-sm"
-                >
-                  <span>
-                    <span className="font-medium">{formatDate(a.date)}</span> ·{" "}
-                    {da.schedule.availability[a.kind]}
-                    {a.from_time
-                      ? ` ${a.from_time.slice(0, 5)}–${a.to_time?.slice(0, 5)}`
-                      : ` (${t.wholeDay.toLowerCase()})`}
-                    {a.note ? (
-                      <span className="block text-xs text-muted-foreground">{a.note}</span>
-                    ) : null}
-                  </span>
-                  <form action={removeAvailabilityAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      aria-label={`${t.removeAvailability} ${a.date}`}
-                    >
-                      <X />
-                    </Button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        {showWishes ? (
+          <Card className="content-start" data-testid="wishes-card">
+            <CardHeader>
+              <CardTitle>
+                {t.availabilityTitle}
+                <HelpTip>{t.availabilityLead}</HelpTip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {wishesAllowed === false ? (
+                <p className="text-sm text-muted-foreground" data-testid="wishes-off">
+                  {t.wishesOff}
+                </p>
+              ) : (
+                <AvailabilityForm defaultDate={addDays(today, 1)} />
+              )}
+              <ul className="grid gap-1.5" data-testid="my-availability">
+                {(availability ?? []).length === 0 ? (
+                  <li className="text-sm text-muted-foreground">{t.noAvailability}</li>
+                ) : null}
+                {(availability ?? []).map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-3 py-1.5 text-sm"
+                  >
+                    <span>
+                      <span className="font-medium">{formatDate(a.date)}</span> ·{" "}
+                      {da.schedule.availability[a.kind]}
+                      {a.from_time
+                        ? ` ${a.from_time.slice(0, 5)}–${a.to_time?.slice(0, 5)}`
+                        : ` (${t.wholeDay.toLowerCase()})`}
+                      {a.note ? (
+                        <span className="block text-xs text-muted-foreground">{a.note}</span>
+                      ) : null}
+                    </span>
+                    <form action={removeAvailabilityAction}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label={`${t.removeAvailability} ${a.date}`}
+                      >
+                        <X />
+                      </Button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );

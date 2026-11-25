@@ -26,28 +26,39 @@ export default async function DepartmentsPage() {
   const supabase = await createClient();
   const t = da.departments;
 
-  const [{ data: departments }, { data: responsible }, { data: links }, members] =
-    await Promise.all([
-      supabase
-        .from("department")
-        .select("id, name, posting_defaults, swap_requires_approval, message_email")
-        .eq("organization_id", ctx.organization.id)
-        .is("archived_at", null)
-        .order("name"),
-      supabase
-        .from("department_manager")
-        .select("department_id, user_id")
-        .eq("organization_id", ctx.organization.id),
-      supabase
-        .from("employee_department")
-        .select("department_id, employee_id")
-        .eq("organization_id", ctx.organization.id),
-      canAssign
-        ? supabase
-            .rpc("organization_members", { org: ctx.organization.id })
-            .then((r) => r.data ?? [])
-        : Promise.resolve([]),
-    ]);
+  const [
+    { data: departments },
+    { data: responsible },
+    { data: links },
+    members,
+    { data: orgSettings },
+  ] = await Promise.all([
+    supabase
+      .from("department")
+      .select(
+        "id, name, posting_defaults, swap_requires_approval, message_email, availability_enabled",
+      )
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("department_manager")
+      .select("department_id, user_id")
+      .eq("organization_id", ctx.organization.id),
+    supabase
+      .from("employee_department")
+      .select("department_id, employee_id")
+      .eq("organization_id", ctx.organization.id),
+    canAssign
+      ? supabase.rpc("organization_members", { org: ctx.organization.id }).then((r) => r.data ?? [])
+      : Promise.resolve([]),
+    supabase
+      .from("organization_settings")
+      .select("availability_enabled")
+      .eq("organization_id", ctx.organization.id)
+      .maybeSingle(),
+  ]);
+  const organizationAvailability = orgSettings?.availability_enabled ?? true;
 
   const dimensions = canCreate ? await loadPostingDimensions(supabase) : [];
   const nameOf = (userId: string) => {
@@ -127,6 +138,8 @@ export default async function DepartmentsPage() {
                         name={d.name}
                         swapRequiresApproval={d.swap_requires_approval}
                         messageEmail={d.message_email}
+                        availability={d.availability_enabled}
+                        organizationAvailability={organizationAvailability}
                       />
                       {d.message_email && !emailConfigured() ? (
                         <p className="mt-2 text-xs text-muted-foreground">{t.emailNotConfigured}</p>

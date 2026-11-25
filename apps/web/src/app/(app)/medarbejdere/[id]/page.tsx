@@ -60,7 +60,7 @@ export default async function EmployeePage({
   const { data: employee } = await supabase
     .from("employee")
     .select(
-      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, user_id, login_placeholder, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement_id, local_agreement_id, pay_period_group_id, seniority_date, exemption_since, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
+      "id, employee_number, first_name, last_name, email, phone, birth_date, school_obligated, school_obligation_ends_on, hired_on, stamp_anywhere, user_id, login_placeholder, approver_user_id, posting_defaults, employee_department (department_id, is_primary), contract (id, valid_from, valid_to, pay_form, weekly_norm_minutes, staff_group, pay_step, exempt_from_registration, exemption_reason, agreement_id, local_agreement_id, pay_period_group_id, seniority_date, exemption_since, agreement:agreement_id (name, is_example), local:local_agreement_id (name), pay_period_group (name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -324,6 +324,7 @@ export default async function EmployeePage({
                     [t.phone, employee.phone ?? "–"],
                     [t.hiredOn, formatDate(employee.hired_on)],
                     [t.schoolObligated, employee.school_obligated ? da.common.yes : da.common.no],
+                    [t.stampAnywhere, employee.stamp_anywhere ? da.common.yes : da.common.no],
                   ].map(([k, v]) => (
                     <div key={k}>
                       <dt className="text-xs text-muted-foreground">{k}</dt>

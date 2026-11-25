@@ -62,6 +62,8 @@ export type TimeRow = {
   endReasonId: string | null;
   /** Names of the chosen reasons (start, end), for display. */
   reasonNames: string[];
+  /** Where it was stamped in and out (workplace and distance), when the organization checks it. */
+  stampPlaces: { at: "in" | "out"; workplace: string; distanceM: number }[];
   /** Times after the agreement's rounding (null while open). */
   settled: { start: string; end: string } | null;
   violations: Violation[];
@@ -132,7 +134,7 @@ export async function loadTimeOverview(
         r,
       ): Omit<
         TimeRow,
-        "settled" | "violations" | "startReasonId" | "endReasonId" | "reasonNames"
+        "settled" | "violations" | "startReasonId" | "endReasonId" | "reasonNames" | "stampPlaces"
       > => ({
         kind: r.row_kind === "missing" ? "missing" : "entry",
         entryId: r.entry_id,
@@ -252,6 +254,10 @@ export async function loadTimeOverview(
       end_reason_id: string | null;
       start_reason: { name: string } | null;
       end_reason: { name: string } | null;
+      start_distance_m: number | null;
+      end_distance_m: number | null;
+      start_workplace: { name: string } | null;
+      end_workplace: { name: string } | null;
     }
   >();
   // In chunks, so a long period does not make the request URL too long.
@@ -259,10 +265,12 @@ export async function loadTimeOverview(
     const { data } = await supabase
       .from("time_entry")
       .select(
-        "id, start_reason_id, end_reason_id, start_reason:deviation_reason!time_entry_start_reason_fk (name), end_reason:deviation_reason!time_entry_end_reason_fk (name)",
+        "id, start_reason_id, end_reason_id, start_reason:deviation_reason!time_entry_start_reason_fk (name), end_reason:deviation_reason!time_entry_end_reason_fk (name), start_distance_m, end_distance_m, start_workplace:workplace!time_entry_start_workplace_id_fkey (name), end_workplace:workplace!time_entry_end_workplace_id_fkey (name)",
       )
       .in("id", entryIds.slice(i, i + 150))
-      .or("start_reason_id.not.is.null,end_reason_id.not.is.null");
+      .or(
+        "start_reason_id.not.is.null,end_reason_id.not.is.null,start_workplace_id.not.is.null,end_workplace_id.not.is.null",
+      );
     for (const x of data ?? []) reasonsById.set(x.id, x);
   }
   const rows = shown.map((r) => ({
@@ -279,6 +287,18 @@ export async function loadTimeOverview(
           ),
         ]
       : [],
+    stampPlaces: (() => {
+      const x = r.entryId ? reasonsById.get(r.entryId) : undefined;
+      if (!x) return [];
+      return [
+        x.start_workplace && x.start_distance_m !== null
+          ? { at: "in" as const, workplace: x.start_workplace.name, distanceM: x.start_distance_m }
+          : null,
+        x.end_workplace && x.end_distance_m !== null
+          ? { at: "out" as const, workplace: x.end_workplace.name, distanceM: x.end_distance_m }
+          : null,
+      ].filter((p) => p !== null);
+    })(),
     settled: r.entryId ? (settledById.get(r.entryId) ?? null) : null,
     // Remarks are for the approver; the employee's own view shows only rule breaches.
     violations: r.entryId

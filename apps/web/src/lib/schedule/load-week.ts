@@ -15,6 +15,7 @@ import { canInDepartment } from "@/lib/permissions";
 import { absenceLabels, loadAgreements } from "@/lib/engine";
 import { localParts } from "@/lib/domain/schedule-time";
 import { da } from "@/lib/i18n/da";
+import { departmentUsesWishes } from "@/lib/schedule/wishes";
 import {
   effectivePercent,
   normDefaultsFrom,
@@ -193,6 +194,7 @@ export async function loadWeek(
   }
   const employeeIds = [...employeeMap.keys()];
 
+  const usesWishes = await departmentUsesWishes(supabase, ctx.organization.id, departmentId);
   const [
     { data: availability },
     violations,
@@ -204,16 +206,18 @@ export async function loadWeek(
     { data: openCancellations },
     { data: settings },
   ] = await Promise.all([
-    supabase
-      .from("availability")
-      .select("id, employee_id, date, kind, from_time, to_time, note")
-      .in(
-        "employee_id",
-        employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
-      )
-      .is("archived_at", null)
-      .gte("date", weekStart)
-      .lte("date", weekEnd),
+    usesWishes
+      ? supabase
+          .from("availability")
+          .select("id, employee_id, date, kind, from_time, to_time, note")
+          .in(
+            "employee_id",
+            employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"],
+          )
+          .is("archived_at", null)
+          .gte("date", weekStart)
+          .lte("date", weekEnd)
+      : Promise.resolve({ data: [] as never[] }),
     validateWeek(supabase, {
       organizationId: ctx.organization.id,
       employeeIds,

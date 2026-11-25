@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff, LogIn, LogOut } from "lucide-react";
+import { CloudOff, LogIn, LogOut, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import type { PostingDimension } from "@/lib/domain/posting";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/domain/stamp-queue";
 import { localParts } from "@/lib/domain/schedule-time";
 import { stampQuestion, type DeviationReason } from "@/lib/domain/deviation";
+import { currentPosition } from "@/lib/geolocation";
 import { formatMinutes } from "@vagtplan/rules-engine";
 import { da } from "@/lib/i18n/da";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,22 @@ const subscribe = (l: () => void) => {
     window.removeEventListener("storage", onStorage);
   };
 };
+const EXPLAINED_KEY = "turnus.location-explained";
+function locationExplained(): boolean {
+  try {
+    return localStorage.getItem(EXPLAINED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function rememberLocationExplained() {
+  try {
+    localStorage.setItem(EXPLAINED_KEY, "1");
+  } catch {
+    // Private mode: the explanation is shown again next time.
+  }
+}
+
 const EMPTY: QueuedStamp[] = [];
 
 export function StampCard({
@@ -69,6 +86,7 @@ export function StampCard({
   thresholdMinutes = 5,
   stampPlans = [],
   openPlan = null,
+  requireLocation = false,
 }: {
   organizationId: string;
   /** The signed-in employee: queued stamps of anyone else on the device are not sent. */
@@ -85,6 +103,8 @@ export function StampCard({
   stampPlans?: { start: string; end: string }[];
   /** The plan of the open registration (for stamping out). */
   openPlan?: { start: string; end: string } | null;
+  /** The organization only accepts stamps at a workplace: the position goes with the stamp. */
+  requireLocation?: boolean;
 }) {
   const t = da.time;
   const [choice, setChoice] = useState<Record<string, string>>({});
@@ -156,7 +176,28 @@ export function StampCard({
     >;
   } | null>(null);
   const [reasonId, setReasonId] = useState("");
-  const save = (action: "in" | "out", at: string, reason?: { id: string; at: "start" | "end" }) => {
+  type Pending = { action: "in" | "out"; at: string; reason?: { id: string; at: "start" | "end" } };
+  // The first time the position is needed, the employee is told why (once per device).
+  const [explaining, setExplaining] = useState<Pending | null>(null);
+  const [locating, setLocating] = useState(false);
+  const enqueueStamp = async ({ action, at, reason }: Pending) => {
+    setAsking(null);
+    setReasonId("");
+    let position: QueuedStamp["position"];
+    if (requireLocation) {
+      setLocating(true);
+      setMessage({ text: t.locating, tone: "info" });
+      const r = await currentPosition();
+      setLocating(false);
+      if (!r.ok) {
+        setMessage({
+          text: r.reason === "denied" ? t.locationDenied : t.locationUnavailable,
+          tone: "error",
+        });
+        return;
+      }
+      position = { latitude: r.latitude, longitude: r.longitude, accuracy: r.accuracy };
+    }
     writeQueue(
       enqueue(readQueue(), {
         clientId: crypto.randomUUID(),
@@ -166,12 +207,19 @@ export function StampCard({
         employeeId,
         ...(action === "in" && Object.keys(choice).length ? { posting: choice } : {}),
         ...(reason ? { reasonId: reason.id, reasonAt: reason.at } : {}),
+        ...(position ? { position } : {}),
       }),
     );
     setMessage(null);
-    setAsking(null);
-    setReasonId("");
     void flush();
+  };
+  const save = (action: "in" | "out", at: string, reason?: { id: string; at: "start" | "end" }) => {
+    if (requireLocation && !locationExplained()) {
+      setAsking(null);
+      setExplaining({ action, at, ...(reason ? { reason } : {}) });
+      return;
+    }
+    void enqueueStamp({ action, at, ...(reason ? { reason } : {}) });
   };
   const stamp = (action: "in" | "out") => {
     const at = new Date().toISOString();
@@ -247,12 +295,12 @@ export function StampCard({
             ))}
           </div>
         ) : null}
-        {asking ? null : state.in ? (
+        {asking || explaining ? null : state.in ? (
           <Button
             size="lg"
             className="w-full sm:w-auto pointer-coarse:h-14 pointer-coarse:text-base"
             variant="outline"
-            disabled={disabled}
+            disabled={disabled || locating}
             onClick={() => stamp("out")}
           >
             <LogOut /> {t.stampOut}
@@ -261,7 +309,7 @@ export function StampCard({
           <Button
             size="lg"
             className="w-full sm:w-auto pointer-coarse:h-14 pointer-coarse:text-base"
-            disabled={disabled}
+            disabled={disabled || locating}
             onClick={() => stamp("in")}
           >
             <LogIn /> {t.stampIn}
@@ -313,6 +361,32 @@ export function StampCard({
             </Button>
           </div>
         </fieldset>
+      ) : null}
+      {explaining ? (
+        <div
+          className="mt-4 grid gap-3 rounded-xl border bg-card p-4"
+          data-testid="location-explain"
+        >
+          <p className="flex items-center gap-2 font-medium">
+            <MapPin className="size-4 text-primary" aria-hidden /> {t.locationExplainTitle}
+          </p>
+          <p className="text-sm text-muted-foreground">{t.locationExplain}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => {
+                rememberLocationExplained();
+                const p = explaining;
+                setExplaining(null);
+                void enqueueStamp(p);
+              }}
+            >
+              {t.locationContinue}
+            </Button>
+            <Button variant="ghost" onClick={() => setExplaining(null)}>
+              {t.locationCancel}
+            </Button>
+          </div>
+        </div>
       ) : null}
       {message ? (
         <p

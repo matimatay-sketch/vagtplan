@@ -48,6 +48,7 @@ export const employeeSchema = (today: string) =>
       school_obligated: checkbox,
       school_obligation_ends_on: optionalIsoDate,
       hired_on: optionalIsoDate,
+      stamp_anywhere: checkbox,
     })
     .superRefine((val, ctx) => {
       if (val.school_obligation_ends_on && !val.school_obligated) {

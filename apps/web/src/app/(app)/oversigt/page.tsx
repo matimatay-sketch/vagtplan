@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
+import { stampNeedsLocation } from "@/lib/time/location";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -87,11 +88,12 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
   const stamping = ctx.employee
     ? await (async () => {
         const id = ctx.employee!.id;
-        const [overview, posting, deviation, plans] = await Promise.all([
+        const [overview, posting, deviation, plans, needsLocation] = await Promise.all([
           loadTimeOverview(supabase, ctx, { from: addDays(today, -1), to: today, onlyMine: true }),
           stampPostingFor(supabase, id),
           loadDeviationContext(supabase, ctx.organization.id),
           loadStampPlans(supabase, id),
+          stampNeedsLocation(supabase, ctx.organization.id, id),
         ]);
         if (overview.exempt.has(id)) return null;
         const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
@@ -101,6 +103,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
           posting,
           deviation,
           plans,
+          needsLocation,
           openPlan: open?.plan ? { start: open.plan.start, end: open.plan.end } : null,
         };
       })()
@@ -290,6 +293,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/oversig
             thresholdMinutes={stamping.deviation.thresholdMinutes}
             stampPlans={stamping.plans}
             openPlan={stamping.openPlan}
+            requireLocation={stamping.needsLocation}
           />
         </section>
       ) : null}

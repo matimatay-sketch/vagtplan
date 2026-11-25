@@ -13,6 +13,7 @@ import { archiveShifts, blockingFor } from "@/lib/schedule/proposals";
 import { formatHours } from "@/lib/domain/numbers";
 import type { Json } from "@/lib/supabase/database.types";
 import { da } from "@/lib/i18n/da";
+import { departmentUsesWishes } from "@/lib/schedule/wishes";
 
 const t = da.autoSchedule;
 /** Rounds of "plan → check the rules → plan around what was turned down". */
@@ -79,6 +80,7 @@ export async function autoScheduleAction(raw: z.input<typeof input>): Promise<Au
   );
   const ids = employees.map((e) => e.id);
   const none = ["00000000-0000-0000-0000-000000000000"];
+  const usesWishes = await departmentUsesWishes(supabase, ctx.organization.id, departmentId);
   const [{ data: existing }, { data: availability }, { data: absences }] = await Promise.all([
     // All the employees' shifts in the week, in any department: they count toward the norm.
     supabase
@@ -88,13 +90,15 @@ export async function autoScheduleAction(raw: z.input<typeof input>): Promise<Au
       .is("archived_at", null)
       .gte("start_at", from)
       .lt("start_at", to),
-    supabase
-      .from("availability")
-      .select("employee_id, date, kind, from_time, to_time")
-      .in("employee_id", ids.length ? ids : none)
-      .is("archived_at", null)
-      .gte("date", weekStart)
-      .lte("date", dates[6]!),
+    usesWishes
+      ? supabase
+          .from("availability")
+          .select("employee_id, date, kind, from_time, to_time")
+          .in("employee_id", ids.length ? ids : none)
+          .is("archived_at", null)
+          .gte("date", weekStart)
+          .lte("date", dates[6]!)
+      : Promise.resolve({ data: [] as never[] }),
     supabase
       .from("absence")
       .select("employee_id, from_date, to_date")

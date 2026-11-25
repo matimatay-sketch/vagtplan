@@ -109,14 +109,16 @@ export const da = {
         : `${n} vagter de næste 14 dage er udækket pga. fravær`,
   },
   departments: {
-    messagingTitle: "Beskeder og vagtbytte",
+    messagingTitle: "Beskeder, vagtbytte og ønsker",
+    availability: "Medarbejderønsker",
+    availabilityInherit: (state: string) => `Som virksomheden (${state.toLowerCase()})`,
     swapApproval: "Vagtbytte skal godkendes af en leder",
     messageEmail: "Send også nye beskeder på e-mail",
     messageEmailHelp:
       "Gælder medarbejdere med afdelingen som primær afdeling og afdelingens ledere. E-mailen fortæller kun, at der er en ny besked. Selve beskeden står kun i Turnus.",
     emailNotConfigured:
       "E-mail er ikke sat op endnu (SMTP_URL mangler på serveren), så beskederne sendes kun i appen indtil da.",
-    saveMessaging: "Gem beskedindstillinger",
+    saveMessaging: "Gem afdelingens indstillinger",
     title: "Afdelinger",
     lead: 'Afdelinger samler medarbejdere og vagter. Ansvarlige får adgang efter deres rettighedsprofil (omfanget "Egne afdelinger").',
     name: "Navn",
@@ -180,6 +182,9 @@ export const da = {
     departments: "Afdelinger",
     primary: "Primær",
     schoolObligated: "Undervisningspligtig",
+    stampAnywhere: "Må stemple uden for arbejdspladsen",
+    stampAnywhereHelp:
+      "Fx kørende personale. Gælder kun, når stempling kun på arbejdspladsen er slået til under Opsætning.",
     schoolObligatedHelp:
       "Unge under undervisningspligt har skærpede regler for arbejdstid. Gælder typisk til og med 9. klasse.",
     schoolObligationEndsOn: "Undervisningspligt ophører",
@@ -774,6 +779,59 @@ export const da = {
         `${perms === 1 ? "1 rettighed" : `${perms} rettigheder`} · ${users === 1 ? "1 bruger" : `${users} brugere`}`,
     },
   },
+  employeeOptions: {
+    title: "Medarbejdernes muligheder",
+    help: "Gælder hele virksomheden. Ønsker kan også slås til eller fra for den enkelte afdeling under Afdelinger.",
+    wishes: "Medarbejderønsker",
+    wishesHelp:
+      'Medarbejderne kan ønske fri eller ønske at arbejde på Min vagtplan. Slået fra kan de ikke lave nye ønsker, og "Lav forslag" ser bort fra dem, der er lavet.',
+    geofence: "Stempling kun på arbejdspladsen",
+    geofenceHelp:
+      "Medarbejderne kan kun stemple, når telefonen er inden for radius af en af deres arbejdspladser. Lederen kan stadig registrere tid for dem. Medarbejdere, der må stemple overalt, sættes på medarbejderen.",
+    on: "Slået til",
+    off: "Slået fra",
+    turnOn: "Slå til",
+    turnOff: "Slå fra",
+    workplaces: (n: number) => (n === 1 ? "1 arbejdsplads" : `${n} arbejdspladser`),
+    manageWorkplaces: "Arbejdspladser",
+    needsWorkplace: "Opret mindst én arbejdsplads, før stempling kun på arbejdspladsen slås til.",
+    notice:
+      "Medarbejderne skal have besked, før deres position bruges ved stempling. Positionsregistrering er en kontrolforanstaltning, som normalt skal varsles 6 uger før.",
+  },
+  workplaces: {
+    title: "Arbejdspladser",
+    help: 'Med "Stempling kun på arbejdspladsen" slået til kan medarbejderne kun stemple, når telefonen er inden for radius af en arbejdsplads. En arbejdsplads uden afdelinger gælder for alle. Turnus gemmer kun, hvilken arbejdsplads der var nærmest, og afstanden, aldrig selve positionen.',
+    lead: "Steder, hvor medarbejderne må stemple",
+    empty: "Der er ingen arbejdspladser endnu.",
+    add: "Tilføj arbejdsplads",
+    edit: "Ret",
+    editTitle: "Ret arbejdsplads",
+    newTitle: "Ny arbejdsplads",
+    name: "Navn",
+    address: "Adresse (valgfri)",
+    coordinates: "Position",
+    coordinatesHelp:
+      'Bredde- og længdegrad, fx 55.6761, 12.5683. Højreklik på stedet i Google Maps for at kopiere dem, eller stå på stedet og tryk "Brug min position".',
+    useMyPosition: "Brug min position",
+    locating: "Finder position …",
+    positionFailed:
+      "Positionen kunne ikke findes. Tillad placering i browseren, eller skriv den ind.",
+    radius: "Radius i meter",
+    radiusHelp: "Hvor langt fra positionen man må stemple. 100–300 m passer til de fleste steder.",
+    radiusRange: "Radius skal være mellem 25 og 5.000 m.",
+    invalidPosition: "Skriv positionen som bredde- og længdegrad, fx 55.6761, 12.5683.",
+    departments: "Afdelinger",
+    departmentsHelp: "Vælg ingen for at lade arbejdspladsen gælde for alle afdelinger.",
+    allDepartments: "Alle afdelinger",
+    save: "Gem arbejdsplads",
+    create: "Opret arbejdsplads",
+    saved: "Arbejdspladsen er gemt.",
+    remove: "Slet",
+    removeConfirm: (name: string) => `Slet arbejdspladsen ${name}?`,
+    removed: "Arbejdspladsen er slettet.",
+    showOnMap: "Vis på kort",
+    radiusShort: (m: number) => `${m.toLocaleString("da-DK")} m`,
+  },
   dayparts: {
     legend: "Vagtens farve viser, hvornår på døgnet den starter",
     morning: "Morgen",
@@ -923,6 +981,8 @@ export const da = {
     from: "Fra",
     to: "Til",
     note: "Bemærkning",
+    wishesOff:
+      "Din arbejdsplads tager ikke imod ønsker lige nu. Dine ønsker herunder bliver ikke brugt i planlægningen.",
     noAvailability: "Du har ikke registreret noget.",
     removeAvailability: "Fjern",
   },
@@ -1113,9 +1173,27 @@ export const da = {
       n === 1 ? "1 stempling venter på netværk" : `${n} stemplinger venter på netværk`,
     savedOffline: "Gemt på enheden. Den sendes, når der er netværk igen.",
     synced: "Stemplingen er registreret.",
+    locating: "Finder din placering …",
+    stampPlace: (at: "in" | "out", workplace: string, metres: number) =>
+      `${at === "in" ? "Ind" : "Ud"} ved ${workplace} (${metres.toLocaleString("da-DK")} m)`,
+    locationDenied:
+      "Turnus har ikke lov til at bruge din placering. Tillad placering for Turnus i telefonens indstillinger, og prøv igen.",
+    locationUnavailable:
+      "Din placering kunne ikke findes. Gå udenfor eller tæt på et vindue, og prøv igen.",
+    locationExplainTitle: "Turnus bruger din placering",
+    locationExplain:
+      "Din arbejdsgiver har valgt, at man kun kan stemple på arbejdspladsen. Når du stempler, tjekker Turnus én gang, om du er tæt på din arbejdsplads. Turnus gemmer kun, hvilken arbejdsplads du var ved, og hvor langt fra den du var, ikke din position, og følger dig ikke.",
+    locationContinue: "Fortsæt",
+    locationCancel: "Annullér",
     rejected: {
       already_in: "Du var allerede stemplet ind.",
       not_in: "Du var ikke stemplet ind.",
+      outside_workplace:
+        "Du er ikke på din arbejdsplads, så stemplingen er ikke registreret. Kontakt din leder, hvis det er en fejl.",
+      location_required:
+        "Turnus skal kende din placering for at stemple. Slå placering til, og prøv igen.",
+      no_workplace:
+        "Du er ikke tilknyttet en arbejdsplads, så du kan ikke stemple. Kontakt din leder.",
       unknown: "Stemplingen kunne ikke registreres.",
     } as Record<string, string>,
     missingTitle: "Mangler registrering",

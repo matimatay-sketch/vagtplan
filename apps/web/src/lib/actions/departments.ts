@@ -23,6 +23,8 @@ export async function createDepartmentAction(
     .insert({ organization_id: ctx.organization.id, name: parsed.data.name });
   if (error) return { message: dbErrorMessage(error, nameTaken), values };
   revalidatePath("/afdelinger");
+  revalidatePath("/min-vagtplan");
+  revalidatePath("/vagtplan", "layout");
   return { ok: true, message: da.common.saved };
 }
 
@@ -41,6 +43,8 @@ export async function renameDepartmentAction(
     .eq("id", parsed.data.id);
   if (error) return { message: dbErrorMessage(error, nameTaken), values };
   revalidatePath("/afdelinger");
+  revalidatePath("/min-vagtplan");
+  revalidatePath("/vagtplan", "layout");
   return { ok: true, message: da.common.saved };
 }
 
@@ -121,6 +125,7 @@ export async function updateDepartmentMessagingAction(
       id: z.guid(),
       swap_requires_approval: z.string().nullish(),
       message_email: z.string().nullish(),
+      availability_enabled: z.enum(["inherit", "on", "off"]).default("inherit"),
     })
     .safeParse(Object.fromEntries(formData));
   if (!input.success) return { message: da.common.unknownError };
@@ -130,11 +135,17 @@ export async function updateDepartmentMessagingAction(
     .update({
       swap_requires_approval: !!input.data.swap_requires_approval,
       message_email: !!input.data.message_email,
+      availability_enabled:
+        input.data.availability_enabled === "inherit"
+          ? null
+          : input.data.availability_enabled === "on",
     })
     .eq("id", input.data.id)
     .select("id");
   if (error) return { message: dbErrorMessage(error) };
   if (!data?.length) return { message: da.common.notAllowed };
   revalidatePath("/afdelinger");
+  revalidatePath("/min-vagtplan");
+  revalidatePath("/vagtplan", "layout");
   return { ok: true, message: da.common.saved };
 }

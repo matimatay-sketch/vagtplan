@@ -32,6 +32,7 @@ import {
 import { PAY_SYSTEM, SCHEDULE_SYSTEM } from "@/lib/assistant/prompts";
 import type { Json } from "@/lib/supabase/database.types";
 import { da } from "@/lib/i18n/da";
+import { departmentUsesWishes } from "@/lib/schedule/wishes";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 const t = da.assistant;
@@ -239,14 +240,17 @@ export async function proposeScheduleAction(input: {
   );
   const ids = employees.map((e) => e.id);
   const none = ["00000000-0000-0000-0000-000000000000"];
+  const usesWishes = await departmentUsesWishes(supabase, ctx.organization.id, departmentId);
   const [{ data: availability }, { data: absences }] = await Promise.all([
-    supabase
-      .from("availability")
-      .select("employee_id, date, kind, from_time, to_time")
-      .in("employee_id", ids.length ? ids : none)
-      .is("archived_at", null)
-      .gte("date", weekStart)
-      .lte("date", dates[6]!),
+    usesWishes
+      ? supabase
+          .from("availability")
+          .select("employee_id, date, kind, from_time, to_time")
+          .in("employee_id", ids.length ? ids : none)
+          .is("archived_at", null)
+          .gte("date", weekStart)
+          .lte("date", dates[6]!)
+      : Promise.resolve({ data: [] as never[] }),
     supabase
       .from("absence")
       .select("employee_id, type_code, from_date, to_date")

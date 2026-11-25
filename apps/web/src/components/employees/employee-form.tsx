@@ -18,6 +18,7 @@ type Employee = {
   school_obligated: boolean;
   school_obligation_ends_on: string | null;
   hired_on: string | null;
+  stamp_anywhere: boolean;
 };
 
 export function EmployeeForm({
@@ -120,6 +121,21 @@ export function EmployeeForm({
           </Field>
         ) : null}
       </fieldset>
+      <label className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
+        <Checkbox
+          name="stamp_anywhere"
+          className="mt-0.5"
+          defaultChecked={
+            state.values
+              ? state.values.stamp_anywhere === "on"
+              : (employee?.stamp_anywhere ?? false)
+          }
+        />
+        <span>
+          <span className="block text-sm font-medium">{t.stampAnywhere}</span>
+          <span className="block text-xs text-muted-foreground">{t.stampAnywhereHelp}</span>
+        </span>
+      </label>
       <div>
         <SubmitButton>{submitLabel}</SubmitButton>
       </div>

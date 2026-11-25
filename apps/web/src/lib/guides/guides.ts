@@ -62,6 +62,7 @@ export const GUIDES: Guide[] = [
         text: [
           "Stempl ind, når du møder, og ud, når du går. Det virker også uden netværk: stemplingen gemmes på telefonen og sendes, når der er forbindelse igen.",
           "Kommer eller går du mere end et par minutter før eller efter vagten, eller stempler du uden en vagt, spørger Turnus om årsagen. Vælg den, der passer. Årsagen kan betyde, at tiden bliver til afspadsering eller fravær, så vælg den rigtige.",
+          "Har din arbejdsgiver valgt, at man kun kan stemple på arbejdspladsen, beder Turnus om din placering, når du stempler. Turnus tjekker kun, om du er tæt på arbejdspladsen, og gemmer ikke din position. Er du for langt væk, bliver stemplingen ikke registreret.",
         ],
         steps: [
           "Tryk Stempl ind på Oversigt eller Tid.",
@@ -320,6 +321,7 @@ export const GUIDES: Guide[] = [
         title: "Opsætning",
         text: [
           "Under Opsætning sætter du virksomhedens regler: varsling, vagttillæg, afvigelsesårsager, normprocent, helligdage og egne regler, der gælder oven i overenskomsterne.",
+          "Under Medarbejdernes muligheder slår du medarbejderønsker og stempling kun på arbejdspladsen til og fra. Arbejdspladserne (position og radius) opretter du under Arbejdspladser. Ønsker kan også slås til og fra for den enkelte afdeling under Afdelinger, og en medarbejder, der må stemple overalt, sættes på medarbejderen.",
           "Afvigelsesårsager bestemmer, hvad der sker med lønnen, når nogen kommer eller går før eller efter vagten: kun statistik, udbetaling, afspadsering eller fravær.",
         ],
         image: "admin-opsaetning.jpg",

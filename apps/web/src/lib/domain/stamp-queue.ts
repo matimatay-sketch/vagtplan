@@ -16,6 +16,8 @@ export type QueuedStamp = {
   /** Deviation reason chosen when stamping (start: in or without a shift; end: out). */
   reasonId?: string;
   reasonAt?: "start" | "end";
+  /** Where the device was when the button was pressed (only when the organization requires it). */
+  position?: { latitude: number; longitude: number; accuracy: number };
 };
 
 export type StampResult =

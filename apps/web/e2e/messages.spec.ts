@@ -27,7 +27,7 @@ async function setMessageEmail(page: Page, on: boolean) {
   const form = page.getByTestId("department-messaging-Butik");
   const box = form.getByLabel("Send også nye beskeder på e-mail");
   if ((await box.isChecked()) !== on) await box.setChecked(on);
-  await form.getByRole("button", { name: "Gem beskedindstillinger" }).click();
+  await form.getByRole("button", { name: "Gem afdelingens indstillinger" }).click();
   await expect(form.getByText("Gemt")).toBeVisible();
 }
 

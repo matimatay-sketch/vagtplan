@@ -41,6 +41,7 @@ Turnus har et REST API (`/api/v1`) og webhooks, så lønsystemer, stempelure, HR
 ```
 
 - `client_id` er en UUID, som terminalen laver pr. stempling. Sendes den samme igen, oprettes der ingen dublet.
+- Stempling via API (fx en terminal på arbejdspladsen) tjekkes ikke mod arbejdspladsernes radius. Det gør kun stempling i appen.
 - `at` er valgfri og må højst ligge 7 dage tilbage. Stemplinger, der kommer mere end 5 minutter for sent, markeres som "offline".
 
 ## Webhooks

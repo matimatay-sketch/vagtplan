@@ -34,6 +34,13 @@ const stampSchema = z
       posting: z.record(z.guid(), z.guid()).optional(),
       reasonId: z.guid().optional(),
       reasonAt: z.enum(["start", "end"]).optional(),
+      position: z
+        .object({
+          latitude: z.number().min(-90).max(90),
+          longitude: z.number().min(-180).max(180),
+          accuracy: z.number().min(0).max(100_000),
+        })
+        .optional(),
     }),
   )
   .max(50);
@@ -53,6 +60,13 @@ export async function syncStampsAction(input: unknown): Promise<StampResult[]> {
       p_client_id: e.clientId,
       p_action: e.action,
       p_at: e.at,
+      ...(e.position
+        ? {
+            p_latitude: e.position.latitude,
+            p_longitude: e.position.longitude,
+            p_accuracy: e.position.accuracy,
+          }
+        : {}),
       ...(e.posting && Object.keys(e.posting).length
         ? {
             p_posting_allocations: asJson([

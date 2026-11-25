@@ -26,6 +26,7 @@ import {
   DeviationThresholdForm,
 } from "@/components/settings/deviation-reasons";
 import { LazyDetails } from "@/components/lazy-details";
+import { EmployeeOptionToggle } from "@/components/settings/employee-options";
 import { loadAgreements } from "@/lib/engine";
 import type { DeviationReason } from "@/lib/domain/deviation";
 import { da } from "@/lib/i18n/da";
@@ -55,6 +56,7 @@ export default async function SettingsPage() {
     { count: assistantUsage },
     { data: norm },
     { data: agreements },
+    { count: workplaceCount },
   ] = await Promise.all([
     loadOrganizationSettings(supabase, ctx.organization.id),
     supabase
@@ -72,7 +74,7 @@ export default async function SettingsPage() {
     supabase
       .from("organization_settings")
       .select(
-        "norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call, default_agreement_id, deviation_threshold_minutes",
+        "norm_percent_work, norm_percent_on_call, norm_in_pay_work, norm_in_pay_on_call, default_agreement_id, deviation_threshold_minutes, availability_enabled, geofence_enabled",
       )
       .eq("organization_id", ctx.organization.id)
       .maybeSingle(),
@@ -82,6 +84,11 @@ export default async function SettingsPage() {
       .in("kind", ["agreement", "base"])
       .eq("is_example", false)
       .order("name"),
+    supabase
+      .from("workplace")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", ctx.organization.id)
+      .is("archived_at", null),
   ]);
   const [{ data: reasonRows }, engine] = await Promise.all([
     supabase
@@ -110,6 +117,7 @@ export default async function SettingsPage() {
     .sort((a, b) => a.label.localeCompare(b.label, "da"));
   const links = [
     { href: "/indstillinger/lonperioder", label: da.nav.payPeriodGroups, show: true },
+    { href: "/indstillinger/arbejdspladser", label: da.workplaces.title, show: true },
     {
       href: "/indstillinger/overenskomster",
       label: da.nav.agreements,
@@ -318,6 +326,32 @@ export default async function SettingsPage() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+        <Card data-testid="employee-options">
+          <CardHeader>
+            <CardTitle>
+              {da.employeeOptions.title}
+              <HelpTip>{da.employeeOptions.help}</HelpTip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 text-sm">
+            <EmployeeOptionToggle
+              option="availability_enabled"
+              enabled={norm?.availability_enabled ?? true}
+            />
+            <EmployeeOptionToggle
+              option="geofence_enabled"
+              enabled={norm?.geofence_enabled ?? false}
+            >
+              <Link
+                href="/indstillinger/arbejdspladser"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {da.employeeOptions.workplaces(workplaceCount ?? 0)}
+              </Link>
+            </EmployeeOptionToggle>
+            <p className="text-muted-foreground">{da.employeeOptions.notice}</p>
           </CardContent>
         </Card>
         <Card data-testid="assistant-settings">

@@ -10,6 +10,7 @@ import { loadTimeOverview } from "@/lib/time/load";
 import { loadSupplementOptions } from "@/lib/time/supplements";
 import { loadPostingDimensions } from "@/lib/posting/load";
 import { stampPostingFor } from "@/lib/time/stamp-context";
+import { stampNeedsLocation } from "@/lib/time/location";
 import { loadDeviationContext, loadStampPlans } from "@/lib/time/deviation-context";
 import { da } from "@/lib/i18n/da";
 
@@ -38,9 +39,10 @@ export default async function TimePage() {
   ]);
   const open = overview.rows.find((r) => r.kind === "entry" && r.status === "open");
   const stampPosting = await stampPostingFor(supabase, ctx.employee.id, posting);
-  const [deviation, stampPlans] = await Promise.all([
+  const [deviation, stampPlans, needsLocation] = await Promise.all([
     loadDeviationContext(supabase, ctx.organization.id),
     loadStampPlans(supabase, ctx.employee.id),
+    stampNeedsLocation(supabase, ctx.organization.id, ctx.employee.id),
   ]);
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
 
@@ -58,6 +60,7 @@ export default async function TimePage() {
           thresholdMinutes={deviation.thresholdMinutes}
           stampPlans={stampPlans}
           openPlan={open?.plan ? { start: open.plan.start, end: open.plan.end } : null}
+          requireLocation={needsLocation}
         />
         <MyEntries
           rows={overview.rows}

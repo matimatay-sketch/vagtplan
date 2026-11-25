@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
-import { AlertTriangle, CheckCheck, CloudOff, Info, Plus, Tags } from "lucide-react";
+import { AlertTriangle, CheckCheck, CloudOff, Info, MapPin, Plus, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { completeAsPlannedAction } from "@/lib/actions/time";
@@ -86,6 +86,12 @@ export function RowDetails({
       {row.reasonNames.map((name) => (
         <span key={name} className="rounded border px-1 text-foreground" data-testid="row-reason">
           {da.deviationReasons.badge(name)}
+        </span>
+      ))}
+      {row.stampPlaces.map((p) => (
+        <span key={p.at} className="inline-flex items-center gap-1" data-testid="row-stamp-place">
+          <MapPin className="size-3" aria-hidden />
+          {t.stampPlace(p.at, p.workplace, p.distanceM)}
         </span>
       ))}
       {row.postingAllocations.length ? (
